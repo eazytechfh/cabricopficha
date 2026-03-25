@@ -1,13 +1,43 @@
+async function waitForImages(element: HTMLElement) {
+  const images = Array.from(element.querySelectorAll("img"))
+
+  await Promise.all(
+    images.map((image) => {
+      if (image.complete) {
+        return Promise.resolve()
+      }
+
+      return new Promise<void>((resolve) => {
+        const done = () => resolve()
+        image.addEventListener("load", done, { once: true })
+        image.addEventListener("error", done, { once: true })
+      })
+    })
+  )
+}
+
 export async function generatePdf(element: HTMLElement, filename: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
     import("html2canvas"),
     import("jspdf/dist/jspdf.es.min.js"),
   ])
 
+  if ("fonts" in document) {
+    await document.fonts.ready
+  }
+
+  await waitForImages(element)
+  await new Promise((resolve) => setTimeout(resolve, 120))
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     backgroundColor: "#ffffff",
+    logging: false,
+    scrollX: 0,
+    scrollY: 0,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
   })
 
   const imageData = canvas.toDataURL("image/png")

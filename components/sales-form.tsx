@@ -217,8 +217,17 @@ export default function SalesForm() {
 
       if (response.ok) {
         const pdfElement = pdfContainerRef.current
-        if (pdfElement) {
+        if (!pdfElement) {
+          throw new Error("Ficha PDF nao encontrada no DOM.")
+        }
+
+        try {
           await generatePdf(pdfElement, getPdfFilename(fichaData.nomeCliente))
+        } catch (pdfError) {
+          console.error("[pdf] erro ao gerar arquivo:", pdfError)
+          setSubmitStatus("error")
+          setStatusMessage("Os dados foram salvos, mas houve falha ao gerar o PDF. Tente novamente.")
+          return
         }
 
         setSubmitStatus("success")
@@ -715,6 +724,7 @@ export default function SalesForm() {
           top: 0,
           zIndex: -1,
           pointerEvents: "none",
+          background: "#ffffff",
         }}
       >
         {pdfData && (
