@@ -17,14 +17,22 @@ type PhoneEntry = {
 
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
 
+function parseCurrencyInput(value: string) {
+  const normalized = Number.parseFloat(value)
+  return Number.isFinite(normalized) ? normalized : 0
+}
+
 export default function SalesForm() {
   const [phones, setPhones] = useState<PhoneEntry[]>([{ id: 1, value: "" }])
   const [formaPagamento, setFormaPagamento] = useState("")
   const [banco, setBanco] = useState("")
+  const [valorTotal, setValorTotal] = useState("")
+  const [valorEntrada, setValorEntrada] = useState("")
   const [showOutroBanco, setShowOutroBanco] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
   const [statusMessage, setStatusMessage] = useState("")
   const [observacoes, setObservacoes] = useState("")
+  const valorRestante = Math.max(parseCurrencyInput(valorTotal) - parseCurrencyInput(valorEntrada), 0)
 
   const addPhone = () => {
     const newId = phones.length > 0 ? Math.max(...phones.map(p => p.id)) + 1 : 1
@@ -79,6 +87,8 @@ export default function SalesForm() {
       formaPagamento,
       banco: showOutroBanco ? formData.get('outroBanco') : banco,
       valorTotal: formData.get('valorTotal'),
+      valorEntrada: formData.get('valorEntrada'),
+      valorRestante,
 
       // Sobre o Processo
       instanciaProcesso: formData.get('instanciaProcesso'),
@@ -123,6 +133,8 @@ export default function SalesForm() {
         setPhones([{ id: 1, value: "" }])
         setFormaPagamento("")
         setBanco("")
+        setValorTotal("")
+        setValorEntrada("")
         setShowOutroBanco(false)
         setObservacoes("")
       } else {
@@ -359,11 +371,58 @@ export default function SalesForm() {
                 </div>
               )}
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="valorTotal">Valor Total</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                    <Input
+                      id="valorTotal"
+                      name="valorTotal"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="pl-10"
+                      value={valorTotal}
+                      onChange={(e) => setValorTotal(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="valorEntrada">Valor de Entrada</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                    <Input
+                      id="valorEntrada"
+                      name="valorEntrada"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="pl-10"
+                      value={valorEntrada}
+                      onChange={(e) => setValorEntrada(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="valorTotal">Valor Total</Label>
+                <Label htmlFor="valorRestante">Valor Restante</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                  <Input id="valorTotal" name="valorTotal" type="number" step="0.01" min="0" placeholder="0,00" className="pl-10" required />
+                  <Input
+                    id="valorRestante"
+                    name="valorRestante"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="pl-10"
+                    value={valorRestante.toFixed(2)}
+                    readOnly
+                  />
                 </div>
               </div>
             </CardContent>
@@ -499,6 +558,8 @@ export default function SalesForm() {
                 setPhones([{ id: 1, value: "" }])
                 setFormaPagamento("")
                 setBanco("")
+                setValorTotal("")
+                setValorEntrada("")
                 setShowOutroBanco(false)
                 setObservacoes("")
                 setSubmitStatus('idle')
