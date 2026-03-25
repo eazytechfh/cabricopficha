@@ -26,39 +26,60 @@ export async function generatePdf(element: HTMLElement, filename: string) {
     await document.fonts.ready
   }
 
-  await waitForImages(element)
-  await new Promise((resolve) => setTimeout(resolve, 120))
+  const wrapper = document.createElement("div")
+  wrapper.style.position = "fixed"
+  wrapper.style.left = "0"
+  wrapper.style.top = "0"
+  wrapper.style.width = "1200px"
+  wrapper.style.padding = "24px"
+  wrapper.style.background = "#ffffff"
+  wrapper.style.zIndex = "-1"
+  wrapper.style.opacity = "1"
+  wrapper.style.pointerEvents = "none"
+  wrapper.style.overflow = "hidden"
 
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-    scrollX: 0,
-    scrollY: 0,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
-  })
+  const clone = element.cloneNode(true) as HTMLElement
+  wrapper.appendChild(clone)
+  document.body.appendChild(wrapper)
 
-  const imageData = canvas.toDataURL("image/png")
-  const pdf = new jsPDF("p", "mm", "a4")
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imageWidth = pageWidth
-  const imageHeight = (canvas.height * imageWidth) / canvas.width
+  await waitForImages(clone)
+  await new Promise((resolve) => setTimeout(resolve, 200))
 
-  let heightLeft = imageHeight
-  let position = 0
+  try {
+    const canvas = await html2canvas(clone, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: clone.scrollWidth,
+      windowHeight: clone.scrollHeight,
+      imageTimeout: 0,
+    })
 
-  pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight)
-  heightLeft -= pageHeight
+    const imageData = canvas.toDataURL("image/png")
+    const pdf = new jsPDF("p", "mm", "a4")
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const imageWidth = pageWidth
+    const imageHeight = (canvas.height * imageWidth) / canvas.width
 
-  while (heightLeft > 0) {
-    position = heightLeft - imageHeight
-    pdf.addPage()
+    let heightLeft = imageHeight
+    let position = 0
+
     pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight)
     heightLeft -= pageHeight
-  }
 
-  pdf.save(filename)
+    while (heightLeft > 0) {
+      position = heightLeft - imageHeight
+      pdf.addPage()
+      pdf.addImage(imageData, "PNG", 0, position, imageWidth, imageHeight)
+      heightLeft -= pageHeight
+    }
+
+    pdf.save(filename)
+  } finally {
+    wrapper.remove()
+  }
 }
