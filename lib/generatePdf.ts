@@ -27,12 +27,15 @@ export async function generatePdf(element: HTMLElement, filename: string) {
   }
 
   const wrapper = document.createElement("div")
+  wrapper.style.setProperty("all", "initial")
   wrapper.style.position = "fixed"
   wrapper.style.left = "0"
   wrapper.style.top = "0"
   wrapper.style.width = "1200px"
   wrapper.style.padding = "24px"
   wrapper.style.background = "#ffffff"
+  wrapper.style.color = "#000000"
+  wrapper.style.fontFamily = "Arial, sans-serif"
   wrapper.style.zIndex = "-1"
   wrapper.style.opacity = "1"
   wrapper.style.pointerEvents = "none"
