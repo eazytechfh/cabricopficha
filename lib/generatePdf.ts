@@ -26,27 +26,60 @@ export async function generatePdf(element: HTMLElement, filename: string) {
     await document.fonts.ready
   }
 
-  const wrapper = document.createElement("div")
-  wrapper.style.setProperty("all", "initial")
-  wrapper.style.position = "fixed"
-  wrapper.style.left = "0"
-  wrapper.style.top = "0"
-  wrapper.style.width = "1200px"
-  wrapper.style.padding = "24px"
-  wrapper.style.background = "#ffffff"
-  wrapper.style.color = "#000000"
-  wrapper.style.fontFamily = "Arial, sans-serif"
-  wrapper.style.zIndex = "-1"
-  wrapper.style.opacity = "1"
-  wrapper.style.pointerEvents = "none"
-  wrapper.style.overflow = "hidden"
+  const iframe = document.createElement("iframe")
+  iframe.style.position = "fixed"
+  iframe.style.right = "0"
+  iframe.style.bottom = "0"
+  iframe.style.width = "1200px"
+  iframe.style.height = "1600px"
+  iframe.style.opacity = "0"
+  iframe.style.pointerEvents = "none"
+  iframe.style.border = "0"
+  iframe.style.zIndex = "-1"
+  document.body.appendChild(iframe)
+
+  const iframeDocument = iframe.contentDocument
+  if (!iframeDocument) {
+    iframe.remove()
+    throw new Error("Nao foi possivel inicializar o documento do PDF.")
+  }
+
+  iframeDocument.open()
+  iframeDocument.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Ficha PDF</title>
+        <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            color: #000000;
+            font-family: Arial, sans-serif;
+          }
+          * {
+            box-sizing: border-box;
+          }
+        </style>
+      </head>
+      <body></body>
+    </html>
+  `)
+  iframeDocument.close()
+
+  const mount = iframeDocument.createElement("div")
+  mount.style.width = "1200px"
+  mount.style.padding = "24px"
+  mount.style.background = "#ffffff"
+  iframeDocument.body.appendChild(mount)
 
   const clone = element.cloneNode(true) as HTMLElement
-  wrapper.appendChild(clone)
-  document.body.appendChild(wrapper)
+  mount.appendChild(clone)
 
   await waitForImages(clone)
-  await new Promise((resolve) => setTimeout(resolve, 200))
+  await new Promise((resolve) => setTimeout(resolve, 250))
 
   try {
     const canvas = await html2canvas(clone, {
@@ -83,6 +116,6 @@ export async function generatePdf(element: HTMLElement, filename: string) {
 
     pdf.save(filename)
   } finally {
-    wrapper.remove()
+    iframe.remove()
   }
 }
