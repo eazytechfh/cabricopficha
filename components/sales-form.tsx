@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { flushSync } from "react-dom"
+import { createRoot } from "react-dom/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,8 +54,6 @@ export default function SalesForm() {
   const valorRestante = Math.max(parseCurrencyInput(valorTotal) - parseCurrencyInput(valorEntrada), 0)
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isDrawingRef = useRef(false)
-  const pdfContainerRef = useRef<HTMLDivElement | null>(null)
-  const [pdfData, setPdfData] = useState<FichaPdfData | null>(null)
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -193,18 +192,42 @@ export default function SalesForm() {
     return `ficha-${safeName}.pdf`
   }
 
+  const renderPdfElement = async (fichaData: FichaPdfData) => {
+    const host = document.createElement("div")
+    host.style.position = "fixed"
+    host.style.left = "0"
+    host.style.top = "0"
+    host.style.width = "1200px"
+    host.style.padding = "24px"
+    host.style.background = "#ffffff"
+    host.style.zIndex = "-1"
+    host.style.pointerEvents = "none"
+    host.style.opacity = "1"
+    document.body.appendChild(host)
+
+    const root = createRoot(host)
+    flushSync(() => {
+      root.render(<FichaPdf data={fichaData} />)
+    })
+
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
+
+    return {
+      host,
+      cleanup: () => {
+        root.unmount()
+        host.remove()
+      },
+    }
+  }
+
   const handleSalvarFicha = async (formElement: HTMLFormElement) => {
     setSubmitStatus("loading")
     setStatusMessage("")
 
     const fichaData = buildFichaData(formElement)
     const data = buildSubmitPayload(fichaData)
-
-    flushSync(() => {
-      setPdfData(fichaData)
-    })
-
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
 
     try {
       const response = await fetch("/api/submit-form", {
@@ -216,17 +239,18 @@ export default function SalesForm() {
       })
 
       if (response.ok) {
-        const pdfElement = pdfContainerRef.current
-        if (!pdfElement) {
-          throw new Error("Ficha PDF nao encontrada no DOM.")
-        }
-
         try {
-          await generatePdf(pdfElement, getPdfFilename(fichaData.nomeCliente))
+          const pdfRender = await renderPdfElement(fichaData)
+          try {
+            await generatePdf(pdfRender.host, getPdfFilename(fichaData.nomeCliente))
+          } finally {
+            pdfRender.cleanup()
+          }
         } catch (pdfError) {
           console.error("[pdf] erro ao gerar arquivo:", pdfError)
           setSubmitStatus("error")
-          setStatusMessage("Os dados foram salvos, mas houve falha ao gerar o PDF. Tente novamente.")
+          const detail = pdfError instanceof Error ? ` ${pdfError.message}` : ""
+          setStatusMessage(`Os dados foram salvos, mas houve falha ao gerar o PDF.${detail}`)
           return
         }
 
@@ -717,22 +741,6 @@ export default function SalesForm() {
         </footer>
       </main>
 
-      <div
-        style={{
-          position: "fixed",
-          left: "-99999px",
-          top: 0,
-          zIndex: -1,
-          pointerEvents: "none",
-          background: "#ffffff",
-        }}
-      >
-        {pdfData && (
-          <div ref={pdfContainerRef}>
-            <FichaPdf data={pdfData} />
-          </div>
-        )}
-      </div>
     </div>
   )
 }
