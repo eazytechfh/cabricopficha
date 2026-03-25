@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
+import FichaPdf, { type FichaPdfData } from "@/components/FichaPdf"
+import { generatePdf } from "@/lib/generatePdf"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Plus, X, Phone, Building2, CheckCircle2, XCircle } from "lucide-react"
 
 type PhoneEntry = {
@@ -50,6 +53,8 @@ export default function SalesForm() {
   const valorRestante = Math.max(parseCurrencyInput(valorTotal) - parseCurrencyInput(valorEntrada), 0)
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isDrawingRef = useRef(false)
+  const pdfContainerRef = useRef<HTMLDivElement | null>(null)
+  const [pdfData, setPdfData] = useState<FichaPdfData | null>(null)
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -129,14 +134,10 @@ export default function SalesForm() {
     setAssinaturaVistoJuridico("")
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setSubmitStatus("loading")
-    setStatusMessage("")
+  const buildFichaData = (formElement: HTMLFormElement): FichaPdfData => {
+    const formData = new FormData(formElement)
 
-    const formData = new FormData(e.currentTarget)
-
-    const data = {
+    return {
       dataContrato: formData.get("dataContrato"),
       prazoServico: formData.get("prazoServico"),
       nomeCliente: formData.get("nomeCliente"),
@@ -171,11 +172,39 @@ export default function SalesForm() {
       renavam: formData.get("renavam"),
       prazoMulta: formData.get("prazoMulta"),
       vistoJuridicoMulta: formData.get("vistoJuridicoMulta"),
+    } as FichaPdfData
+  }
+
+  const buildSubmitPayload = (fichaData: FichaPdfData) => {
+    return {
+      ...fichaData,
       observacoes,
+      assinaturaVistoJuridico: assinaturaVistoJuridico || null,
       dataEnvio: new Date().toISOString(),
     }
+  }
 
-    const formElement = e.currentTarget
+  const getPdfFilename = (nomeCliente: string) => {
+    const safeName = (nomeCliente || "cliente")
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^\wÀ-ÿ-]/g, "")
+
+    return `ficha-${safeName}.pdf`
+  }
+
+  const handleSalvarFicha = async (formElement: HTMLFormElement) => {
+    setSubmitStatus("loading")
+    setStatusMessage("")
+
+    const fichaData = buildFichaData(formElement)
+    const data = buildSubmitPayload(fichaData)
+
+    flushSync(() => {
+      setPdfData(fichaData)
+    })
+
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
 
     try {
       const response = await fetch("/api/submit-form", {
@@ -187,6 +216,11 @@ export default function SalesForm() {
       })
 
       if (response.ok) {
+        const pdfElement = pdfContainerRef.current
+        if (pdfElement) {
+          await generatePdf(pdfElement, getPdfFilename(fichaData.nomeCliente))
+        }
+
         setSubmitStatus("success")
         setStatusMessage("Ficha de venda salva com sucesso!")
         formElement.reset()
@@ -210,12 +244,17 @@ export default function SalesForm() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    await handleSalvarFicha(e.currentTarget)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-primary text-primary-foreground py-6 px-4 shadow-lg">
         <div className="max-w-5xl mx-auto flex items-center justify-center gap-4">
           <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cabricop%20logo-1cD17xGKKJoV5D9u0LLa04LKf9zkqK.png"
+            src="/logo.png"
             alt="CABRICOP - Especialistas em Defesas de Transito"
             className="h-12 md:h-16 w-auto"
           />
@@ -668,6 +707,22 @@ export default function SalesForm() {
           <p className="mt-1">{new Date().getFullYear()} CABRICOP. Todos os direitos reservados.</p>
         </footer>
       </main>
+
+      <div
+        style={{
+          position: "fixed",
+          left: "-99999px",
+          top: 0,
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+      >
+        {pdfData && (
+          <div ref={pdfContainerRef}>
+            <FichaPdf data={pdfData} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
