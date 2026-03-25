@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       numero_processo: data.numeroProcesso || null,
       prazo_processo: data.prazoProcesso || null,
       visto_juridico: data.vistoJuridico || null,
+      assinatura_visto_juridico: data.assinaturaVistoJuridico || null,
       instancia_multa: data.instanciaMulta || null,
       auto_detran: data.autoDetran || null,
       auto_renainf: data.autoRenainf || null,
@@ -86,3 +87,5 @@ export async function POST(request: Request) {
     )
   }
 }
+
+

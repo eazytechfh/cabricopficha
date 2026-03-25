@@ -23,6 +23,7 @@ create table if not exists public.fichas_venda (
   numero_processo text,
   prazo_processo date,
   visto_juridico text,
+  assinatura_visto_juridico text,
   instancia_multa text,
   auto_detran text,
   auto_renainf text,
@@ -45,3 +46,5 @@ for all
 to service_role
 using (true)
 with check (true);
+
+

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,11 +15,25 @@ type PhoneEntry = {
   value: string
 }
 
-type SubmitStatus = 'idle' | 'loading' | 'success' | 'error'
+type SubmitStatus = "idle" | "loading" | "success" | "error"
 
 function parseCurrencyInput(value: string) {
   const normalized = Number.parseFloat(value)
   return Number.isFinite(normalized) ? normalized : 0
+}
+
+function getCanvasPoint(
+  canvas: HTMLCanvasElement,
+  event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+) {
+  const rect = canvas.getBoundingClientRect()
+  const clientX = "touches" in event ? event.touches[0]?.clientX ?? 0 : event.clientX
+  const clientY = "touches" in event ? event.touches[0]?.clientY ?? 0 : event.clientY
+
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  }
 }
 
 export default function SalesForm() {
@@ -28,25 +42,41 @@ export default function SalesForm() {
   const [banco, setBanco] = useState("")
   const [valorTotal, setValorTotal] = useState("")
   const [valorEntrada, setValorEntrada] = useState("")
+  const [assinaturaVistoJuridico, setAssinaturaVistoJuridico] = useState("")
   const [showOutroBanco, setShowOutroBanco] = useState(false)
-  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle')
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle")
   const [statusMessage, setStatusMessage] = useState("")
   const [observacoes, setObservacoes] = useState("")
   const valorRestante = Math.max(parseCurrencyInput(valorTotal) - parseCurrencyInput(valorEntrada), 0)
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const isDrawingRef = useRef(false)
+
+  useEffect(() => {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+
+    const context = canvas.getContext("2d")
+    if (!context) return
+
+    context.lineWidth = 2
+    context.lineCap = "round"
+    context.lineJoin = "round"
+    context.strokeStyle = "#0f172a"
+  }, [])
 
   const addPhone = () => {
-    const newId = phones.length > 0 ? Math.max(...phones.map(p => p.id)) + 1 : 1
+    const newId = phones.length > 0 ? Math.max(...phones.map((p) => p.id)) + 1 : 1
     setPhones([...phones, { id: newId, value: "" }])
   }
 
   const removePhone = (id: number) => {
     if (phones.length > 1) {
-      setPhones(phones.filter(p => p.id !== id))
+      setPhones(phones.filter((p) => p.id !== id))
     }
   }
 
   const updatePhone = (id: number, value: string) => {
-    setPhones(phones.map(p => p.id === id ? { ...p, value } : p))
+    setPhones(phones.map((p) => (p.id === id ? { ...p, value } : p)))
   }
 
   const handleBancoChange = (value: string) => {
@@ -54,123 +84,151 @@ export default function SalesForm() {
     setShowOutroBanco(value === "outros")
   }
 
+  const startSignature = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current
+    const context = canvas?.getContext("2d")
+
+    if (!canvas || !context) return
+
+    const point = getCanvasPoint(canvas, event)
+    isDrawingRef.current = true
+    context.beginPath()
+    context.moveTo(point.x, point.y)
+  }
+
+  const drawSignature = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current
+    const context = canvas?.getContext("2d")
+
+    if (!canvas || !context || !isDrawingRef.current) return
+
+    if ("touches" in event) {
+      event.preventDefault()
+    }
+
+    const point = getCanvasPoint(canvas, event)
+    context.lineTo(point.x, point.y)
+    context.stroke()
+  }
+
+  const finishSignature = () => {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+
+    isDrawingRef.current = false
+    setAssinaturaVistoJuridico(canvas.toDataURL("image/png"))
+  }
+
+  const clearSignature = () => {
+    const canvas = signatureCanvasRef.current
+    const context = canvas?.getContext("2d")
+
+    if (!canvas || !context) return
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    setAssinaturaVistoJuridico("")
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setSubmitStatus('loading')
-    setStatusMessage('')
+    setSubmitStatus("loading")
+    setStatusMessage("")
 
     const formData = new FormData(e.currentTarget)
 
     const data = {
-      // Data do Contrato
-      dataContrato: formData.get('dataContrato'),
-      prazoServico: formData.get('prazoServico'),
-
-      // Dados do Cliente
-      nomeCliente: formData.get('nomeCliente'),
-      terceiros: formData.get('terceiros'),
-      telefones: phones.map(p => p.value).filter(v => v).join(', '),
-      endereco: formData.get('endereco'),
-      cep: formData.get('cep'),
-      cpfCnpj: formData.get('cpfCnpj'),
-      cnh: formData.get('cnh'),
-      dataNascimento: formData.get('dataNascimento'),
-      dataPrimeiraCnh: formData.get('dataPrimeiraCnh'),
-      email: formData.get('email'),
-
-      // Dados do Consultor
-      nomeConsultor: formData.get('nomeConsultor'),
-      origem: formData.get('origem'),
-      sne: formData.get('sne'),
-
-      // Dados de Pagamento
+      dataContrato: formData.get("dataContrato"),
+      prazoServico: formData.get("prazoServico"),
+      nomeCliente: formData.get("nomeCliente"),
+      terceiros: formData.get("terceiros"),
+      telefones: phones.map((p) => p.value).filter((v) => v).join(", "),
+      endereco: formData.get("endereco"),
+      cep: formData.get("cep"),
+      cpfCnpj: formData.get("cpfCnpj"),
+      cnh: formData.get("cnh"),
+      dataNascimento: formData.get("dataNascimento"),
+      dataPrimeiraCnh: formData.get("dataPrimeiraCnh"),
+      email: formData.get("email"),
+      nomeConsultor: formData.get("nomeConsultor"),
+      origem: formData.get("origem"),
+      sne: formData.get("sne"),
       formaPagamento,
-      banco: showOutroBanco ? formData.get('outroBanco') : banco,
-      valorTotal: formData.get('valorTotal'),
-      valorEntrada: formData.get('valorEntrada'),
+      banco: showOutroBanco ? formData.get("outroBanco") : banco,
+      valorTotal: formData.get("valorTotal"),
+      valorEntrada: formData.get("valorEntrada"),
       valorRestante,
-
-      // Sobre o Processo
-      instanciaProcesso: formData.get('instanciaProcesso'),
-      tipoProcesso: formData.get('tipoProcesso'),
-      numeroProcesso: formData.get('numeroProcesso'),
-      prazoProcesso: formData.get('prazoProcesso'),
-      vistoJuridico: formData.get('vistoJuridico'),
-
-      // Mais Informações (Multas)
-      instanciaMulta: formData.get('instanciaMulta'),
-      autoDetran: formData.get('autoDetran'),
-      autoRenainf: formData.get('autoRenainf'),
-      tipoMulta: formData.get('tipoMulta'),
-      placa: formData.get('placa'),
-      renavam: formData.get('renavam'),
-      prazoMulta: formData.get('prazoMulta'),
-      vistoJuridicoMulta: formData.get('vistoJuridicoMulta'),
-
-      // Observações
+      instanciaProcesso: formData.get("instanciaProcesso"),
+      tipoProcesso: formData.get("tipoProcesso"),
+      numeroProcesso: formData.get("numeroProcesso"),
+      prazoProcesso: formData.get("prazoProcesso"),
+      vistoJuridico: formData.get("vistoJuridico"),
+      assinaturaVistoJuridico: assinaturaVistoJuridico || null,
+      instanciaMulta: formData.get("instanciaMulta"),
+      autoDetran: formData.get("autoDetran"),
+      autoRenainf: formData.get("autoRenainf"),
+      tipoMulta: formData.get("tipoMulta"),
+      placa: formData.get("placa"),
+      renavam: formData.get("renavam"),
+      prazoMulta: formData.get("prazoMulta"),
+      vistoJuridicoMulta: formData.get("vistoJuridicoMulta"),
       observacoes,
-
-      // Timestamp
       dataEnvio: new Date().toISOString(),
     }
 
     const formElement = e.currentTarget
 
     try {
-      const response = await fetch('/api/submit-form', {
-        method: 'POST',
+      const response = await fetch("/api/submit-form", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       })
 
       if (response.ok) {
-        setSubmitStatus('success')
-        setStatusMessage('Ficha de venda salva com sucesso!')
-        // Reset form
+        setSubmitStatus("success")
+        setStatusMessage("Ficha de venda salva com sucesso!")
         formElement.reset()
         setPhones([{ id: 1, value: "" }])
         setFormaPagamento("")
         setBanco("")
         setValorTotal("")
         setValorEntrada("")
+        clearSignature()
         setShowOutroBanco(false)
         setObservacoes("")
       } else {
         const result = await response.json()
-        setSubmitStatus('error')
-        setStatusMessage(result.error || 'Erro ao salvar. Tente novamente.')
+        setSubmitStatus("error")
+        setStatusMessage(result.error || "Erro ao salvar. Tente novamente.")
       }
     } catch (err) {
-      console.error('[v0] Erro no fetch:', err)
-      setSubmitStatus('error')
-      setStatusMessage('Erro de conexão. Verifique sua internet e tente novamente.')
+      console.error("[v0] Erro no fetch:", err)
+      setSubmitStatus("error")
+      setStatusMessage("Erro de conexao. Verifique sua internet e tente novamente.")
     }
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-primary text-primary-foreground py-6 px-4 shadow-lg">
         <div className="max-w-5xl mx-auto flex items-center justify-center gap-4">
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cabricop%20logo-1cD17xGKKJoV5D9u0LLa04LKf9zkqK.png"
-            alt="CABRICOP - Especialistas em Defesas de Trânsito"
+            alt="CABRICOP - Especialistas em Defesas de Transito"
             className="h-12 md:h-16 w-auto"
           />
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-2">Ficha de Venda</h2>
-          <p className="text-muted-foreground">Preencha todos os campos obrigatórios para registrar a venda</p>
+          <p className="text-muted-foreground">Preencha todos os campos obrigatorios para registrar a venda</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Data do Contrato */}
           <Card className="border-l-4 border-l-primary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -192,7 +250,6 @@ export default function SalesForm() {
             </CardContent>
           </Card>
 
-          {/* Dados do Cliente */}
           <Card className="border-l-4 border-l-primary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -212,7 +269,6 @@ export default function SalesForm() {
                 </div>
               </div>
 
-              {/* Telefones Dinâmicos */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
@@ -241,13 +297,7 @@ export default function SalesForm() {
                       )}
                     </div>
                   ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addPhone}
-                    className="mt-2"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={addPhone} className="mt-2">
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Telefone
                   </Button>
@@ -256,8 +306,8 @@ export default function SalesForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="endereco">Endereço</Label>
-                  <Input id="endereco" name="endereco" placeholder="Rua, número, bairro, cidade, estado" required />
+                  <Label htmlFor="endereco">Endereco</Label>
+                  <Input id="endereco" name="endereco" placeholder="Rua, numero, bairro, cidade, estado" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cep">CEP</Label>
@@ -272,7 +322,7 @@ export default function SalesForm() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="cnh">CNH</Label>
-                  <Input id="cnh" name="cnh" placeholder="Número da CNH" required />
+                  <Input id="cnh" name="cnh" placeholder="Numero da CNH" required />
                 </div>
               </div>
 
@@ -282,7 +332,7 @@ export default function SalesForm() {
                   <Input type="date" id="dataNascimento" name="dataNascimento" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dataPrimeiraCnh">Data da 1ª CNH</Label>
+                  <Label htmlFor="dataPrimeiraCnh">Data da 1a CNH</Label>
                   <Input type="date" id="dataPrimeiraCnh" name="dataPrimeiraCnh" required />
                 </div>
               </div>
@@ -294,7 +344,6 @@ export default function SalesForm() {
             </CardContent>
           </Card>
 
-          {/* Dados do Consultor */}
           <Card className="border-l-4 border-l-secondary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -320,7 +369,6 @@ export default function SalesForm() {
             </CardContent>
           </Card>
 
-          {/* Dados de Pagamento */}
           <Card className="border-l-4 border-l-secondary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -337,13 +385,13 @@ export default function SalesForm() {
                       <SelectValue placeholder="Selecione a forma de pagamento" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="credito">Crédito</SelectItem>
-                      <SelectItem value="debito">Débito</SelectItem>
+                      <SelectItem value="credito">Credito</SelectItem>
+                      <SelectItem value="debito">Debito</SelectItem>
                       <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="transferencia">Transferência</SelectItem>
+                      <SelectItem value="transferencia">Transferencia</SelectItem>
                       <SelectItem value="ted">TED</SelectItem>
-                      <SelectItem value="especie">Espécie</SelectItem>
-                      <SelectItem value="deposito">Depósito</SelectItem>
+                      <SelectItem value="especie">Especie</SelectItem>
+                      <SelectItem value="deposito">Deposito</SelectItem>
                       <SelectItem value="cheque">Cheque</SelectItem>
                     </SelectContent>
                   </Select>
@@ -357,7 +405,7 @@ export default function SalesForm() {
                     <SelectContent>
                       <SelectItem value="asaas">ASAAS</SelectItem>
                       <SelectItem value="rede">Rede</SelectItem>
-                      <SelectItem value="itau">Itaú</SelectItem>
+                      <SelectItem value="itau">Itau</SelectItem>
                       <SelectItem value="outros">Outros</SelectItem>
                     </SelectContent>
                   </Select>
@@ -428,7 +476,6 @@ export default function SalesForm() {
             </CardContent>
           </Card>
 
-          {/* Sobre o Processo */}
           <Card className="border-l-4 border-l-primary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -439,8 +486,8 @@ export default function SalesForm() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="instanciaProcesso">Instância do Processo</Label>
-                  <Input id="instanciaProcesso" name="instanciaProcesso" placeholder="Ex: 1ª Instância, 2ª Instância" />
+                  <Label htmlFor="instanciaProcesso">Instancia do Processo</Label>
+                  <Input id="instanciaProcesso" name="instanciaProcesso" placeholder="Ex: 1a Instancia, 2a Instancia" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tipoProcesso">Tipo de Processo</Label>
@@ -449,44 +496,70 @@ export default function SalesForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="numeroProcesso">Nº do Processo</Label>
-                  <Input id="numeroProcesso" name="numeroProcesso" placeholder="Número do processo" />
+                  <Label htmlFor="numeroProcesso">No do Processo</Label>
+                  <Input id="numeroProcesso" name="numeroProcesso" placeholder="Numero do processo" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="prazoProcesso">Prazo</Label>
                   <Input type="date" id="prazoProcesso" name="prazoProcesso" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vistoJuridico">Visto Jurídico</Label>
-                  <Input id="vistoJuridico" name="vistoJuridico" placeholder="Visto jurídico" />
+                  <Label htmlFor="vistoJuridico">Visto Juridico</Label>
+                  <Input id="vistoJuridico" name="vistoJuridico" placeholder="Visto juridico" />
                 </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={clearSignature}>
+                    Limpar Assinatura
+                  </Button>
+                </div>
+                <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
+                  <canvas
+                    id="assinaturaVistoJuridico"
+                    ref={signatureCanvasRef}
+                    width={900}
+                    height={220}
+                    className="h-44 w-full cursor-crosshair rounded-md bg-slate-50 touch-none"
+                    onMouseDown={startSignature}
+                    onMouseMove={drawSignature}
+                    onMouseUp={finishSignature}
+                    onMouseLeave={finishSignature}
+                    onTouchStart={startSignature}
+                    onTouchMove={drawSignature}
+                    onTouchEnd={finishSignature}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Assine com o dedo ou mouse para registrar a aprovacao do visto juridico.
+                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Mais Informações (Multas) */}
           <Card className="border-l-4 border-l-secondary shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
                 <AlertCircle className="w-5 h-5" />
-                Mais Informações (Multas)
+                Mais Informacoes (Multas)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="instanciaMulta">Instância da Multa</Label>
+                  <Label htmlFor="instanciaMulta">Instancia da Multa</Label>
                   <Input id="instanciaMulta" name="instanciaMulta" placeholder="Ex: JARI, CETRAN" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="autoDetran">Auto DETRAN</Label>
-                  <Input id="autoDetran" name="autoDetran" placeholder="Número do auto DETRAN" />
+                  <Input id="autoDetran" name="autoDetran" placeholder="Numero do auto DETRAN" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="autoRenainf">Auto RENAINF</Label>
-                  <Input id="autoRenainf" name="autoRenainf" placeholder="Número do auto RENAINF" />
+                  <Input id="autoRenainf" name="autoRenainf" placeholder="Numero do auto RENAINF" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tipoMulta">Tipo de Multa</Label>
@@ -500,7 +573,7 @@ export default function SalesForm() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="renavam">RENAVAM</Label>
-                  <Input id="renavam" name="renavam" placeholder="Número do RENAVAM" />
+                  <Input id="renavam" name="renavam" placeholder="Numero do RENAVAM" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -509,23 +582,22 @@ export default function SalesForm() {
                   <Input type="date" id="prazoMulta" name="prazoMulta" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vistoJuridicoMulta">Visto Jurídico</Label>
-                  <Input id="vistoJuridicoMulta" name="vistoJuridicoMulta" placeholder="Visto jurídico" />
+                  <Label htmlFor="vistoJuridicoMulta">Visto Juridico</Label>
+                  <Input id="vistoJuridicoMulta" name="vistoJuridicoMulta" placeholder="Visto juridico" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Observações */}
           <Card className="border-l-4 border-l-muted shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-primary">
-                Observações Adicionais
+                Observacoes Adicionais
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
-                placeholder="Digite observações adicionais sobre a venda..."
+                placeholder="Digite observacoes adicionais sobre a venda..."
                 className="min-h-[100px]"
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
@@ -533,64 +605,67 @@ export default function SalesForm() {
             </CardContent>
           </Card>
 
-          {/* Status Message */}
-          {submitStatus !== 'idle' && (
-            <div className={`p-4 rounded-lg flex items-center gap-3 ${submitStatus === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
-                submitStatus === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
-                  'bg-blue-50 text-blue-800 border border-blue-200'
-              }`}>
-              {submitStatus === 'success' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
-              {submitStatus === 'error' && <XCircle className="w-5 h-5 text-red-600" />}
-              {submitStatus === 'loading' && <Spinner className="w-5 h-5" />}
-              <span>{submitStatus === 'loading' ? 'Salvando dados...' : statusMessage}</span>
+          {submitStatus !== "idle" && (
+            <div
+              className={`p-4 rounded-lg flex items-center gap-3 ${
+                submitStatus === "success"
+                  ? "bg-green-50 text-green-800 border border-green-200"
+                  : submitStatus === "error"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+              }`}
+            >
+              {submitStatus === "success" && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+              {submitStatus === "error" && <XCircle className="w-5 h-5 text-red-600" />}
+              {submitStatus === "loading" && <Spinner className="w-5 h-5" />}
+              <span>{submitStatus === "loading" ? "Salvando dados..." : statusMessage}</span>
             </div>
           )}
 
-          {/* Submit Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button
               type="button"
               variant="outline"
               className="px-8 py-6 text-lg"
               onClick={() => {
-                const form = document.querySelector('form') as HTMLFormElement
+                const form = document.querySelector("form") as HTMLFormElement
                 form?.reset()
                 setPhones([{ id: 1, value: "" }])
                 setFormaPagamento("")
                 setBanco("")
                 setValorTotal("")
                 setValorEntrada("")
+                clearSignature()
                 setShowOutroBanco(false)
                 setObservacoes("")
-                setSubmitStatus('idle')
-                setStatusMessage('')
+                setSubmitStatus("idle")
+                setStatusMessage("")
               }}
-              disabled={submitStatus === 'loading'}
+              disabled={submitStatus === "loading"}
             >
-              Limpar Formulário
+              Limpar Formulario
             </Button>
             <Button
               type="submit"
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold shadow-lg"
-              disabled={submitStatus === 'loading'}
+              disabled={submitStatus === "loading"}
             >
-              {submitStatus === 'loading' ? (
+              {submitStatus === "loading" ? (
                 <>
                   <Spinner className="w-5 h-5 mr-2" />
                   Salvando...
                 </>
               ) : (
-                'Salvar Ficha de Venda'
+                "Salvar Ficha de Venda"
               )}
             </Button>
           </div>
         </form>
 
-        {/* Footer */}
         <footer className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm">
-          <p>CABRICOP - Especialistas em Defesas de Trânsito</p>
-          <p className="mt-1">Praça Olavo Bilac Nº28, Sala 1816 - Centro, Rio de Janeiro/RJ</p>
-          <p className="mt-1">© {new Date().getFullYear()} CABRICOP. Todos os direitos reservados.</p>
+          <p>CABRICOP - Especialistas em Defesas de Transito</p>
+          <p className="mt-1">Praca Olavo Bilac No28, Sala 1816 - Centro, Rio de Janeiro/RJ</p>
+          <p className="mt-1">{new Date().getFullYear()} CABRICOP. Todos os direitos reservados.</p>
         </footer>
       </main>
     </div>
