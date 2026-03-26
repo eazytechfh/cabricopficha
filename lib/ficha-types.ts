@@ -7,7 +7,7 @@ export type Consultor = {
   nivelAcesso: AccessLevel
 }
 
-export type ConsultorSession = Omit<Consultor, "codigoAcesso">
+export type ConsultorSession = Consultor
 
 export type FichaFormValues = {
   dataContrato: string

@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FichaForm } from "@/components/ficha-form"
+import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
-import { createFicha, getFichaById, getFichasByCpf, loginWithAccessCode, updateFicha } from "@/lib/fichas-api"
+import { createFicha, getFichaById, getFichasByCpf, updateFicha } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { emptyFichaValues, type ConsultorSession, type FichaFormValues, type FichaListItem, type FichaRecord } from "@/lib/ficha-types"
-
-const SESSION_KEY = "cabricop_consultor_session"
 
 type ViewMode = "list" | "view" | "edit"
 
@@ -37,14 +36,11 @@ export default function FichasWorkspace() {
   const [editMessage, setEditMessage] = useState("")
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(SESSION_KEY)
-    if (!raw) return
+    const access = getCurrentAccess()
+    if (!access) return
 
-    try {
-      setConsultor(JSON.parse(raw) as ConsultorSession)
-    } catch {
-      window.localStorage.removeItem(SESSION_KEY)
-    }
+    setConsultor(access)
+    setCreateValues((current) => ({ ...current, nomeConsultor: current.nomeConsultor || access.nome }))
   }, [])
 
   const canEditSelectedFicha = useMemo(() => {
@@ -57,13 +53,12 @@ export default function FichasWorkspace() {
     setAuthError("")
 
     try {
-      const response = await loginWithAccessCode(codigoAcesso)
-      setConsultor(response.consultor)
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify(response.consultor))
-      setCreateValues((current) => ({ ...current, nomeConsultor: response.consultor.nome }))
+      const access = await loginWithAccessCode(codigoAcesso)
+      setConsultor(access)
+      setCreateValues((current) => ({ ...current, nomeConsultor: access.nome }))
       setCodigoAcesso("")
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Código de acesso inválido.")
+      setAuthError(error instanceof Error ? error.message : "Codigo de acesso invalido.")
     } finally {
       setAuthLoading(false)
     }
@@ -71,7 +66,7 @@ export default function FichasWorkspace() {
 
   const handleLogout = () => {
     setConsultor(null)
-    window.localStorage.removeItem(SESSION_KEY)
+    logout()
   }
 
   const handleCreate = async () => {
@@ -168,12 +163,12 @@ export default function FichasWorkspace() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="codigoAcesso">Código de acesso</Label>
+              <Label htmlFor="codigoAcesso">Codigo de acesso</Label>
               <Input
                 id="codigoAcesso"
                 value={codigoAcesso}
                 onChange={(event) => setCodigoAcesso(event.target.value)}
-                placeholder="Digite seu código"
+                placeholder="Digite seu codigo"
                 disabled={authLoading}
               />
             </div>
@@ -195,7 +190,7 @@ export default function FichasWorkspace() {
             <img src="/logo.png" alt="CABRICOP" className="h-12 md:h-16 w-auto" />
             <div>
               <p className="font-semibold">{consultor.nome}</p>
-              <p className="text-sm opacity-80">Nível: {consultor.nivelAcesso}</p>
+              <p className="text-sm opacity-80">Nivel: {consultor.nivelAcesso}</p>
             </div>
           </div>
           <Button variant="secondary" onClick={handleLogout}>
@@ -228,14 +223,14 @@ export default function FichasWorkspace() {
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
                   <div className="space-y-2">
                     <Label htmlFor="cpfBusca">CPF</Label>
                     <Input
                       id="cpfBusca"
                       value={cpfBusca}
                       onChange={(event) => setCpfBusca(event.target.value)}
-                      placeholder="Digite o CPF com ou sem máscara"
+                      placeholder="Digite o CPF com ou sem mascara"
                     />
                   </div>
                   <div className="flex items-end">
@@ -267,7 +262,7 @@ export default function FichasWorkspace() {
                         <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
                           Visualizar
                         </Button>
-                        {consultor && canEditFicha(consultor.id, consultor.nivelAcesso, item) && (
+                        {canEditFicha(consultor.id, consultor.nivelAcesso, item) && (
                           <Button onClick={() => void openFicha(item.id, "edit")}>Editar</Button>
                         )}
                       </div>
@@ -280,15 +275,15 @@ export default function FichasWorkspace() {
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>Visualização da Ficha</CardTitle>
+                  <CardTitle>Visualizacao da Ficha</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FichaForm values={editValues} onChange={setEditValues} readOnly showActions={false} />
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row">
                     {canEditSelectedFicha ? (
                       <Button onClick={() => setViewMode("edit")}>Editar Ficha</Button>
                     ) : (
-                      <p className="text-sm text-red-600">Você não tem permissão para editar esta ficha.</p>
+                      <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
                     )}
                     <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                       Gerar PDF novamente
@@ -301,11 +296,11 @@ export default function FichasWorkspace() {
             {selectedFicha && viewMode === "edit" && (
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>Edição da Ficha</CardTitle>
+                  <CardTitle>Edicao da Ficha</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!canEditSelectedFicha ? (
-                    <p className="text-sm text-red-600">Você não tem permissão para editar esta ficha.</p>
+                    <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
                   ) : (
                     <>
                       {editMessage && <p className="text-sm text-primary font-medium">{editMessage}</p>}

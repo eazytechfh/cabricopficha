@@ -57,3 +57,29 @@ for all
 to service_role
 using (true)
 with check (true);
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.access_codes (
+  id uuid primary key default gen_random_uuid(),
+  nome_responsavel text not null,
+  codigo_acesso text not null unique,
+  nivel_acesso text not null check (nivel_acesso in ('admin', 'consultor')),
+  ativo boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.access_codes (
+  nome_responsavel,
+  codigo_acesso,
+  nivel_acesso,
+  ativo
+)
+values (
+  'Administrador',
+  'ADMIN123',
+  'admin',
+  true
+)
+on conflict (codigo_acesso) do nothing;
