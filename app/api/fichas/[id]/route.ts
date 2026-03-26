@@ -36,17 +36,29 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const ficha = await updateFicha(id, data, consultor)
-    const excelSaved = await updateFichaInExcel(ficha)
+
+    let excelSaved = true
+    let excelError: string | undefined
+
+    try {
+      excelSaved = await updateFichaInExcel(ficha)
+    } catch (error) {
+      excelSaved = false
+      excelError = error instanceof Error ? error.message : "Erro ao atualizar a planilha."
+      console.error("Erro ao atualizar ficha no Excel:", error)
+    }
 
     console.log("Ficha atualizada no Supabase com sucesso", {
       id: ficha.id,
       updatedAt: ficha.updatedAt,
       excelSaved,
+      excelError,
     })
 
     return NextResponse.json({
       ficha,
       excelSaved,
+      excelError,
     })
   } catch (error) {
     console.error("Erro ao atualizar ficha:", error)

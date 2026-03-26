@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
@@ -7,7 +8,8 @@ import { normalizeCpfCnpj } from "@/lib/ficha-utils"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const fichasTableName = "fichas_venda"
-const excelPath = path.join(process.cwd(), "storage", "fichas.xlsx")
+const excelBaseDir = process.env.VERCEL ? path.join(tmpdir(), "cabricopficha") : path.join(process.cwd(), "storage")
+const excelPath = path.join(excelBaseDir, "fichas.xlsx")
 
 function ensureSupabaseConfig() {
   if (!supabaseUrl || !serviceRoleKey) {

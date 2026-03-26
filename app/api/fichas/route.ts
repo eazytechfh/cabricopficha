@@ -27,9 +27,19 @@ export async function POST(request: Request) {
     }
 
     const ficha = await createFicha(data, consultor)
-    const excelSaved = await saveFichaToExcel(ficha)
 
-    return NextResponse.json({ ficha, excelSaved })
+    let excelSaved = true
+    let excelError: string | undefined
+
+    try {
+      excelSaved = await saveFichaToExcel(ficha)
+    } catch (error) {
+      excelSaved = false
+      excelError = error instanceof Error ? error.message : "Erro ao salvar na planilha."
+      console.error("Erro ao salvar ficha no Excel:", error)
+    }
+
+    return NextResponse.json({ ficha, excelSaved, excelError })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro ao criar ficha."
     return NextResponse.json({ error: message }, { status: 500 })
