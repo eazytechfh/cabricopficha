@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label"
 import { FichaForm } from "@/components/ficha-form"
 import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
-import { createFicha, getFichaById, getFichasByCpf, updateFicha } from "@/lib/fichas-api"
+import { updateFicha } from "@/lib/fichaService"
+import { createFicha, getFichaById, getFichasByCpf } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { emptyFichaValues, type ConsultorSession, type FichaFormValues, type FichaListItem, type FichaRecord } from "@/lib/ficha-types"
 
@@ -144,7 +145,11 @@ export default function FichasWorkspace() {
       setSelectedFicha(response.ficha)
       setEditValues(toRecordValues(response.ficha))
       await downloadFichaPdf(toRecordValues(response.ficha))
-      setEditMessage("Ficha atualizada com sucesso.")
+      setEditMessage(
+        response.webhookSent
+          ? "Ficha atualizada com sucesso."
+          : "Ficha atualizada, mas houve erro ao enviar os dados para a automacao."
+      )
       setViewMode("view")
       await handleConsultarCpf()
     } catch (error) {
@@ -214,6 +219,7 @@ export default function FichasWorkspace() {
               onSubmit={handleCreate}
               submitLabel="Salvar Ficha de Venda"
               loading={createLoading}
+              loadingLabel="Salvando..."
             />
           </TabsContent>
 
@@ -311,6 +317,7 @@ export default function FichasWorkspace() {
                         onSubmit={handleUpdate}
                         submitLabel="Atualizar Ficha"
                         loading={editLoading}
+                        loadingLabel="Atualizando..."
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>

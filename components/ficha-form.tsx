@@ -18,6 +18,7 @@ type FichaFormProps = {
   onSubmit?: () => void | Promise<void>
   submitLabel?: string
   loading?: boolean
+  loadingLabel?: string
   readOnly?: boolean
   showActions?: boolean
   onCancelEdit?: () => void
@@ -51,6 +52,7 @@ export function FichaForm({
   onSubmit,
   submitLabel = "Salvar Ficha de Venda",
   loading = false,
+  loadingLabel = "Salvando...",
   readOnly = false,
   showActions = true,
   onCancelEdit,
@@ -183,7 +185,7 @@ export function FichaForm({
             {renderInput("email", "E-mail", { type: "email" })}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">{renderInput("endereco", "Endereço")}</div>
+            <div className="md:col-span-2">{renderInput("endereco", "Endereco")}</div>
             {renderInput("cep", "CEP")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -192,7 +194,7 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
-            {renderInput("dataPrimeiraCnh", "Data da 1ª CNH", { type: "date" })}
+            {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
           </div>
         </CardContent>
       </Card>
@@ -229,13 +231,13 @@ export function FichaForm({
                   <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credito">Crédito</SelectItem>
-                  <SelectItem value="debito">Débito</SelectItem>
+                  <SelectItem value="credito">Credito</SelectItem>
+                  <SelectItem value="debito">Debito</SelectItem>
                   <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="transferencia">Transferencia</SelectItem>
                   <SelectItem value="ted">TED</SelectItem>
-                  <SelectItem value="especie">Espécie</SelectItem>
-                  <SelectItem value="deposito">Depósito</SelectItem>
+                  <SelectItem value="especie">Especie</SelectItem>
+                  <SelectItem value="deposito">Deposito</SelectItem>
                   <SelectItem value="cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
@@ -272,17 +274,17 @@ export function FichaForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("instanciaProcesso", "Instância do Processo")}
+            {renderInput("instanciaProcesso", "Instancia do Processo")}
             {renderInput("tipoProcesso", "Tipo do Processo")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {renderInput("numeroProcesso", "Nº do Processo")}
+            {renderInput("numeroProcesso", "No do Processo")}
             {renderInput("prazoProcesso", "Prazo", { type: "date" })}
-            {renderInput("vistoJuridico", "Visto Jurídico")}
+            {renderInput("vistoJuridico", "Visto Juridico")}
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Jurídico</Label>
+              <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
               {!readOnly && (
                 <Button type="button" variant="outline" size="sm" onClick={clearSignature} disabled={loading}>
                   Limpar Assinatura
@@ -313,12 +315,12 @@ export function FichaForm({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
-            Mais Informações (Multas)
+            Mais Informacoes (Multas)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("instanciaMulta", "Instância da Multa")}
+            {renderInput("instanciaMulta", "Instancia da Multa")}
             {renderInput("autoDetran", "Auto DETRAN")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -331,14 +333,14 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("prazoMulta", "Prazo", { type: "date" })}
-            {renderInput("vistoJuridicoMulta", "Visto Jurídico")}
+            {renderInput("vistoJuridicoMulta", "Visto Juridico")}
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-l-4 border-l-muted shadow-md">
         <CardHeader className="pb-4">
-          <CardTitle className="text-primary">Observações Adicionais</CardTitle>
+          <CardTitle className="text-primary">Observacoes Adicionais</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -346,7 +348,7 @@ export function FichaForm({
             onChange={(event) => setField("observacoes", event.target.value)}
             disabled={fieldDisabled}
             className="min-h-[120px]"
-            placeholder="Digite observações adicionais sobre a venda..."
+            placeholder="Digite observacoes adicionais sobre a venda..."
           />
         </CardContent>
       </Card>
@@ -367,7 +369,7 @@ export function FichaForm({
             {loading ? (
               <>
                 <Spinner className="w-5 h-5 mr-2" />
-                Salvando...
+                {loadingLabel}
               </>
             ) : (
               submitLabel

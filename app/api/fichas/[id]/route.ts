@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha } from "@/lib/ficha-utils"
+import { buildFichaUpdateWebhookPayload, sendFichaUpdateWebhook } from "@/lib/webhookService"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 type RouteContext = {
@@ -30,13 +31,31 @@ export async function PATCH(request: Request, context: RouteContext) {
     const allowed = canEditFicha(consultor.id, consultor.nivelAcesso, current)
 
     if (!allowed) {
-      return NextResponse.json({ error: "Você não tem permissão para editar esta ficha." }, { status: 403 })
+      return NextResponse.json({ error: "Voce nao tem permissao para editar esta ficha." }, { status: 403 })
     }
 
     const ficha = await updateFicha(id, data, consultor)
     const excelSaved = await updateFichaInExcel(ficha)
 
-    return NextResponse.json({ ficha, excelSaved })
+    try {
+      const payload = buildFichaUpdateWebhookPayload(ficha, consultor)
+      await sendFichaUpdateWebhook(payload)
+
+      return NextResponse.json({
+        ficha,
+        excelSaved,
+        webhookSent: true,
+      })
+    } catch (error) {
+      const webhookError = error instanceof Error ? error.message : "Erro ao enviar os dados para a automacao."
+
+      return NextResponse.json({
+        ficha,
+        excelSaved,
+        webhookSent: false,
+        webhookError,
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro ao atualizar ficha."
     return NextResponse.json({ error: message }, { status: 500 })
