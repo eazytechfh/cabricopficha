@@ -8,6 +8,7 @@ create table if not exists public.fichas_venda (
   endereco text,
   cep text,
   cpf_cnpj text,
+  cpf_normalizado text,
   cnh text,
   data_nascimento date,
   data_primeira_cnh date,
@@ -18,6 +19,8 @@ create table if not exists public.fichas_venda (
   forma_pagamento text,
   banco text,
   valor_total numeric(12, 2),
+  valor_entrada numeric(12, 2),
+  valor_restante numeric(12, 2),
   instancia_processo text,
   tipo_processo text,
   numero_processo text,
@@ -34,10 +37,18 @@ create table if not exists public.fichas_venda (
   visto_juridico_multa text,
   observacoes text,
   data_envio timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by_consultor_id text,
+  updated_by_consultor_id text
 );
 
+create index if not exists fichas_venda_cpf_normalizado_idx
+on public.fichas_venda (cpf_normalizado);
+
 alter table public.fichas_venda enable row level security;
+
+drop policy if exists "service role can manage fichas_venda" on public.fichas_venda;
 
 create policy "service role can manage fichas_venda"
 on public.fichas_venda
@@ -46,5 +57,3 @@ for all
 to service_role
 using (true)
 with check (true);
-
-
