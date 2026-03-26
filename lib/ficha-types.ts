@@ -58,7 +58,17 @@ export type FichaRecord = FichaFormValues & {
 
 export type FichaListItem = Pick<
   FichaRecord,
-  "id" | "nomeCliente" | "cpfCnpj" | "dataContrato" | "nomeConsultor" | "updatedAt" | "createdByConsultorId" | "updatedByConsultorId"
+  | "id"
+  | "nomeCliente"
+  | "cpfCnpj"
+  | "telefones"
+  | "endereco"
+  | "dataContrato"
+  | "nomeConsultor"
+  | "createdAt"
+  | "updatedAt"
+  | "createdByConsultorId"
+  | "updatedByConsultorId"
 >
 
 export const emptyFichaValues: FichaFormValues = {

@@ -254,9 +254,10 @@ export default function FichasWorkspace() {
                       <div className="space-y-1">
                         <p className="font-semibold">{item.nomeCliente}</p>
                         <p className="text-sm text-muted-foreground">CPF: {item.cpfCnpj}</p>
-                        <p className="text-sm text-muted-foreground">Data da ficha: {item.dataContrato || "-"}</p>
+                        <p className="text-sm text-muted-foreground">Telefone: {item.telefones || "-"}</p>
+                        <p className="text-sm text-muted-foreground">Endereco: {item.endereco || "-"}</p>
                         <p className="text-sm text-muted-foreground">Consultor: {item.nomeConsultor || "-"}</p>
-                        <p className="text-sm text-muted-foreground">Atualizada em: {item.updatedAt || "-"}</p>
+                        <p className="text-sm text-muted-foreground">Atualizada em: {item.updatedAt || item.createdAt || "-"}</p>
                       </div>
                       <div className="flex gap-3">
                         <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>

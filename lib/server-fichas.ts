@@ -6,7 +6,7 @@ import { normalizeCpfCnpj } from "@/lib/ficha-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const tableName = process.env.SUPABASE_TABLE_NAME || "fichas_venda"
+const fichasTableName = "fichas_venda"
 const excelPath = path.join(process.cwd(), "storage", "fichas.xlsx")
 
 function ensureSupabaseConfig() {
@@ -37,7 +37,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     telefones: data.telefones || null,
     endereco: data.endereco || null,
     cep: data.cep || null,
-    cpf_cnpj: data.cpfCnpj || null,
+    cpf_cnpj: normalizeCpfCnpj(data.cpfCnpj) || null,
     cpf_normalizado: normalizeCpfCnpj(data.cpfCnpj),
     cnh: data.cnh || null,
     data_nascimento: data.dataNascimento || null,
@@ -124,9 +124,29 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
 }
 
 export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
+  ensureSupabaseConfig()
+
   const cpfNormalizado = normalizeCpfCnpj(cpf)
+  if (!cpfNormalizado) {
+    return []
+  }
+
+  const select = [
+    "id",
+    "nome_cliente",
+    "cpf_cnpj",
+    "telefones",
+    "endereco",
+    "data_contrato",
+    "nome_consultor",
+    "created_at",
+    "updated_at",
+    "created_by_consultor_id",
+    "updated_by_consultor_id",
+  ].join(",")
+
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/${tableName}?cpf_normalizado=eq.${cpfNormalizado}&select=id,nome_cliente,cpf_cnpj,data_contrato,nome_consultor,updated_at,created_by_consultor_id,updated_by_consultor_id&order=updated_at.desc`,
+    `${supabaseUrl}/rest/v1/${fichasTableName}?cpf_cnpj=eq.${encodeURIComponent(cpfNormalizado)}&select=${select}&order=updated_at.desc.nullslast,created_at.desc.nullslast`,
     {
       headers: headers(),
       cache: "no-store",
@@ -142,8 +162,11 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     id: String(row.id ?? ""),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: String(row.cpf_cnpj ?? ""),
+    telefones: String(row.telefones ?? ""),
+    endereco: String(row.endereco ?? ""),
     dataContrato: String(row.data_contrato ?? ""),
     nomeConsultor: String(row.nome_consultor ?? ""),
+    createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
     createdByConsultorId: String(row.created_by_consultor_id ?? ""),
     updatedByConsultorId: String(row.updated_by_consultor_id ?? ""),
@@ -151,7 +174,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 }
 
 export async function getFichaById(id: string): Promise<FichaRecord> {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?id=eq.${id}&select=*`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}&select=*`, {
     headers: headers(),
     cache: "no-store",
   })
@@ -170,7 +193,7 @@ export async function getFichaById(id: string): Promise<FichaRecord> {
 }
 
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
     method: "POST",
     headers: {
       ...headers(),
@@ -189,7 +212,7 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
 }
 
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?id=eq.${id}`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
     method: "PATCH",
     headers: {
       ...headers(),
