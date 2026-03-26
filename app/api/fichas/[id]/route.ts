@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha } from "@/lib/ficha-utils"
-import { buildFichaUpdateWebhookPayload, sendFichaUpdateWebhook } from "@/lib/webhookService"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 type RouteContext = {
@@ -27,6 +26,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       consultor: ConsultorSession
     }
 
+    console.log("Iniciando atualizacao da ficha", { id, consultorId: consultor.id })
+
     const current = await getFichaById(id)
     const allowed = canEditFicha(consultor.id, consultor.nivelAcesso, current)
 
@@ -37,26 +38,18 @@ export async function PATCH(request: Request, context: RouteContext) {
     const ficha = await updateFicha(id, data, consultor)
     const excelSaved = await updateFichaInExcel(ficha)
 
-    try {
-      const payload = buildFichaUpdateWebhookPayload(ficha, consultor)
-      await sendFichaUpdateWebhook(payload)
+    console.log("Ficha atualizada no Supabase com sucesso", {
+      id: ficha.id,
+      updatedAt: ficha.updatedAt,
+      excelSaved,
+    })
 
-      return NextResponse.json({
-        ficha,
-        excelSaved,
-        webhookSent: true,
-      })
-    } catch (error) {
-      const webhookError = error instanceof Error ? error.message : "Erro ao enviar os dados para a automacao."
-
-      return NextResponse.json({
-        ficha,
-        excelSaved,
-        webhookSent: false,
-        webhookError,
-      })
-    }
+    return NextResponse.json({
+      ficha,
+      excelSaved,
+    })
   } catch (error) {
+    console.error("Erro ao atualizar ficha:", error)
     const message = error instanceof Error ? error.message : "Erro ao atualizar ficha."
     return NextResponse.json({ error: message }, { status: 500 })
   }
