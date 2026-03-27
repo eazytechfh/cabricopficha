@@ -1,9 +1,6 @@
-import type { CSSProperties } from "react"
+﻿import type { CSSProperties, ReactNode } from "react"
 
-type PaymentBank = "asaas" | "rede" | "itau" | "outros"
-type PaymentMethod = "credito" | "debito" | "pix" | "transferencia" | "ted" | "especie" | "deposito" | "cheque"
-
-export type FichaPdfData = {
+type FichaPdfData = {
   dataContrato: string
   prazoServico: string
   nomeCliente: string
@@ -29,6 +26,7 @@ export type FichaPdfData = {
   numeroProcesso: string
   prazoProcesso: string
   vistoJuridico: string
+  assinaturaVistoJuridico: string
   instanciaMulta: string
   autoDetran: string
   autoRenainf: string
@@ -37,32 +35,55 @@ export type FichaPdfData = {
   renavam: string
   prazoMulta: string
   vistoJuridicoMulta: string
+  observacoes: string
 }
 
 type FichaPdfProps = {
   data: FichaPdfData
 }
 
-const paymentColumns: Array<{ key: PaymentMethod; label: string }> = [
-  { key: "credito", label: "CRÉDITO" },
-  { key: "debito", label: "DÉBITO" },
-  { key: "pix", label: "PIX" },
-  { key: "transferencia", label: "TRANSFERÊNCIA" },
-  { key: "ted", label: "TED" },
-  { key: "especie", label: "ESPÉCIE" },
-  { key: "deposito", label: "DEPÓSITO" },
-  { key: "cheque", label: "CHEQUE" },
-]
+const colors = {
+  navy: "#123d6f",
+  navyDark: "#0a2c52",
+  orange: "#f28c18",
+  orangeDark: "#d97100",
+  cream: "#fff8ef",
+  line: "#d8c7b0",
+  text: "#183153",
+  muted: "#6b7280",
+  panel: "#ffffff",
+}
 
-const paymentRows: Array<{ key: PaymentBank; label: string; color?: string }> = [
-  { key: "asaas", label: "ASAAS", color: "#1d4ed8" },
-  { key: "rede", label: "REDE", color: "#dc2626" },
-  { key: "itau", label: "ITAÚ", color: "#ea580c" },
-  { key: "outros", label: "OUTROS" },
-]
+const pageStyle: CSSProperties = {
+  width: 1120,
+  minHeight: 1580,
+  padding: 26,
+  background: "linear-gradient(180deg, #f7f7f9 0%, #f2f0ec 100%)",
+  color: colors.text,
+  fontFamily: 'Arial, sans-serif',
+}
+
+const cardStyle: CSSProperties = {
+  background: colors.panel,
+  border: `1px solid ${colors.line}`,
+  borderRadius: 20,
+  overflow: "hidden",
+  boxShadow: "0 10px 24px rgba(16, 37, 63, 0.08)",
+}
+
+const sectionTitleLineStyle: CSSProperties = {
+  flex: 1,
+  height: 2,
+  opacity: 0.35,
+  background: "rgba(255,255,255,0.85)",
+}
+
+function fallback(value: string) {
+  return value?.trim() || "-"
+}
 
 function formatDate(value: string) {
-  if (!value) return ""
+  if (!value) return "-"
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -75,204 +96,391 @@ function formatCurrency(value: number) {
   }).format(value || 0)
 }
 
-function normalizeBank(value: string): PaymentBank | null {
-  if (value === "asaas" || value === "rede" || value === "itau" || value === "outros") {
-    return value
+function formatCpfCnpj(value: string) {
+  const digits = (value || "").replace(/\D/g, "")
+  if (digits.length === 11) {
+    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
   }
-  return null
+  if (digits.length === 14) {
+    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+  }
+  return fallback(value)
 }
 
-function normalizeMethod(value: string): PaymentMethod | null {
-  if (
-    value === "credito" ||
-    value === "debito" ||
-    value === "pix" ||
-    value === "transferencia" ||
-    value === "ted" ||
-    value === "especie" ||
-    value === "deposito" ||
-    value === "cheque"
-  ) {
-    return value
+function formatPaymentMethod(value: string) {
+  const labels: Record<string, string> = {
+    credito: "Credito",
+    debito: "Debito",
+    pix: "PIX",
+    transferencia: "Transferencia",
+    ted: "TED",
+    especie: "Especie",
+    deposito: "Deposito",
+    cheque: "Cheque",
   }
-  return null
+  return labels[value] || fallback(value)
 }
 
-function cellStyle(extra?: CSSProperties): CSSProperties {
-  return {
-    border: "1px solid #d1d5db",
-    padding: "4px 6px",
-    fontSize: 11,
-    lineHeight: 1.2,
-    verticalAlign: "middle",
-    ...extra,
+function formatBank(value: string) {
+  const labels: Record<string, string> = {
+    asaas: "ASAAS",
+    rede: "REDE",
+    itau: "ITAU",
+    outros: "OUTROS",
   }
+  return labels[value] || fallback(value)
 }
 
-export default function FichaPdf({ data }: FichaPdfProps) {
-  const selectedBank = normalizeBank(data.banco)
-  const selectedMethod = normalizeMethod(data.formaPagamento)
+function sectionHeader(title: string, tone: "navy" | "orange" = "navy") {
+  const background = tone === "navy" ? `linear-gradient(90deg, ${colors.navyDark}, ${colors.navy})` : `linear-gradient(90deg, ${colors.orangeDark}, ${colors.orange})`
 
   return (
     <div
       style={{
-        width: 1120,
-        background: "#ffffff",
-        color: "#000000",
-        fontFamily: "Arial, sans-serif",
-        fontSize: 11,
+        display: "flex",
+        alignItems: "center",
+        gap: 18,
+        padding: "16px 26px",
+        background,
+        color: "#ffffff",
+        fontSize: 22,
+        fontWeight: 700,
+        letterSpacing: 0.4,
       }}
     >
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-        <tbody>
-          <tr>
-            <td style={{ ...cellStyle(), width: "20%", textAlign: "center", color: "#ff0000", fontSize: 14, fontWeight: 700 }}>
-              DATA:
-              <div style={{ marginTop: 18 }}>{formatDate(data.dataContrato)}</div>
-            </td>
-            <td style={{ ...cellStyle(), width: "60%", height: 92, textAlign: "center" }}>
+      <span>{title}</span>
+      <div style={sectionTitleLineStyle} />
+    </div>
+  )
+}
+
+function infoCell(label: string, value: string, options?: { span?: number; minHeight?: number }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "220px 1fr",
+        minHeight: options?.minHeight || 66,
+        borderRight: `1px solid ${colors.line}`,
+        borderBottom: `1px solid ${colors.line}`,
+        gridColumn: options?.span ? `span ${options.span}` : undefined,
+      }}
+    >
+      <div
+        style={{
+          padding: "16px 18px",
+          background: "linear-gradient(180deg, #fff2df 0%, #ffe4c2 100%)",
+          borderRight: `1px solid ${colors.line}`,
+          fontSize: 17,
+          fontWeight: 700,
+          color: colors.text,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          padding: "16px 18px",
+          background: "rgba(255,255,255,0.92)",
+          fontSize: 17,
+          color: value?.trim() ? colors.text : colors.muted,
+        }}
+      >
+        {fallback(value)}
+      </div>
+    </div>
+  )
+}
+
+function sectionCard(title: string, tone: "navy" | "orange", children: ReactNode) {
+  return (
+    <section style={{ ...cardStyle, marginTop: 24 }}>
+      {sectionHeader(title, tone)}
+      {children}
+    </section>
+  )
+}
+
+export default function FichaPdf({ data }: FichaPdfProps) {
+  return (
+    <div style={pageStyle}>
+      <section style={{ ...cardStyle, position: "relative", marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", minHeight: 300 }}>
+          <div style={{ position: "relative", padding: "34px 40px 36px 40px", overflow: "hidden" }}>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(135deg, rgba(242,140,24,0.20) 0%, rgba(255,255,255,0.92) 35%, rgba(255,255,255,0.98) 100%)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: -30,
+                top: -40,
+                bottom: -40,
+                width: 46,
+                background: `linear-gradient(180deg, ${colors.orange}, ${colors.orangeDark})`,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: 14,
+                top: 0,
+                bottom: 0,
+                width: 10,
+                backgroundImage: `repeating-linear-gradient(180deg, transparent 0 18px, ${colors.navy} 18px 24px)`,
+                opacity: 0.45,
+              }}
+            />
+            <div style={{ position: "relative", zIndex: 1 }}>
               <img
                 src="/logo.png"
-                alt="Logo CABRICOP"
+                alt="CABRICOP"
                 crossOrigin="anonymous"
-                style={{ maxHeight: 70, width: "auto", objectFit: "contain", display: "inline-block" }}
+                style={{ width: 360, maxWidth: "100%", objectFit: "contain" }}
               />
-            </td>
-            <td style={{ ...cellStyle(), width: "20%", textAlign: "center", color: "#ff0000", fontSize: 14, fontWeight: 700 }}>
-              PRAZO:
-              <div style={{ marginTop: 18 }}>{formatDate(data.prazoServico)}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <div
+                style={{
+                  marginTop: 28,
+                  width: 420,
+                  maxWidth: "100%",
+                  borderTop: `4px solid ${colors.navy}`,
+                  paddingTop: 18,
+                }}
+              >
+                <div style={{ fontSize: 30, fontWeight: 800, color: colors.navy, letterSpacing: 0.8 }}>FICHA DE VENDA</div>
+                <div style={{ marginTop: 8, fontSize: 16, color: colors.muted }}>
+                  Documento administrativo com dados completos do atendimento e do processo.
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-        <tbody>
-          <tr>
-            <td style={{ ...cellStyle({ width: "12%", fontWeight: 700 }) }}>NOME:</td>
-            <td style={{ ...cellStyle({ width: "88%", textAlign: "center", fontWeight: 700 }) }} colSpan={7}>
-              {data.nomeCliente}
-            </td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>TERCEIROS:</td>
-            <td style={cellStyle()} colSpan={7}>{data.terceiros}</td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>TELEFONES:</td>
-            <td style={{ ...cellStyle({ textAlign: "center" }), width: "35%" }} colSpan={3}>{data.telefones}</td>
-            <td style={{ ...cellStyle({ width: "12%", fontWeight: 700 }) }}>E-MAIL:</td>
-            <td style={cellStyle()} colSpan={3}>{data.email}</td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>ENDEREÇO:</td>
-            <td style={{ ...cellStyle({ textAlign: "center" }), width: "70%" }} colSpan={6}>{data.endereco}</td>
-            <td style={{ ...cellStyle({ width: "18%", textAlign: "center" }) }}>
-              <span style={{ fontWeight: 700 }}>CEP:</span> {data.cep}
-            </td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>CPF / CNPJ:</td>
-            <td style={cellStyle()}>{data.cpfCnpj}</td>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>CNH:</td>
-            <td style={cellStyle()}>{data.cnh}</td>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>NASCIMENTO:</td>
-            <td style={cellStyle()}>{formatDate(data.dataNascimento)}</td>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>DATA DA 1ª CNH:</td>
-            <td style={cellStyle()}>{formatDate(data.dataPrimeiraCnh)}</td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>CONSULTOR:</td>
-            <td style={cellStyle()}>{data.nomeConsultor}</td>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>ORIGEM:</td>
-            <td style={cellStyle()}>{data.origem}</td>
-            <td style={{ ...cellStyle({ fontWeight: 700 }) }}>SNE:</td>
-            <td style={cellStyle()} colSpan={3}>{data.sne}</td>
-          </tr>
-        </tbody>
-      </table>
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              background:
+                "radial-gradient(circle at 74% 30%, rgba(255,221,170,0.96) 0%, rgba(242,140,24,0.74) 28%, rgba(18,61,111,0.96) 100%)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0.12) 100%)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 70,
+                top: 46,
+                width: 240,
+                height: 240,
+                borderRadius: "50%",
+                border: "18px solid rgba(255,255,255,0.32)",
+                boxShadow: "0 0 0 18px rgba(255,255,255,0.08)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 158,
+                top: 132,
+                width: 70,
+                height: 70,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.88)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 178,
+                top: 170,
+                width: 230,
+                height: 14,
+                transform: "rotate(-18deg)",
+                transformOrigin: "left center",
+                background: "rgba(255,255,255,0.88)",
+                borderRadius: 999,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 24,
+                top: 54,
+                width: 150,
+                height: 150,
+                borderRadius: 22,
+                border: "2px solid rgba(255,255,255,0.28)",
+                transform: "rotate(14deg)",
+                opacity: 0.55,
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 118,
+                bottom: 20,
+                width: 320,
+                height: 100,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.12)",
+                filter: "blur(14px)",
+              }}
+            />
+          </div>
+        </div>
+      </section>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 18 }}>
-        <tbody>
-          <tr>
-            <td style={{ ...cellStyle({ width: "12%", fontWeight: 700, textAlign: "center" }) }}>PAGAMENTO</td>
-            {paymentColumns.map((column) => (
-              <td key={column.key} style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>
-                {column.label}
-              </td>
-            ))}
-          </tr>
-          {paymentRows.map((row) => (
-            <tr key={row.key}>
-              <td style={{ ...cellStyle({ fontWeight: 700, color: row.color || "#000000", textAlign: "center" }) }}>
-                {row.label}
-              </td>
-              {paymentColumns.map((column) => (
-                <td key={`${row.key}-${column.key}`} style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>
-                  {selectedBank === row.key && selectedMethod === column.key ? formatCurrency(data.valorTotal) : ""}
-                </td>
-              ))}
-            </tr>
-          ))}
-          <tr>
-            <td style={{ ...cellStyle({ fontWeight: 700, color: "#ff0000" }) }}>VALOR TOTAL:</td>
-            <td style={cellStyle()} colSpan={8}>
-              <div style={{ color: "#ff0000", fontWeight: 700, textAlign: "center" }}>{formatCurrency(data.valorTotal)}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <section style={{ ...cardStyle, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "420px 1fr 150px 1fr", minHeight: 78 }}>
+          <div
+            style={{
+              padding: "20px 24px",
+              background: `linear-gradient(90deg, ${colors.orangeDark}, ${colors.orange})`,
+              color: "#ffffff",
+              fontSize: 24,
+              fontWeight: 800,
+              textAlign: "center",
+              borderRight: `1px solid ${colors.line}`,
+            }}
+          >
+            DATA DO CONTRATO
+          </div>
+          <div style={{ padding: "20px 24px", fontSize: 24, borderRight: `1px solid ${colors.line}` }}>{formatDate(data.dataContrato)}</div>
+          <div
+            style={{
+              padding: "20px 24px",
+              fontSize: 24,
+              fontWeight: 800,
+              color: colors.navy,
+              borderRight: `1px solid ${colors.line}`,
+              textAlign: "center",
+            }}
+          >
+            PRAZO
+          </div>
+          <div style={{ padding: "20px 24px", fontSize: 24 }}>{formatDate(data.prazoServico)}</div>
+        </div>
+      </section>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 18 }}>
-        <tbody>
-          <tr>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>INSTÂNCIA DO PROCESSO</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>TIPO DO PROCESSO</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>Nº DO PROCESSO</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>PRAZO</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>VISTO JURÍDICO</td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.instanciaProcesso}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.tipoProcesso}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.numeroProcesso}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{formatDate(data.prazoProcesso)}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.vistoJuridico}</td>
-          </tr>
-        </tbody>
-      </table>
+      {sectionCard(
+        "DADOS DO CLIENTE",
+        "navy",
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          {infoCell("Nome Completo", data.nomeCliente, { span: 2 })}
+          {infoCell("Terceiros", data.terceiros)}
+          {infoCell("E-mail", data.email)}
+          {infoCell("Telefone(s)", data.telefones)}
+          {infoCell("Endereco", data.endereco)}
+          {infoCell("CEP", data.cep)}
+          {infoCell("CPF / CNPJ", formatCpfCnpj(data.cpfCnpj))}
+          {infoCell("CNH", data.cnh)}
+          {infoCell("Data de Nascimento", formatDate(data.dataNascimento))}
+          {infoCell("Data da 1a CNH", formatDate(data.dataPrimeiraCnh))}
+        </div>
+      )}
 
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 18 }}>
-        <tbody>
-          <tr>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>INSTÂNCIA DA MULTA</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>AUTO DETRAN</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>AUTO RENAINF</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>TIPO DE MULTA</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>PLACA</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>RENAVAM</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>PRAZO</td>
-            <td style={{ ...cellStyle({ color: "#ea580c", textAlign: "center", fontWeight: 700 }) }}>VISTO JURÍDICO</td>
-          </tr>
-          <tr>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.instanciaMulta}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.autoDetran}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.autoRenainf}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.tipoMulta}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.placa}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.renavam}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{formatDate(data.prazoMulta)}</td>
-            <td style={{ ...cellStyle({ textAlign: "center", fontWeight: 700 }) }}>{data.vistoJuridicoMulta}</td>
-          </tr>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <tr key={`empty-row-${index}`}>
-              {Array.from({ length: 8 }).map((__, cellIndex) => (
-                <td key={`empty-cell-${index}-${cellIndex}`} style={{ ...cellStyle({ height: 26 }) }} />
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {sectionCard(
+        "DADOS DO CONSULTOR",
+        "orange",
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          {infoCell("Nome do Consultor", data.nomeConsultor)}
+          {infoCell("Origem", data.origem)}
+          {infoCell("SNE", data.sne, { span: 2 })}
+        </div>
+      )}
+
+      {sectionCard(
+        "DADOS DO PAGAMENTO",
+        "orange",
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          {infoCell("Forma de Pagamento", formatPaymentMethod(data.formaPagamento))}
+          {infoCell("Valor Total", formatCurrency(data.valorTotal))}
+          {infoCell("Banco", formatBank(data.banco))}
+          {infoCell("Valor de Entrada", formatCurrency(data.valorEntrada))}
+          {infoCell("Valor Restante", formatCurrency(data.valorRestante), { span: 2 })}
+        </div>
+      )}
+
+      {sectionCard(
+        "PROCESSO",
+        "navy",
+        <div style={{ display: "grid", gridTemplateColumns: "1.35fr 0.9fr" }}>
+          <div style={{ borderRight: `1px solid ${colors.line}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+              {infoCell("Instancia do Processo", data.instanciaProcesso)}
+              {infoCell("Tipo do Processo", data.tipoProcesso)}
+              {infoCell("No do Processo", data.numeroProcesso)}
+              {infoCell("Prazo do Processo", formatDate(data.prazoProcesso))}
+              {infoCell("Visto Juridico", data.vistoJuridico, { span: 2, minHeight: 78 })}
+            </div>
+          </div>
+
+          <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital do Visto Juridico</div>
+            <div
+              style={{
+                height: 214,
+                border: `1px solid ${colors.line}`,
+                borderRadius: 18,
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {data.assinaturaVistoJuridico ? (
+                <img
+                  src={data.assinaturaVistoJuridico}
+                  alt="Assinatura digital"
+                  crossOrigin="anonymous"
+                  style={{ width: "100%", height: "100%", objectFit: "contain", background: "#ffffff" }}
+                />
+              ) : (
+                <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
+                  <div style={{ marginBottom: 12 }}>Sem assinatura preenchida</div>
+                  <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
+                  <div>Assinatura</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sectionCard(
+        "MAIS INFORMACOES (MULTAS)",
+        "orange",
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          {infoCell("Instancia da Multa", data.instanciaMulta)}
+          {infoCell("Auto DETRAN", data.autoDetran)}
+          {infoCell("Auto RENAINF", data.autoRenainf)}
+          {infoCell("Tipo de Multa", data.tipoMulta)}
+          {infoCell("Placa", data.placa)}
+          {infoCell("RENAVAM", data.renavam)}
+          {infoCell("Prazo da Multa", formatDate(data.prazoMulta))}
+          {infoCell("Visto Juridico da Multa", data.vistoJuridicoMulta)}
+        </div>
+      )}
+
+      {sectionCard(
+        "OBSERVACOES ADICIONAIS",
+        "orange",
+        <div style={{ padding: 26, minHeight: 220, background: "rgba(255,255,255,0.96)", fontSize: 18, color: data.observacoes?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
+          {fallback(data.observacoes)}
+        </div>
+      )}
     </div>
   )
 }

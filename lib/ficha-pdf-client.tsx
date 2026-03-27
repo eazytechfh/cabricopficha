@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { createRoot } from "react-dom/client"
 import FichaPdf from "@/components/FichaPdf"
@@ -10,7 +10,7 @@ function getPdfFilename(nomeCliente: string) {
   const safeName = (nomeCliente || "cliente")
     .trim()
     .replace(/\s+/g, "_")
-    .replace(/[^\wÀ-ÿ-]/g, "")
+    .replace(/[^\w-]/g, "")
 
   return `ficha-${safeName}.pdf`
 }
