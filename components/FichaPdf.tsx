@@ -237,12 +237,24 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               }}
             />
             <div style={{ position: "relative", zIndex: 1 }}>
-              <img
-                src="/logo.png"
-                alt="CABRICOP"
-                crossOrigin="anonymous"
-                style={{ width: 360, maxWidth: "100%", objectFit: "contain" }}
-              />
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "18px 22px",
+                  borderRadius: 18,
+                  background: colors.navy,
+                  boxShadow: "0 10px 22px rgba(18, 61, 111, 0.18)",
+                }}
+              >
+                <img
+                  src="/logo.png"
+                  alt="CABRICOP"
+                  crossOrigin="anonymous"
+                  style={{ width: 300, maxWidth: "100%", objectFit: "contain" }}
+                />
+              </div>
               <div
                 style={{
                   marginTop: 28,
@@ -252,7 +264,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                   paddingTop: 18,
                 }}
               >
-                <div style={{ fontSize: 30, fontWeight: 800, color: colors.navy, letterSpacing: 0.8 }}>FICHA DE VENDA</div>
+                <div style={{ fontSize: 38, fontWeight: 900, color: colors.navy, letterSpacing: 0.6, textTransform: "uppercase" }}>FICHA DE VENDA</div>
                 <div style={{ marginTop: 8, fontSize: 16, color: colors.muted }}>
                   Documento administrativo com dados completos do atendimento e do processo.
                 </div>
@@ -484,3 +496,5 @@ export default function FichaPdf({ data }: FichaPdfProps) {
     </div>
   )
 }
+
+
