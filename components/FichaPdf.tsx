@@ -246,18 +246,30 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "flex-end",
               paddingLeft: 24,
               marginLeft: 24,
               borderLeft: `1px solid ${colors.line}`,
             }}
           >
-            <img
-              src="/logo.png"
-              alt="CABRICOP"
-              crossOrigin="anonymous"
-              style={{ maxHeight: 50, width: "auto", objectFit: "contain" }}
-            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 210,
+                padding: "10px 16px",
+                borderRadius: 14,
+                background: `linear-gradient(90deg, ${colors.navyDark}, ${colors.navy})`,
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="CABRICOP"
+                crossOrigin="anonymous"
+                style={{ height: 50, width: "auto", objectFit: "contain", display: "block" }}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -373,6 +385,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
     </div>
   )
 }
+
 
 
 
