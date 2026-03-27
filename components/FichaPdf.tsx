@@ -204,184 +204,61 @@ function sectionCard(title: string, tone: "navy" | "orange", children: ReactNode
 export default function FichaPdf({ data }: FichaPdfProps) {
   return (
     <div style={pageStyle}>
-      <section style={{ ...cardStyle, position: "relative", marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", minHeight: 300 }}>
-          <div style={{ position: "relative", padding: "34px 40px 36px 40px", overflow: "hidden" }}>
+            <section style={{ ...cardStyle, marginBottom: 24, borderRadius: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            minHeight: 86,
+            padding: "16px 24px",
+            background: "#ffffff",
+            borderBottom: `1px solid ${colors.line}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div
               style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(135deg, rgba(242,140,24,0.20) 0%, rgba(255,255,255,0.92) 35%, rgba(255,255,255,0.98) 100%)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                left: -30,
-                top: -40,
-                bottom: -40,
-                width: 46,
+                width: 12,
+                alignSelf: "stretch",
+                borderRadius: 999,
                 background: `linear-gradient(180deg, ${colors.orange}, ${colors.orangeDark})`,
               }}
             />
-            <div
-              style={{
-                position: "absolute",
-                left: 14,
-                top: 0,
-                bottom: 0,
-                width: 10,
-                backgroundImage: `repeating-linear-gradient(180deg, transparent 0 18px, ${colors.navy} 18px 24px)`,
-                opacity: 0.45,
-              }}
-            />
-            <div style={{ position: "relative", zIndex: 1 }}>
+            <div>
               <div
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "18px 22px",
-                  borderRadius: 18,
-                  background: colors.navy,
-                  boxShadow: "0 10px 22px rgba(18, 61, 111, 0.18)",
+                  fontSize: 28,
+                  fontWeight: 800,
+                  color: colors.navy,
+                  letterSpacing: 0.4,
                 }}
               >
-                <img
-                  src="/logo.png"
-                  alt="CABRICOP"
-                  crossOrigin="anonymous"
-                  style={{ width: 300, maxWidth: "100%", objectFit: "contain" }}
-                />
+                FICHA DE VENDA
               </div>
-              <div
-                style={{
-                  marginTop: 28,
-                  width: 420,
-                  maxWidth: "100%",
-                  borderTop: `4px solid ${colors.navy}`,
-                  paddingTop: 18,
-                }}
-              >
-                <div style={{ fontSize: 38, fontWeight: 900, color: colors.navy, letterSpacing: 0.6, textTransform: "uppercase" }}>FICHA DE VENDA</div>
-                <div style={{ marginTop: 8, fontSize: 16, color: colors.muted }}>
-                  Documento administrativo com dados completos do atendimento e do processo.
-                </div>
+              <div style={{ marginTop: 6, fontSize: 14, color: colors.muted }}>
+                Documento administrativo com dados completos da ficha.
               </div>
             </div>
           </div>
 
           <div
             style={{
-              position: "relative",
-              overflow: "hidden",
-              background:
-                "radial-gradient(circle at 74% 30%, rgba(255,221,170,0.96) 0%, rgba(242,140,24,0.74) 28%, rgba(18,61,111,0.96) 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingLeft: 24,
+              marginLeft: 24,
+              borderLeft: `1px solid ${colors.line}`,
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0.12) 100%)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                right: 70,
-                top: 46,
-                width: 240,
-                height: 240,
-                borderRadius: "50%",
-                border: "18px solid rgba(255,255,255,0.32)",
-                boxShadow: "0 0 0 18px rgba(255,255,255,0.08)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                right: 158,
-                top: 132,
-                width: 70,
-                height: 70,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.88)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                right: 178,
-                top: 170,
-                width: 230,
-                height: 14,
-                transform: "rotate(-18deg)",
-                transformOrigin: "left center",
-                background: "rgba(255,255,255,0.88)",
-                borderRadius: 999,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                right: 24,
-                top: 54,
-                width: 150,
-                height: 150,
-                borderRadius: 22,
-                border: "2px solid rgba(255,255,255,0.28)",
-                transform: "rotate(14deg)",
-                opacity: 0.55,
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                right: 118,
-                bottom: 20,
-                width: 320,
-                height: 100,
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.12)",
-                filter: "blur(14px)",
-              }}
+            <img
+              src="/logo.png"
+              alt="CABRICOP"
+              crossOrigin="anonymous"
+              style={{ maxHeight: 50, width: "auto", objectFit: "contain" }}
             />
           </div>
-        </div>
-      </section>
-
-      <section style={{ ...cardStyle, marginBottom: 24 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "420px 1fr 150px 1fr", minHeight: 78 }}>
-          <div
-            style={{
-              padding: "20px 24px",
-              background: `linear-gradient(90deg, ${colors.orangeDark}, ${colors.orange})`,
-              color: "#ffffff",
-              fontSize: 24,
-              fontWeight: 800,
-              textAlign: "center",
-              borderRight: `1px solid ${colors.line}`,
-            }}
-          >
-            DATA DO CONTRATO
-          </div>
-          <div style={{ padding: "20px 24px", fontSize: 24, borderRight: `1px solid ${colors.line}` }}>{formatDate(data.dataContrato)}</div>
-          <div
-            style={{
-              padding: "20px 24px",
-              fontSize: 24,
-              fontWeight: 800,
-              color: colors.navy,
-              borderRight: `1px solid ${colors.line}`,
-              textAlign: "center",
-            }}
-          >
-            PRAZO
-          </div>
-          <div style={{ padding: "20px 24px", fontSize: 24 }}>{formatDate(data.prazoServico)}</div>
         </div>
       </section>
 
@@ -496,5 +373,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
     </div>
   )
 }
+
 
 
