@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,7 +10,8 @@ import { FichaForm } from "@/components/ficha-form"
 import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { updateFicha } from "@/lib/fichaService"
-import { createFicha, getFichaById, getFichasByCpf } from "@/lib/fichas-api"
+import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
+import { getFichaById, getFichasByCpf } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { emptyFichaValues, type ConsultorSession, type FichaFormValues, type FichaListItem, type FichaRecord } from "@/lib/ficha-types"
 
@@ -82,9 +83,12 @@ export default function FichasWorkspace() {
         nomeConsultor: createValues.nomeConsultor || consultor.nome,
       }
 
-      await createFicha(values, consultor)
-      await downloadFichaPdf(values)
-      setCreateMessage("Ficha salva com sucesso, PDF baixado e planilha atualizada.")
+      const response = await saveFichaWithPdfAndWebhook(values, consultor)
+      setCreateMessage(
+        response.webhookSent
+          ? "Ficha salva com sucesso."
+          : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
+      )
       setCreateValues({
         ...emptyFichaValues,
         nomeConsultor: consultor.nome,

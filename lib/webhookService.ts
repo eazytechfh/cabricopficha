@@ -1,9 +1,11 @@
-import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
+﻿import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
 
+const FICHA_CREATE_WEBHOOK_URL =
+  "https://n8n.srv953248.hstgr.cloud/webhook/7a2f5a7c-3e8b-4266-bfb9-2ecddf843852"
 const FICHA_UPDATE_WEBHOOK_URL =
   "https://n8n.srv953248.hstgr.cloud/webhook/99dd7b30-08f1-48cd-be4b-2e4ccd769709"
 
-export type FichaUpdateWebhookPayload = {
+type FichaWebhookPayloadBase = {
   ficha: {
     id: string
     data: string
@@ -58,13 +60,17 @@ export type FichaUpdateWebhookPayload = {
     nivel: string
   }
   origem: "sistema_ficha_venda"
+}
+
+export type FichaCreateWebhookPayload = FichaWebhookPayloadBase & {
+  evento: "ficha_criada"
+}
+
+export type FichaUpdateWebhookPayload = FichaWebhookPayloadBase & {
   evento: "ficha_atualizada"
 }
 
-export function buildFichaUpdateWebhookPayload(
-  ficha: FichaRecord,
-  responsavel: ConsultorSession
-): FichaUpdateWebhookPayload {
+function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession): FichaWebhookPayloadBase {
   return {
     ficha: {
       id: ficha.id,
@@ -120,12 +126,31 @@ export function buildFichaUpdateWebhookPayload(
       nivel: responsavel.nivelAcesso,
     },
     origem: "sistema_ficha_venda",
+  }
+}
+
+export function buildFichaCreateWebhookPayload(
+  ficha: FichaRecord,
+  responsavel: ConsultorSession
+): FichaCreateWebhookPayload {
+  return {
+    ...buildFichaWebhookBase(ficha, responsavel),
+    evento: "ficha_criada",
+  }
+}
+
+export function buildFichaUpdateWebhookPayload(
+  ficha: FichaRecord,
+  responsavel: ConsultorSession
+): FichaUpdateWebhookPayload {
+  return {
+    ...buildFichaWebhookBase(ficha, responsavel),
     evento: "ficha_atualizada",
   }
 }
 
-export async function sendFichaUpdateWebhook(payload: FichaUpdateWebhookPayload) {
-  const response = await fetch(FICHA_UPDATE_WEBHOOK_URL, {
+async function postWebhook(url: string, payload: FichaCreateWebhookPayload | FichaUpdateWebhookPayload) {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -137,7 +162,7 @@ export async function sendFichaUpdateWebhook(payload: FichaUpdateWebhookPayload)
   const responseText = await response.text()
 
   if (!response.ok) {
-    throw new Error(responseText || "Erro ao enviar os dados para a automacao.")
+    throw new Error(responseText || `Erro ao enviar webhook: ${response.status}`)
   }
 
   return {
@@ -145,4 +170,12 @@ export async function sendFichaUpdateWebhook(payload: FichaUpdateWebhookPayload)
     status: response.status,
     body: responseText,
   }
+}
+
+export async function sendFichaCreateWebhook(payload: FichaCreateWebhookPayload) {
+  return postWebhook(FICHA_CREATE_WEBHOOK_URL, payload)
+}
+
+export async function sendFichaUpdateWebhook(payload: FichaUpdateWebhookPayload) {
+  return postWebhook(FICHA_UPDATE_WEBHOOK_URL, payload)
 }
