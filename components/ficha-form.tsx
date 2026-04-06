@@ -335,8 +335,18 @@ export function FichaForm({
             {renderInput("renavam", "RENAVAM")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("prazoMulta", "Prazo", { type: "date" })}
-            {renderInput("vistoJuridicoMulta", "Visto Juridico")}
+            <div className="md:col-span-2">{renderInput("prazoMulta", "Prazo", { type: "date" })}</div>
+          </div>
+          <div className="space-y-3">
+            <Label htmlFor="assinaturaVistoJuridicoMulta">Assinatura Digital</Label>
+            <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
+              <canvas
+                id="assinaturaVistoJuridicoMulta"
+                width={900}
+                height={220}
+                className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

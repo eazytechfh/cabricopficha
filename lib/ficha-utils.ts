@@ -42,6 +42,7 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
     bancoOutro: values.banco === "outros" ? values.bancoOutro : "",
     vistoJuridico: "",
     assinaturaVistoJuridico: "",
+    vistoJuridicoMulta: "",
   }
 }
 

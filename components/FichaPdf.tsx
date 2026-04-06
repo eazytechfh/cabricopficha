@@ -33,7 +33,6 @@ type FichaPdfData = {
   placa: string
   renavam: string
   prazoMulta: string
-  vistoJuridicoMulta: string
   observacoes: string
 }
 
@@ -352,15 +351,40 @@ export default function FichaPdf({ data }: FichaPdfProps) {
       {sectionCard(
         "MAIS INFORMACOES (MULTAS)",
         "orange",
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-          {infoCell("Instancia da Multa", data.instanciaMulta)}
-          {infoCell("Auto DETRAN", data.autoDetran)}
-          {infoCell("Auto RENAINF", data.autoRenainf)}
-          {infoCell("Tipo de Multa", data.tipoMulta)}
-          {infoCell("Placa", data.placa)}
-          {infoCell("RENAVAM", data.renavam)}
-          {infoCell("Prazo da Multa", formatDate(data.prazoMulta))}
-          {infoCell("Visto Juridico da Multa", data.vistoJuridicoMulta)}
+        <div style={{ display: "grid", gridTemplateColumns: "1.35fr 0.9fr" }}>
+          <div style={{ borderRight: `1px solid ${colors.line}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+              {infoCell("Instancia da Multa", data.instanciaMulta)}
+              {infoCell("Auto DETRAN", data.autoDetran)}
+              {infoCell("Auto RENAINF", data.autoRenainf)}
+              {infoCell("Tipo de Multa", data.tipoMulta)}
+              {infoCell("Placa", data.placa)}
+              {infoCell("RENAVAM", data.renavam)}
+              {infoCell("Prazo da Multa", formatDate(data.prazoMulta), { span: 2 })}
+            </div>
+          </div>
+
+          <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital</div>
+            <div
+              style={{
+                height: 214,
+                border: `1px solid ${colors.line}`,
+                borderRadius: 18,
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
+                <div style={{ marginBottom: 12 }}>Area de assinatura</div>
+                <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
+                <div>Assinatura</div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
