@@ -34,6 +34,8 @@ export const ORIGEM_OPTIONS = [
   "RESGATE",
 ] as const
 
+export const INSTANCIA_PROCESSO_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "2º INSTÂNCIA"] as const
+
 export function getDefaultConsultorOption(nome?: string | null) {
   return CONSULTOR_OPTIONS.find((option) => option === nome) ?? ""
 }

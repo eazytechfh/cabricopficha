@@ -3,12 +3,13 @@
 import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, ORIGEM_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -139,6 +140,18 @@ export function FichaForm({
   }
 
   const fieldDisabled = readOnly || loading
+  const selectedInstanciasProcesso = values.instanciaProcesso
+    .split(";")
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  const toggleInstanciaProcesso = (option: string, checked: boolean) => {
+    const nextValues = checked
+      ? [...selectedInstanciasProcesso, option]
+      : selectedInstanciasProcesso.filter((item) => item !== option)
+
+    setField("instanciaProcesso", nextValues.join("; "))
+  }
 
   const renderInput = (field: keyof FichaFormValues, label: string, props?: React.ComponentProps<typeof Input>) => (
     <div className="space-y-2">
@@ -321,7 +334,23 @@ export function FichaForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("instanciaProcesso", "Instancia do Processo")}
+            <div className="space-y-2">
+              <Label>Instancia do Processo</Label>
+              <div className="rounded-md border border-input bg-background px-3 py-3">
+                <div className="flex flex-col gap-3">
+                  {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
+                    <label key={option} className="flex items-center gap-3 text-sm text-foreground">
+                      <Checkbox
+                        checked={selectedInstanciasProcesso.includes(option)}
+                        disabled={fieldDisabled}
+                        onCheckedChange={(checked) => toggleInstanciaProcesso(option, checked === true)}
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
             {renderInput("tipoProcesso", "Tipo do Processo")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
