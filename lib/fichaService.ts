@@ -1,4 +1,5 @@
 import { buildFichaUpdateWebhookPayload } from "@/lib/webhookService"
+import { normalizeFichaValues } from "@/lib/ficha-utils"
 import type { ConsultorSession, FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -20,11 +21,12 @@ export type UpdateFichaResult = {
 
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession): Promise<UpdateFichaResult> {
   console.log("Iniciando atualizacao da ficha")
+  const normalizedData = normalizeFichaValues(data)
 
   const updateResponse = await fetch(`/api/fichas/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data, consultor }),
+    body: JSON.stringify({ data: normalizedData, consultor }),
   })
 
   const updatePayload = await parseResponse<{ ficha: FichaRecord; excelSaved: boolean }>(updateResponse)

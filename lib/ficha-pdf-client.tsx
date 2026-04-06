@@ -3,7 +3,7 @@
 import { createRoot } from "react-dom/client"
 import FichaPdf from "@/components/FichaPdf"
 import { generatePdf } from "@/lib/generatePdf"
-import { normalizeDigits, parseCurrency } from "@/lib/ficha-utils"
+import { normalizeDigits, toPdfData } from "@/lib/ficha-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 
 function getPdfFilename(nomeCliente: string) {
@@ -30,14 +30,7 @@ export async function downloadFichaPdf(values: FichaFormValues) {
   const root = createRoot(host)
 
   root.render(
-    <FichaPdf
-      data={{
-        ...values,
-        valorTotal: parseCurrency(values.valorTotal),
-        valorEntrada: parseCurrency(values.valorEntrada),
-        valorRestante: parseCurrency(values.valorRestante),
-      }}
-    />
+    <FichaPdf data={toPdfData(values)} />
   )
 
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))

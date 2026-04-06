@@ -1,5 +1,6 @@
 ﻿import { createFicha } from "@/lib/fichas-api"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
+import { normalizeFichaValues } from "@/lib/ficha-utils"
 import { buildFichaCreateWebhookPayload } from "@/lib/webhookService"
 import type { ConsultorSession, FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 
@@ -25,13 +26,14 @@ export async function saveFichaWithPdfAndWebhook(
   consultor: ConsultorSession
 ): Promise<CreateFichaResult> {
   console.log("Iniciando salvamento da ficha")
+  const normalizedData = normalizeFichaValues(data)
 
-  const saveResponse = await createFicha(data, consultor)
+  const saveResponse = await createFicha(normalizedData, consultor)
 
   console.log("Ficha salva com sucesso no Supabase", saveResponse.ficha)
 
   console.log("Gerando PDF")
-  await downloadFichaPdf(data)
+  await downloadFichaPdf(normalizedData)
   console.log("PDF gerado com sucesso")
 
   const webhookPayload = buildFichaCreateWebhookPayload(saveResponse.ficha, consultor)

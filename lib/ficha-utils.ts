@@ -1,5 +1,7 @@
 import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 
+const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
+
 export function normalizeDigits(value: string) {
   return (value || "").replace(/\D/g, "")
 }
@@ -27,18 +29,39 @@ export function formatDate(value: string) {
   return `${day}/${month}/${year}`
 }
 
-export function toPdfData(values: FichaFormValues) {
+export function isPresetBankValue(value: string) {
+  return PRESET_BANK_VALUES.includes(value.trim().toLowerCase() as (typeof PRESET_BANK_VALUES)[number])
+}
+
+export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
+  const banco = values.banco === "outros" ? values.bancoOutro.trim() : values.banco
+
   return {
     ...values,
-    valorTotal: parseCurrency(values.valorTotal),
-    valorEntrada: parseCurrency(values.valorEntrada),
-    valorRestante: parseCurrency(values.valorRestante),
+    banco,
+    bancoOutro: values.banco === "outros" ? values.bancoOutro : "",
+  }
+}
+
+export function toPdfData(values: FichaFormValues) {
+  const normalizedValues = normalizeFichaValues(values)
+
+  return {
+    ...normalizedValues,
+    valorTotal: parseCurrency(normalizedValues.valorTotal),
+    valorEntrada: parseCurrency(normalizedValues.valorEntrada),
+    valorRestante: parseCurrency(normalizedValues.valorRestante),
   }
 }
 
 export function toRecordValues(record: FichaRecord): FichaFormValues {
+  const banco = record.banco || ""
+  const usesPresetBank = isPresetBankValue(banco)
+
   return {
     ...record,
+    banco: usesPresetBank ? banco : banco ? "outros" : "",
+    bancoOutro: usesPresetBank ? "" : banco,
   }
 }
 

@@ -27,6 +27,7 @@ export type FichaFormValues = {
   sne: string
   formaPagamento: string
   banco: string
+  bancoOutro: string
   valorTotal: string
   valorEntrada: string
   valorRestante: string
@@ -89,6 +90,7 @@ export const emptyFichaValues: FichaFormValues = {
   sne: "",
   formaPagamento: "",
   banco: "",
+  bancoOutro: "",
   valorTotal: "",
   valorEntrada: "",
   valorRestante: "",
