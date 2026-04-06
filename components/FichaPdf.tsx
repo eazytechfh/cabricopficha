@@ -25,7 +25,6 @@ type FichaPdfData = {
   tipoProcesso: string
   numeroProcesso: string
   prazoProcesso: string
-  vistoJuridico: string
   assinaturaVistoJuridico: string
   instanciaMulta: string
   autoDetran: string
@@ -323,7 +322,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               {infoCell("Tipo do Processo", data.tipoProcesso)}
               {infoCell("No do Processo", data.numeroProcesso)}
               {infoCell("Prazo do Processo", formatDate(data.prazoProcesso))}
-              {infoCell("Visto Juridico", data.vistoJuridico, { span: 2, minHeight: 78 })}
             </div>
           </div>
 
@@ -341,20 +339,11 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 overflow: "hidden",
               }}
             >
-              {data.assinaturaVistoJuridico ? (
-                <img
-                  src={data.assinaturaVistoJuridico}
-                  alt="Assinatura digital"
-                  crossOrigin="anonymous"
-                  style={{ width: "100%", height: "100%", objectFit: "contain", background: "#ffffff" }}
-                />
-              ) : (
-                <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
-                  <div style={{ marginBottom: 12 }}>Sem assinatura preenchida</div>
-                  <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
-                  <div>Assinatura</div>
-                </div>
-              )}
+              <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
+                <div style={{ marginBottom: 12 }}>Area de assinatura</div>
+                <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
+                <div>Assinatura</div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -62,7 +61,6 @@ export function FichaForm({
   requiredFields = [],
 }: FichaFormProps) {
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const isDrawingRef = useRef(false)
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -75,68 +73,11 @@ export function FichaForm({
     context.lineWidth = 2
     context.lineCap = "round"
     context.strokeStyle = "#0f172a"
-
-    if (values.assinaturaVistoJuridico) {
-      const image = new Image()
-      image.onload = () => context.drawImage(image, 0, 0, canvas.width, canvas.height)
-      image.src = values.assinaturaVistoJuridico
-    }
-  }, [values.assinaturaVistoJuridico])
+  }, [])
 
   const setField = (field: keyof FichaFormValues, value: string) => {
     if (readOnly) return
     onChange(updateValue(values, field, value))
-  }
-
-  const startSignature = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (readOnly) return
-
-    const canvas = signatureCanvasRef.current
-    const context = canvas?.getContext("2d")
-    if (!canvas || !context) return
-
-    const rect = canvas.getBoundingClientRect()
-    const x = "touches" in event ? event.touches[0]?.clientX ?? 0 : event.clientX
-    const y = "touches" in event ? event.touches[0]?.clientY ?? 0 : event.clientY
-
-    isDrawingRef.current = true
-    context.beginPath()
-    context.moveTo(x - rect.left, y - rect.top)
-  }
-
-  const drawSignature = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (readOnly || !isDrawingRef.current) return
-
-    const canvas = signatureCanvasRef.current
-    const context = canvas?.getContext("2d")
-    if (!canvas || !context) return
-
-    const rect = canvas.getBoundingClientRect()
-    const x = "touches" in event ? event.touches[0]?.clientX ?? 0 : event.clientX
-    const y = "touches" in event ? event.touches[0]?.clientY ?? 0 : event.clientY
-
-    if ("touches" in event) event.preventDefault()
-
-    context.lineTo(x - rect.left, y - rect.top)
-    context.stroke()
-  }
-
-  const finishSignature = () => {
-    if (readOnly) return
-
-    const canvas = signatureCanvasRef.current
-    if (!canvas) return
-    isDrawingRef.current = false
-    setField("assinaturaVistoJuridico", canvas.toDataURL("image/png"))
-  }
-
-  const clearSignature = () => {
-    if (readOnly) return
-    const canvas = signatureCanvasRef.current
-    const context = canvas?.getContext("2d")
-    if (!canvas || !context) return
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    setField("assinaturaVistoJuridico", "")
   }
 
   const fieldDisabled = readOnly || loading
@@ -355,32 +296,17 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {renderInput("numeroProcesso", "No do Processo")}
-            {renderInput("prazoProcesso", "Prazo", { type: "date" })}
-            {renderInput("vistoJuridico", "Visto Juridico")}
+            <div className="md:col-span-2">{renderInput("prazoProcesso", "Prazo", { type: "date" })}</div>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
-              {!readOnly && (
-                <Button type="button" variant="outline" size="sm" onClick={clearSignature} disabled={loading}>
-                  Limpar Assinatura
-                </Button>
-              )}
-            </div>
+            <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
             <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
               <canvas
                 id="assinaturaVistoJuridico"
                 ref={signatureCanvasRef}
                 width={900}
                 height={220}
-                className="h-44 w-full cursor-crosshair rounded-md bg-slate-50 touch-none"
-                onMouseDown={startSignature}
-                onMouseMove={drawSignature}
-                onMouseUp={finishSignature}
-                onMouseLeave={finishSignature}
-                onTouchStart={startSignature}
-                onTouchMove={drawSignature}
-                onTouchEnd={finishSignature}
+                className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
               />
             </div>
           </div>
