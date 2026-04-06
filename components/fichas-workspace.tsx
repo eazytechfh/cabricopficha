@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FichaForm } from "@/components/ficha-form"
 import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
+import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
@@ -41,8 +42,10 @@ export default function FichasWorkspace() {
     const access = getCurrentAccess()
     if (!access) return
 
+    const defaultConsultor = getDefaultConsultorOption(access.nome)
+
     setConsultor(access)
-    setCreateValues((current) => ({ ...current, nomeConsultor: current.nomeConsultor || access.nome }))
+    setCreateValues((current) => ({ ...current, nomeConsultor: current.nomeConsultor || defaultConsultor }))
   }, [])
 
   const canEditSelectedFicha = useMemo(() => {
@@ -56,8 +59,10 @@ export default function FichasWorkspace() {
 
     try {
       const access = await loginWithAccessCode(codigoAcesso)
+      const defaultConsultor = getDefaultConsultorOption(access.nome)
+
       setConsultor(access)
-      setCreateValues((current) => ({ ...current, nomeConsultor: access.nome }))
+      setCreateValues((current) => ({ ...current, nomeConsultor: defaultConsultor }))
       setCodigoAcesso("")
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Codigo de acesso invalido.")
@@ -85,7 +90,7 @@ export default function FichasWorkspace() {
     try {
       const values = {
         ...createValues,
-        nomeConsultor: createValues.nomeConsultor || consultor.nome,
+        nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
       }
 
       const response = await saveFichaWithPdfAndWebhook(values, consultor)
@@ -96,7 +101,7 @@ export default function FichasWorkspace() {
       )
       setCreateValues({
         ...emptyFichaValues,
-        nomeConsultor: consultor.nome,
+        nomeConsultor: getDefaultConsultorOption(consultor.nome),
       })
     } catch (error) {
       setCreateMessage(error instanceof Error ? error.message : "Erro ao salvar a ficha.")

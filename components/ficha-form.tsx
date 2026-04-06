@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
+import { CONSULTOR_OPTIONS, ORIGEM_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -215,8 +216,42 @@ export function FichaForm({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {renderInput("nomeConsultor", "Nome do Consultor")}
-            {renderInput("origem", "Origem")}
+            <div className="space-y-2">
+              <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
+              <Select
+                value={values.nomeConsultor || undefined}
+                onValueChange={(value) => setField("nomeConsultor", value)}
+                disabled={fieldDisabled}
+              >
+                <SelectTrigger id="nomeConsultor">
+                  <SelectValue placeholder="Selecione o consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONSULTOR_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="origem">Origem</Label>
+              <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="origem">
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORIGEM_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {renderInput("sne", "SNE")}
           </div>
         </CardContent>
