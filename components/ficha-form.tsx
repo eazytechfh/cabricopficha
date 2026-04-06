@@ -13,6 +13,8 @@ import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
 
+const BANK_OPTIONS = ["asaas", "rede", "itau"] as const
+
 type FichaFormProps = {
   values: FichaFormValues
   onChange: (values: FichaFormValues) => void
@@ -48,6 +50,13 @@ function updateValue(
   return next
 }
 
+function getSelectedBankOption(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return undefined
+  if (BANK_OPTIONS.includes(normalized as (typeof BANK_OPTIONS)[number])) return normalized
+  return "outros"
+}
+
 export function FichaForm({
   values,
   onChange,
@@ -62,6 +71,7 @@ export function FichaForm({
 }: FichaFormProps) {
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isDrawingRef = useRef(false)
+  const selectedBankOption = getSelectedBankOption(values.banco)
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -286,7 +296,11 @@ export function FichaForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="banco">Banco</Label>
-              <Select value={values.banco} onValueChange={(value) => setField("banco", value)} disabled={fieldDisabled}>
+              <Select
+                value={selectedBankOption}
+                onValueChange={(value) => setField("banco", value === "outros" ? "" : value)}
+                disabled={fieldDisabled}
+              >
                 <SelectTrigger id="banco">
                   <SelectValue placeholder="Selecione o banco" />
                 </SelectTrigger>
@@ -299,6 +313,11 @@ export function FichaForm({
               </Select>
             </div>
           </div>
+          {selectedBankOption === "outros" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderInput("banco", "Nome do Banco", { placeholder: "Digite o nome do banco" })}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {renderInput("valorTotal", "Valor Total", { type: "number", step: "0.01", min: "0" })}
             {renderInput("valorEntrada", "Valor de Entrada", { type: "number", step: "0.01", min: "0" })}
