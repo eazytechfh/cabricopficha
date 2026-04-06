@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -62,6 +62,9 @@ export function FichaForm({
   requiredFields = [],
 }: FichaFormProps) {
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const lastFetchedCepRef = useRef("")
+  const [cepLookupMessage, setCepLookupMessage] = useState("")
+  const [cepLookupLoading, setCepLookupLoading] = useState(false)
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -75,6 +78,77 @@ export function FichaForm({
     context.lineCap = "round"
     context.strokeStyle = "#0f172a"
   }, [])
+
+  useEffect(() => {
+    if (readOnly) return
+
+    const cepDigits = values.cep.replace(/\D/g, "")
+
+    if (cepDigits.length !== 8) {
+      setCepLookupLoading(false)
+      setCepLookupMessage("")
+      if (cepDigits.length === 0) {
+        lastFetchedCepRef.current = ""
+      }
+      return
+    }
+
+    if (lastFetchedCepRef.current === cepDigits) {
+      return
+    }
+
+    let cancelled = false
+
+    const fetchAddress = async () => {
+      setCepLookupLoading(true)
+      setCepLookupMessage("")
+
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`)
+        const payload = (await response.json()) as {
+          erro?: boolean
+          logradouro?: string
+          bairro?: string
+          localidade?: string
+          uf?: string
+        }
+
+        if (!response.ok || payload.erro) {
+          throw new Error("CEP nao encontrado.")
+        }
+
+        const enderecoParts = [payload.logradouro, payload.bairro, payload.localidade, payload.uf]
+          .map((part) => (part || "").trim())
+          .filter(Boolean)
+
+        const endereco = enderecoParts.join(", ")
+
+        if (cancelled) return
+
+        lastFetchedCepRef.current = cepDigits
+        setCepLookupMessage(endereco ? "Endereco preenchido automaticamente." : "CEP encontrado.")
+
+        if (endereco && endereco !== values.endereco) {
+          onChange(
+            updateValue(values, "endereco", endereco)
+          )
+        }
+      } catch {
+        if (cancelled) return
+        setCepLookupMessage("Nao foi possivel localizar o endereco pelo CEP.")
+      } finally {
+        if (!cancelled) {
+          setCepLookupLoading(false)
+        }
+      }
+    }
+
+    void fetchAddress()
+
+    return () => {
+      cancelled = true
+    }
+  }, [onChange, readOnly, values])
 
   const setField = (field: keyof FichaFormValues, value: string) => {
     if (readOnly) return
@@ -149,7 +223,20 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">{renderInput("endereco", "Endereco")}</div>
-            {renderInput("cep", "CEP")}
+            <div className="space-y-2">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                name="cep"
+                value={values.cep}
+                onChange={(event) => setField("cep", event.target.value)}
+                disabled={fieldDisabled}
+                inputMode="numeric"
+                placeholder="00000-000"
+              />
+              {cepLookupLoading ? <p className="text-xs text-muted-foreground">Buscando endereco pelo CEP...</p> : null}
+              {!cepLookupLoading && cepLookupMessage ? <p className="text-xs text-muted-foreground">{cepLookupMessage}</p> : null}
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("cpfCnpj", "CPF/CNPJ")}
