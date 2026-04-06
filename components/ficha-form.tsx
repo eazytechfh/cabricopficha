@@ -22,6 +22,7 @@ type FichaFormProps = {
   readOnly?: boolean
   showActions?: boolean
   onCancelEdit?: () => void
+  requiredFields?: Array<keyof FichaFormValues>
 }
 
 function updateValue(
@@ -56,6 +57,7 @@ export function FichaForm({
   readOnly = false,
   showActions = true,
   onCancelEdit,
+  requiredFields = [],
 }: FichaFormProps) {
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isDrawingRef = useRef(false)
@@ -139,13 +141,18 @@ export function FichaForm({
 
   const renderInput = (field: keyof FichaFormValues, label: string, props?: React.ComponentProps<typeof Input>) => (
     <div className="space-y-2">
-      <Label htmlFor={field}>{label}</Label>
+      <Label htmlFor={field}>
+        {label}
+        {requiredFields.includes(field) ? " *" : ""}
+      </Label>
       <Input
         id={field}
         name={field}
         value={values[field]}
         onChange={(event) => setField(field, event.target.value)}
         disabled={fieldDisabled}
+        required={requiredFields.includes(field)}
+        aria-required={requiredFields.includes(field)}
         {...props}
       />
     </div>

@@ -74,6 +74,11 @@ export default function FichasWorkspace() {
   const handleCreate = async () => {
     if (!consultor) return
 
+    if (!createValues.nomeCliente.trim() || !createValues.cpfCnpj.trim()) {
+      setCreateMessage("Nome Completo e CPF/CNPJ sao obrigatorios.")
+      return
+    }
+
     setCreateLoading(true)
     setCreateMessage("")
 
@@ -224,6 +229,7 @@ export default function FichasWorkspace() {
               submitLabel="Salvar Ficha de Venda"
               loading={createLoading}
               loadingLabel="Salvando..."
+              requiredFields={["nomeCliente", "cpfCnpj"]}
             />
           </TabsContent>
 
