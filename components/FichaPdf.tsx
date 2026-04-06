@@ -337,13 +337,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 justifyContent: "center",
                 overflow: "hidden",
               }}
-            >
-              <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
-                <div style={{ marginBottom: 12 }}>Area de assinatura</div>
-                <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
-                <div>Assinatura</div>
-              </div>
-            </div>
+            />
           </div>
         </div>
       )}
@@ -377,13 +371,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 justifyContent: "center",
                 overflow: "hidden",
               }}
-            >
-              <div style={{ textAlign: "center", color: colors.muted, fontSize: 18 }}>
-                <div style={{ marginBottom: 12 }}>Area de assinatura</div>
-                <div style={{ width: 220, borderTop: `2px solid ${colors.line}`, margin: "0 auto 10px" }} />
-                <div>Assinatura</div>
-              </div>
-            </div>
+            />
           </div>
         </div>
       )}
