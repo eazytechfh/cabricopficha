@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FichaForm } from "@/components/ficha-form"
 import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
@@ -28,6 +29,7 @@ export default function FichasWorkspace() {
   const [createLoading, setCreateLoading] = useState(false)
   const [createMessage, setCreateMessage] = useState("")
 
+  const [tipoBusca, setTipoBusca] = useState<"cpf" | "nome">("cpf")
   const [cpfBusca, setCpfBusca] = useState("")
   const [nomeBusca, setNomeBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
@@ -119,13 +121,13 @@ export default function FichasWorkspace() {
     setSelectedFicha(null)
 
     try {
-      const cpfNormalizado = normalizeCpfCnpj(cpfBusca)
-      const nomeNormalizado = nomeBusca.trim()
+      const cpfNormalizado = tipoBusca === "cpf" ? normalizeCpfCnpj(cpfBusca) : ""
+      const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
 
       const response = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
       setConsultaItems(response.fichas)
       if (response.fichas.length === 0) {
-        setConsultaError("Nenhuma ficha encontrada para este CPF ou nome.")
+        setConsultaError(tipoBusca === "cpf" ? "Nenhuma ficha encontrada para este CPF." : "Nenhuma ficha encontrada para este nome.")
       }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao consultar fichas.")
@@ -248,23 +250,32 @@ export default function FichasWorkspace() {
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_auto]">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
                   <div className="space-y-2">
-                    <Label htmlFor="cpfBusca">CPF</Label>
-                    <Input
-                      id="cpfBusca"
-                      value={cpfBusca}
-                      onChange={(event) => setCpfBusca(event.target.value)}
-                      placeholder="Digite o CPF com ou sem mascara"
-                    />
+                    <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
+                    <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as "cpf" | "nome")}>
+                      <SelectTrigger id="tipoBusca">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cpf">CPF</SelectItem>
+                        <SelectItem value="nome">Nome</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nomeBusca">Nome</Label>
+                    <Label htmlFor="valorBusca">{tipoBusca === "cpf" ? "CPF" : "Nome"}</Label>
                     <Input
-                      id="nomeBusca"
-                      value={nomeBusca}
-                      onChange={(event) => setNomeBusca(event.target.value)}
-                      placeholder="Digite o nome do cliente"
+                      id="valorBusca"
+                      value={tipoBusca === "cpf" ? cpfBusca : nomeBusca}
+                      onChange={(event) => {
+                        if (tipoBusca === "cpf") {
+                          setCpfBusca(event.target.value)
+                        } else {
+                          setNomeBusca(event.target.value)
+                        }
+                      }}
+                      placeholder={tipoBusca === "cpf" ? "Digite o CPF com ou sem mascara" : "Digite o nome do cliente"}
                     />
                   </div>
                   <div className="flex items-end">
