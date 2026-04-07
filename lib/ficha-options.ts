@@ -38,6 +38,8 @@ export const INSTANCIA_PROCESSO_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "
 
 export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
+export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO", "OUTROS"] as const
+
 export function getDefaultConsultorOption(nome?: string | null) {
   return CONSULTOR_OPTIONS.find((option) => option === nome) ?? ""
 }

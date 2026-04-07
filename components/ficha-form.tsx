@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -394,7 +394,21 @@ export function FichaForm({
                 </div>
               </div>
             </div>
-            {renderInput("tipoProcesso", "Tipo do Processo")}
+            <div className="space-y-2">
+              <Label htmlFor="tipoProcesso">Tipo do Processo</Label>
+              <Select value={values.tipoProcesso || undefined} onValueChange={(value) => setField("tipoProcesso", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="tipoProcesso">
+                  <SelectValue placeholder="Selecione o tipo do processo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPO_PROCESSO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {renderInput("numeroProcesso", "No do Processo")}
