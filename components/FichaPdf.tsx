@@ -196,7 +196,7 @@ function infoCell(label: string, value: string, options?: { span?: number; minHe
 
 function sectionCard(title: string, tone: "navy" | "orange", children: ReactNode) {
   return (
-    <section style={{ ...cardStyle, marginTop: 24 }}>
+    <section data-pdf-section="true" style={{ ...cardStyle, marginTop: 24 }}>
       {sectionHeader(title, tone)}
       {children}
     </section>
@@ -239,7 +239,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
 
   return (
     <div style={pageStyle}>
-      <section style={{ ...cardStyle, marginBottom: 24, borderRadius: 16 }}>
+      <section data-pdf-section="true" style={{ ...cardStyle, marginBottom: 24, borderRadius: 16 }}>
         <div
           style={{
             display: "flex",
