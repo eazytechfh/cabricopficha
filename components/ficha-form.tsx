@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -508,7 +508,21 @@ export function FichaForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("instanciaMulta", "Instancia da Multa")}
+            <div className="space-y-2">
+              <Label htmlFor="instanciaMulta">Instancia da Multa</Label>
+              <Select value={values.instanciaMulta || undefined} onValueChange={(value) => setField("instanciaMulta", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="instanciaMulta">
+                  <SelectValue placeholder="Selecione a instancia da multa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INSTANCIA_MULTA_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {renderInput("autoDetran", "Auto DETRAN")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

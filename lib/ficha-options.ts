@@ -36,6 +36,8 @@ export const ORIGEM_OPTIONS = [
 
 export const INSTANCIA_PROCESSO_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "2º INSTÂNCIA"] as const
 
+export const INSTANCIA_MULTA_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "2º INSTÂNCIA"] as const
+
 export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
 export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO", "OUTROS"] as const
