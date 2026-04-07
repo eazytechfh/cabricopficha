@@ -335,7 +335,7 @@ export default function FichasWorkspace() {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Usuarios</DialogTitle>
                     <DialogDescription>
@@ -343,15 +343,15 @@ export default function FichasWorkspace() {
                     </DialogDescription>
                   </DialogHeader>
 
-                  <div className="space-y-6">
-                    <Card>
+                  <div className="space-y-5">
+                    <Card className="border border-border/70 shadow-sm">
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                           <UserPlus className="h-4 w-4" />
                           Adicionar novo usuario
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-[1.2fr_1fr_180px_auto] md:items-end">
+                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_180px_auto] xl:items-end">
                         <div className="space-y-2">
                           <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
                           <Input
@@ -388,13 +388,13 @@ export default function FichasWorkspace() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button onClick={() => void handleCreateUser()} disabled={userSaving}>
+                        <Button className="w-full xl:w-auto" onClick={() => void handleCreateUser()} disabled={userSaving}>
                           {userSaving ? "Salvando..." : "Adicionar"}
                         </Button>
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="border border-border/70 shadow-sm">
                       <CardHeader>
                         <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
                       </CardHeader>
@@ -405,7 +405,7 @@ export default function FichasWorkspace() {
                         {usersLoading ? (
                           <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
                         ) : (
-                          <Table>
+                          <Table className="min-w-[760px]">
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Nome</TableHead>
@@ -419,11 +419,13 @@ export default function FichasWorkspace() {
                             <TableBody>
                               {users.map((user) => (
                                 <TableRow key={user.id}>
-                                  <TableCell>{user.nomeResponsavel}</TableCell>
-                                  <TableCell>{user.codigoAcesso}</TableCell>
-                                  <TableCell>{user.nivelAcesso}</TableCell>
+                                  <TableCell className="font-medium whitespace-normal">{user.nomeResponsavel}</TableCell>
+                                  <TableCell className="font-mono text-xs sm:text-sm">{user.codigoAcesso}</TableCell>
+                                  <TableCell className="capitalize">{user.nivelAcesso}</TableCell>
                                   <TableCell>{user.ativo ? "Ativo" : "Inativo"}</TableCell>
-                                  <TableCell>{user.updatedAt || user.createdAt || "-"}</TableCell>
+                                  <TableCell className="whitespace-normal text-muted-foreground">
+                                    {user.updatedAt || user.createdAt || "-"}
+                                  </TableCell>
                                   <TableCell className="text-right">
                                     <Button
                                       variant="outline"
