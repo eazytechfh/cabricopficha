@@ -346,7 +346,7 @@ export default function FichasWorkspace() {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[min(1120px,calc(100vw-2rem))] max-w-none max-h-[88vh] overflow-y-auto p-0">
+                <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-[1200px] max-h-[88vh] overflow-x-hidden overflow-y-auto p-0">
                   <DialogHeader>
                     <DialogTitle className="px-6 pt-6">Usuarios</DialogTitle>
                     <DialogDescription className="px-6 pb-4">
@@ -362,8 +362,8 @@ export default function FichasWorkspace() {
                           Adicionar novo usuario
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid gap-4 lg:grid-cols-[1.4fr_1fr_220px_auto] lg:items-end">
-                        <div className="space-y-2">
+                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_220px_auto] xl:items-end">
+                        <div className="space-y-2 min-w-0">
                           <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
                           <Input
                             id="novoUsuarioNome"
@@ -373,7 +373,7 @@ export default function FichasWorkspace() {
                             disabled={userSaving}
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                           <Label htmlFor="novoUsuarioCodigo">Codigo de acesso</Label>
                           <Input
                             id="novoUsuarioCodigo"
@@ -383,7 +383,7 @@ export default function FichasWorkspace() {
                             disabled={userSaving}
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                           <Label htmlFor="novoUsuarioNivel">Nivel</Label>
                           <Select
                             value={newUserLevel}
@@ -399,7 +399,7 @@ export default function FichasWorkspace() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button className="w-full xl:w-auto" onClick={() => void handleCreateUser()} disabled={userSaving}>
+                        <Button className="w-full xl:w-auto xl:min-w-[120px]" onClick={() => void handleCreateUser()} disabled={userSaving}>
                           {userSaving ? "Salvando..." : "Adicionar"}
                         </Button>
                       </CardContent>
@@ -418,29 +418,26 @@ export default function FichasWorkspace() {
                         ) : (
                           <div className="space-y-3">
                             {users.map((user) => (
-                              <div
-                                key={user.id}
-                                className="rounded-xl border border-border bg-background/70 p-4"
-                              >
+                              <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 xl:gap-4 flex-1">
-                                    <div>
+                                  <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5 xl:gap-4 min-w-0">
+                                    <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
                                       <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Codigo</p>
                                       <p className="mt-1 font-mono text-sm break-all">{user.codigoAcesso}</p>
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
                                       <p className="mt-1 capitalize">{user.nivelAcesso}</p>
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
                                       <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
                                       <p className="mt-1 text-sm text-muted-foreground break-words">
                                         {formatAccessDate(user.updatedAt || user.createdAt)}
