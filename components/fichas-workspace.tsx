@@ -1,21 +1,39 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { Settings, Trash2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FichaForm } from "@/components/ficha-form"
-import { getCurrentAccess, loginWithAccessCode, logout } from "@/lib/accessService"
+import { createAccessUser, deleteAccessUser, getAccessUsers } from "@/lib/accessAdminService"
+import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { getFichaById, getFichas } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
-import { emptyFichaValues, type ConsultorSession, type FichaFormValues, type FichaListItem, type FichaRecord } from "@/lib/ficha-types"
+import {
+  emptyFichaValues,
+  type AccessCodeRecord,
+  type ConsultorSession,
+  type FichaFormValues,
+  type FichaListItem,
+  type FichaRecord,
+} from "@/lib/ficha-types"
 
 type ViewMode = "list" | "view" | "edit"
 
@@ -41,6 +59,17 @@ export default function FichasWorkspace() {
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
 
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState("")
+  const [usersMessage, setUsersMessage] = useState("")
+  const [users, setUsers] = useState<AccessCodeRecord[]>([])
+  const [newUserName, setNewUserName] = useState("")
+  const [newUserCode, setNewUserCode] = useState("")
+  const [newUserLevel, setNewUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
+  const [userSaving, setUserSaving] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState("")
+
   useEffect(() => {
     const access = getCurrentAccess()
     if (!access) return
@@ -55,6 +84,8 @@ export default function FichasWorkspace() {
     if (!consultor || !selectedFicha) return false
     return canEditFicha(consultor.id, consultor.nivelAcesso, selectedFicha)
   }, [consultor, selectedFicha])
+
+  const isAdmin = hasAdminAccess(consultor)
 
   const handleLogin = async () => {
     setAuthLoading(true)
@@ -77,6 +108,83 @@ export default function FichasWorkspace() {
   const handleLogout = () => {
     setConsultor(null)
     logout()
+  }
+
+  const loadAccessUsers = async () => {
+    if (!consultor || !hasAdminAccess(consultor)) return
+
+    setUsersLoading(true)
+    setUsersError("")
+
+    try {
+      const response = await getAccessUsers(consultor)
+      setUsers(response.users)
+    } catch (error) {
+      setUsersError(error instanceof Error ? error.message : "Erro ao carregar usuarios.")
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const handleOpenSettings = async (open: boolean) => {
+    setSettingsOpen(open)
+
+    if (!open) {
+      setUsersError("")
+      setUsersMessage("")
+      return
+    }
+
+    await loadAccessUsers()
+  }
+
+  const handleCreateUser = async () => {
+    if (!consultor) return
+
+    if (!newUserName.trim() || !newUserCode.trim()) {
+      setUsersError("Nome do responsavel e codigo de acesso sao obrigatorios.")
+      return
+    }
+
+    setUserSaving(true)
+    setUsersError("")
+    setUsersMessage("")
+
+    try {
+      await createAccessUser(consultor, {
+        nomeResponsavel: newUserName.trim(),
+        codigoAcesso: newUserCode.trim(),
+        nivelAcesso: newUserLevel,
+      })
+
+      setNewUserName("")
+      setNewUserCode("")
+      setNewUserLevel("consultor")
+      setUsersMessage("Usuario adicionado com sucesso.")
+      await loadAccessUsers()
+    } catch (error) {
+      setUsersError(error instanceof Error ? error.message : "Erro ao adicionar usuario.")
+    } finally {
+      setUserSaving(false)
+    }
+  }
+
+  const handleDeleteUser = async (user: AccessCodeRecord) => {
+    if (!consultor) return
+
+    setDeletingUserId(user.id)
+    setUsersError("")
+    setUsersMessage("")
+
+    try {
+      await deleteAccessUser(consultor, user.id)
+      setUsersMessage("Usuario removido com sucesso.")
+      await loadAccessUsers()
+    } catch (error) {
+      setUsersError(error instanceof Error ? error.message : "Erro ao remover usuario.")
+    } finally {
+      setDeletingUserId("")
+    }
   }
 
   const handleCreate = async () => {
@@ -218,9 +326,138 @@ export default function FichasWorkspace() {
               <p className="text-sm opacity-80">Nivel: {consultor.nivelAcesso}</p>
             </div>
           </div>
-          <Button variant="secondary" onClick={handleLogout}>
-            Sair
-          </Button>
+
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Dialog open={settingsOpen} onOpenChange={(open) => void handleOpenSettings(open)}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" size="icon" aria-label="Configuracoes">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>Usuarios</DialogTitle>
+                    <DialogDescription>
+                      Gerencie os acessos de administradores e consultores.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <UserPlus className="h-4 w-4" />
+                          Adicionar novo usuario
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-4 md:grid-cols-[1.2fr_1fr_180px_auto] md:items-end">
+                        <div className="space-y-2">
+                          <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
+                          <Input
+                            id="novoUsuarioNome"
+                            value={newUserName}
+                            onChange={(event) => setNewUserName(event.target.value)}
+                            placeholder="Digite o nome"
+                            disabled={userSaving}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="novoUsuarioCodigo">Codigo de acesso</Label>
+                          <Input
+                            id="novoUsuarioCodigo"
+                            value={newUserCode}
+                            onChange={(event) => setNewUserCode(event.target.value)}
+                            placeholder="Digite o codigo"
+                            disabled={userSaving}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="novoUsuarioNivel">Nivel</Label>
+                          <Select
+                            value={newUserLevel}
+                            onValueChange={(value) => setNewUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                            disabled={userSaving}
+                          >
+                            <SelectTrigger id="novoUsuarioNivel">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="consultor">Consultor</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button onClick={() => void handleCreateUser()} disabled={userSaving}>
+                          {userSaving ? "Salvando..." : "Adicionar"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {usersError && <p className="text-sm text-red-600">{usersError}</p>}
+                        {usersMessage && <p className="text-sm text-primary font-medium">{usersMessage}</p>}
+
+                        {usersLoading ? (
+                          <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Nome</TableHead>
+                                <TableHead>Codigo</TableHead>
+                                <TableHead>Nivel</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Atualizado em</TableHead>
+                                <TableHead className="text-right">Acoes</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {users.map((user) => (
+                                <TableRow key={user.id}>
+                                  <TableCell>{user.nomeResponsavel}</TableCell>
+                                  <TableCell>{user.codigoAcesso}</TableCell>
+                                  <TableCell>{user.nivelAcesso}</TableCell>
+                                  <TableCell>{user.ativo ? "Ativo" : "Inativo"}</TableCell>
+                                  <TableCell>{user.updatedAt || user.createdAt || "-"}</TableCell>
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => void handleDeleteUser(user)}
+                                      disabled={deletingUserId === user.id || user.id === consultor.id}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      {deletingUserId === user.id ? "Removendo..." : "Remover"}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              {users.length === 0 && (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                    Nenhum usuario encontrado.
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            <Button variant="secondary" onClick={handleLogout}>
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -9,6 +9,16 @@ export type Consultor = {
 
 export type ConsultorSession = Consultor
 
+export type AccessCodeRecord = {
+  id: string
+  nomeResponsavel: string
+  codigoAcesso: string
+  nivelAcesso: AccessLevel
+  ativo: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type FichaFormValues = {
   dataContrato: string
   prazoServico: string
