@@ -65,6 +65,9 @@ export function FichaForm({
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
   const [cepLookupLoading, setCepLookupLoading] = useState(false)
+  const [enderecoRua, setEnderecoRua] = useState(values.endereco)
+  const [enderecoNumero, setEnderecoNumero] = useState("")
+  const [enderecoComplemento, setEnderecoComplemento] = useState("")
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -78,6 +81,16 @@ export function FichaForm({
     context.lineCap = "round"
     context.strokeStyle = "#0f172a"
   }, [])
+
+  useEffect(() => {
+    const enderecoAtual = values.endereco || ""
+    const numeroMatch = enderecoAtual.match(/,\s*(?:N[uú]mero\s*)?(\d+[^,]*)/i)
+    const complementoMatch = enderecoAtual.match(/,\s*Complemento\s+(.+)$/i)
+
+    setEnderecoRua(enderecoAtual.split(",")[0]?.trim() || "")
+    setEnderecoNumero(numeroMatch?.[1]?.trim() || "")
+    setEnderecoComplemento(complementoMatch?.[1]?.trim() || "")
+  }, [values.endereco])
 
   useEffect(() => {
     if (readOnly) return
@@ -155,6 +168,20 @@ export function FichaForm({
     onChange(updateValue(values, field, value))
   }
 
+  const setEnderecoParts = (rua: string, numero: string, complemento: string) => {
+    const parts = [rua.trim()]
+
+    if (numero.trim()) {
+      parts.push(`Numero ${numero.trim()}`)
+    }
+
+    if (complemento.trim()) {
+      parts.push(`Complemento ${complemento.trim()}`)
+    }
+
+    setField("endereco", parts.filter(Boolean).join(", "))
+  }
+
   const fieldDisabled = readOnly || loading
   const selectedInstanciasProcesso = values.instanciaProcesso
     .split(";")
@@ -221,8 +248,51 @@ export function FichaForm({
             {renderInput("telefones", "Telefone(s)")}
             {renderInput("email", "E-mail", { type: "email" })}
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="endereco">Endereco</Label>
+              <Input
+                id="endereco"
+                name="endereco"
+                value={enderecoRua}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setEnderecoRua(nextValue)
+                  setEnderecoParts(nextValue, enderecoNumero, enderecoComplemento)
+                }}
+                disabled={fieldDisabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numeroEndereco">Numero</Label>
+              <Input
+                id="numeroEndereco"
+                name="numeroEndereco"
+                value={enderecoNumero}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setEnderecoNumero(nextValue)
+                  setEnderecoParts(enderecoRua, nextValue, enderecoComplemento)
+                }}
+                disabled={fieldDisabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="complementoEndereco">Complemento</Label>
+              <Input
+                id="complementoEndereco"
+                name="complementoEndereco"
+                value={enderecoComplemento}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setEnderecoComplemento(nextValue)
+                  setEnderecoParts(enderecoRua, enderecoNumero, nextValue)
+                }}
+                disabled={fieldDisabled}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">{renderInput("endereco", "Endereco")}</div>
             <div className="space-y-2">
               <Label htmlFor="cep">CEP</Label>
               <Input
