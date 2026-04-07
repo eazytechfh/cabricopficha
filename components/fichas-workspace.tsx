@@ -16,7 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FichaForm } from "@/components/ficha-form"
 import { createAccessUser, deleteAccessUser, getAccessUsers } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
@@ -36,6 +35,18 @@ import {
 } from "@/lib/ficha-types"
 
 type ViewMode = "list" | "view" | "edit"
+
+function formatAccessDate(value: string) {
+  if (!value) return "-"
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
+}
 
 export default function FichasWorkspace() {
   const [consultor, setConsultor] = useState<ConsultorSession | null>(null)
@@ -335,7 +346,7 @@ export default function FichasWorkspace() {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[96vw] max-w-[1280px] max-h-[88vh] overflow-y-auto p-0">
+                <DialogContent className="w-[min(1120px,calc(100vw-2rem))] max-w-none max-h-[88vh] overflow-y-auto p-0">
                   <DialogHeader>
                     <DialogTitle className="px-6 pt-6">Usuarios</DialogTitle>
                     <DialogDescription className="px-6 pb-4">
@@ -351,7 +362,7 @@ export default function FichasWorkspace() {
                           Adicionar novo usuario
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_220px_auto] xl:items-end">
+                      <CardContent className="grid gap-4 lg:grid-cols-[1.4fr_1fr_220px_auto] lg:items-end">
                         <div className="space-y-2">
                           <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
                           <Input
@@ -405,28 +416,39 @@ export default function FichasWorkspace() {
                         {usersLoading ? (
                           <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
                         ) : (
-                          <Table className="min-w-[940px]">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Codigo</TableHead>
-                                <TableHead>Nivel</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Atualizado em</TableHead>
-                                <TableHead className="text-right">Acoes</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {users.map((user) => (
-                                <TableRow key={user.id}>
-                                  <TableCell className="font-medium whitespace-normal">{user.nomeResponsavel}</TableCell>
-                                  <TableCell className="font-mono text-xs sm:text-sm">{user.codigoAcesso}</TableCell>
-                                  <TableCell className="capitalize">{user.nivelAcesso}</TableCell>
-                                  <TableCell>{user.ativo ? "Ativo" : "Inativo"}</TableCell>
-                                  <TableCell className="whitespace-normal text-muted-foreground">
-                                    {user.updatedAt || user.createdAt || "-"}
-                                  </TableCell>
-                                  <TableCell className="text-right">
+                          <div className="space-y-3">
+                            {users.map((user) => (
+                              <div
+                                key={user.id}
+                                className="rounded-xl border border-border bg-background/70 p-4"
+                              >
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 xl:gap-4 flex-1">
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
+                                      <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Codigo</p>
+                                      <p className="mt-1 font-mono text-sm break-all">{user.codigoAcesso}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
+                                      <p className="mt-1 capitalize">{user.nivelAcesso}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                                      <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
+                                      <p className="mt-1 text-sm text-muted-foreground break-words">
+                                        {formatAccessDate(user.updatedAt || user.createdAt)}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex justify-end">
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -436,18 +458,17 @@ export default function FichasWorkspace() {
                                       <Trash2 className="mr-2 h-4 w-4" />
                                       {deletingUserId === user.id ? "Removendo..." : "Remover"}
                                     </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                              {users.length === 0 && (
-                                <TableRow>
-                                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                    Nenhum usuario encontrado.
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {users.length === 0 && (
+                              <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
+                                Nenhum usuario encontrado.
+                              </div>
+                            )}
+                          </div>
                         )}
                       </CardContent>
                     </Card>
