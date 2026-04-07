@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { parseCurrency } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -294,7 +294,21 @@ export function FichaForm({
               </Select>
             </div>
 
-            {renderInput("sne", "SNE")}
+            <div className="space-y-2">
+              <Label htmlFor="sne">SNE</Label>
+              <Select value={values.sne || undefined} onValueChange={(value) => setField("sne", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="sne">
+                  <SelectValue placeholder="Selecione o SNE" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SNE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
