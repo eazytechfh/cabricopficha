@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
+import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
@@ -227,6 +228,13 @@ export function FichaForm({
   }
 
   const fieldDisabled = readOnly || loading
+  const cpfDigits = values.cpfCnpj.replace(/\D/g, "")
+  const cpfStatus =
+    cpfDigits.length === 11
+      ? validarCPF(values.cpfCnpj)
+        ? "CPF valido"
+        : "CPF invalido"
+      : ""
   const selectedInstanciasProcesso = values.instanciaProcesso
     .split(";")
     .map((item) => item.trim())
@@ -420,7 +428,21 @@ export function FichaForm({
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("cpfCnpj", "CPF/CNPJ")}
+            <div className="space-y-2">
+              <Label htmlFor="cpfCnpj">CPF/CNPJ{requiredFields.includes("cpfCnpj") ? " *" : ""}</Label>
+              <Input
+                id="cpfCnpj"
+                name="cpfCnpj"
+                value={values.cpfCnpj}
+                onChange={(event) => setField("cpfCnpj", event.target.value)}
+                disabled={fieldDisabled}
+                required={requiredFields.includes("cpfCnpj")}
+                aria-required={requiredFields.includes("cpfCnpj")}
+              />
+              {cpfStatus ? (
+                <p className={`text-xs ${cpfStatus === "CPF valido" ? "text-green-600" : "text-red-600"}`}>{cpfStatus}</p>
+              ) : null}
+            </div>
             {renderInput("cnh", "CNH")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
