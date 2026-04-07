@@ -335,15 +335,15 @@ export default function FichasWorkspace() {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+                <DialogContent className="w-[96vw] max-w-[1280px] max-h-[88vh] overflow-y-auto p-0">
                   <DialogHeader>
-                    <DialogTitle>Usuarios</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="px-6 pt-6">Usuarios</DialogTitle>
+                    <DialogDescription className="px-6 pb-4">
                       Gerencie os acessos de administradores e consultores.
                     </DialogDescription>
                   </DialogHeader>
 
-                  <div className="space-y-5">
+                  <div className="space-y-5 px-6 pb-6">
                     <Card className="border border-border/70 shadow-sm">
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
@@ -351,7 +351,7 @@ export default function FichasWorkspace() {
                           Adicionar novo usuario
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_180px_auto] xl:items-end">
+                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_220px_auto] xl:items-end">
                         <div className="space-y-2">
                           <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
                           <Input
@@ -405,7 +405,7 @@ export default function FichasWorkspace() {
                         {usersLoading ? (
                           <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
                         ) : (
-                          <Table className="min-w-[760px]">
+                          <Table className="min-w-[940px]">
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Nome</TableHead>
