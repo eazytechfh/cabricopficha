@@ -1,9 +1,20 @@
-﻿import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
+import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
+import { splitSerializedEntries } from "@/lib/ficha-utils"
 
 const FICHA_CREATE_WEBHOOK_URL =
   "https://n8n.srv953248.hstgr.cloud/webhook/7a2f5a7c-3e8b-4266-bfb9-2ecddf843852"
 const FICHA_UPDATE_WEBHOOK_URL =
   "https://n8n.srv953248.hstgr.cloud/webhook/99dd7b30-08f1-48cd-be4b-2e4ccd769709"
+
+type MultaWebhookItem = {
+  instancia: string
+  autoDetran: string
+  autoRenainf: string
+  tipo: string
+  placa: string
+  renavam: string
+  prazo: string
+}
 
 type FichaWebhookPayloadBase = {
   ficha: {
@@ -37,15 +48,8 @@ type FichaWebhookPayloadBase = {
       prazo: string
       assinaturaVistoJuridico: string
     }
-    multas: {
-      instancia: string
-      autoDetran: string
-      autoRenainf: string
-      tipo: string
-      placa: string
-      renavam: string
-      prazo: string
-    }
+    multas: MultaWebhookItem
+    multasLista: MultaWebhookItem[]
     observacoes: string
     createdAt: string
     updatedAt: string
@@ -68,7 +72,31 @@ export type FichaUpdateWebhookPayload = FichaWebhookPayloadBase & {
   evento: "ficha_atualizada"
 }
 
+function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
+  const instancias = splitSerializedEntries(ficha.instanciaMulta)
+  const autosDetran = splitSerializedEntries(ficha.autoDetran)
+  const autosRenainf = splitSerializedEntries(ficha.autoRenainf)
+  const tipos = splitSerializedEntries(ficha.tipoMulta)
+  const placas = splitSerializedEntries(ficha.placa)
+  const renavams = splitSerializedEntries(ficha.renavam)
+  const prazos = splitSerializedEntries(ficha.prazoMulta)
+
+  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instancia: instancias[index] || "",
+    autoDetran: autosDetran[index] || "",
+    autoRenainf: autosRenainf[index] || "",
+    tipo: tipos[index] || "",
+    placa: placas[index] || "",
+    renavam: renavams[index] || "",
+    prazo: prazos[index] || "",
+  }))
+}
+
 function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession): FichaWebhookPayloadBase {
+  const multasLista = getMultasLista(ficha)
+
   return {
     ficha: {
       id: ficha.id,
@@ -101,15 +129,16 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         prazo: ficha.prazoProcesso,
         assinaturaVistoJuridico: ficha.assinaturaVistoJuridico,
       },
-      multas: {
-        instancia: ficha.instanciaMulta,
-        autoDetran: ficha.autoDetran,
-        autoRenainf: ficha.autoRenainf,
-        tipo: ficha.tipoMulta,
-        placa: ficha.placa,
-        renavam: ficha.renavam,
-        prazo: ficha.prazoMulta,
+      multas: multasLista[0] || {
+        instancia: "",
+        autoDetran: "",
+        autoRenainf: "",
+        tipo: "",
+        placa: "",
+        renavam: "",
+        prazo: "",
       },
+      multasLista,
       observacoes: ficha.observacoes,
       createdAt: ficha.createdAt,
       updatedAt: ficha.updatedAt,

@@ -11,8 +11,52 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { parseCurrency } from "@/lib/ficha-utils"
+import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
+
+type MultaBlock = {
+  instanciaMulta: string
+  autoDetran: string
+  autoRenainf: string
+  tipoMulta: string
+  placa: string
+  renavam: string
+  prazoMulta: string
+}
+
+function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
+  const instancias = splitSerializedEntries(values.instanciaMulta)
+  const autosDetran = splitSerializedEntries(values.autoDetran)
+  const autosRenainf = splitSerializedEntries(values.autoRenainf)
+  const tipos = splitSerializedEntries(values.tipoMulta)
+  const placas = splitSerializedEntries(values.placa)
+  const renavams = splitSerializedEntries(values.renavam)
+  const prazos = splitSerializedEntries(values.prazoMulta)
+
+  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaMulta: instancias[index] || "",
+    autoDetran: autosDetran[index] || "",
+    autoRenainf: autosRenainf[index] || "",
+    tipoMulta: tipos[index] || "",
+    placa: placas[index] || "",
+    renavam: renavams[index] || "",
+    prazoMulta: prazos[index] || "",
+  }))
+}
+
+function serializeMultaBlocks(blocks: MultaBlock[]) {
+  return {
+    instanciaMulta: blocks.map((block) => block.instanciaMulta).join(MULTI_ENTRY_SEPARATOR),
+    autoDetran: blocks.map((block) => block.autoDetran).join(MULTI_ENTRY_SEPARATOR),
+    autoRenainf: blocks.map((block) => block.autoRenainf).join(MULTI_ENTRY_SEPARATOR),
+    tipoMulta: blocks.map((block) => block.tipoMulta).join(MULTI_ENTRY_SEPARATOR),
+    placa: blocks.map((block) => block.placa).join(MULTI_ENTRY_SEPARATOR),
+    renavam: blocks.map((block) => block.renavam).join(MULTI_ENTRY_SEPARATOR),
+    prazoMulta: blocks.map((block) => block.prazoMulta).join(MULTI_ENTRY_SEPARATOR),
+  }
+}
 
 type FichaFormProps = {
   values: FichaFormValues
@@ -187,6 +231,7 @@ export function FichaForm({
     .split(";")
     .map((item) => item.trim())
     .filter(Boolean)
+  const multaBlocks = parseMultaBlocks(values)
 
   const toggleInstanciaProcesso = (option: string, checked: boolean) => {
     const nextValues = checked
@@ -194,6 +239,38 @@ export function FichaForm({
       : selectedInstanciasProcesso.filter((item) => item !== option)
 
     setField("instanciaProcesso", nextValues.join("; "))
+  }
+
+  const setMultaBlocks = (nextBlocks: MultaBlock[]) => {
+    onChange({
+      ...values,
+      ...serializeMultaBlocks(nextBlocks),
+    })
+  }
+
+  const updateMultaBlockField = (index: number, field: keyof MultaBlock, value: string) => {
+    const nextBlocks = multaBlocks.map((block, blockIndex) => (blockIndex === index ? { ...block, [field]: value } : block))
+    setMultaBlocks(nextBlocks)
+  }
+
+  const addMultaBlock = () => {
+    setMultaBlocks([
+      ...multaBlocks,
+      {
+        instanciaMulta: "",
+        autoDetran: "",
+        autoRenainf: "",
+        tipoMulta: "",
+        placa: "",
+        renavam: "",
+        prazoMulta: "",
+      },
+    ])
+  }
+
+  const removeMultaBlock = (index: number) => {
+    if (multaBlocks.length === 1) return
+    setMultaBlocks(multaBlocks.filter((_, blockIndex) => blockIndex !== index))
   }
 
   const renderInput = (field: keyof FichaFormValues, label: string, props?: React.ComponentProps<typeof Input>) => (
@@ -541,45 +618,140 @@ export function FichaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="instanciaMulta">Instancia da Multa</Label>
-              <Select value={values.instanciaMulta || undefined} onValueChange={(value) => setField("instanciaMulta", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="instanciaMulta">
-                  <SelectValue placeholder="Selecione a instancia da multa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INSTANCIA_MULTA_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {renderInput("autoDetran", "Auto DETRAN")}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("autoRenainf", "Auto RENAINF")}
-            {renderInput("tipoMulta", "Tipo de Multa")}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("placa", "Placa")}
-            {renderInput("renavam", "RENAVAM")}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">{renderPrazoField("prazoMulta", "Prazo")}</div>
-          </div>
-          <div className="space-y-3">
-            <Label htmlFor="assinaturaVistoJuridicoMulta">Assinatura Digital</Label>
-            <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
-              <canvas
-                id="assinaturaVistoJuridicoMulta"
-                width={900}
-                height={220}
-                className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
-              />
-            </div>
+          {multaBlocks.map((block, index) => {
+            const isPrazoVencida = block.prazoMulta === "VENCIDA"
+
+            return (
+              <div key={`multa-block-${index}`} className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-primary">Bloco da Multa {index + 1}</p>
+                  {multaBlocks.length > 1 ? (
+                    <Button type="button" variant="outline" size="sm" onClick={() => removeMultaBlock(index)} disabled={fieldDisabled}>
+                      Remover
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`instanciaMulta-${index}`}>Instancia da Multa</Label>
+                    <Select value={block.instanciaMulta || undefined} onValueChange={(value) => updateMultaBlockField(index, "instanciaMulta", value)} disabled={fieldDisabled}>
+                      <SelectTrigger id={`instanciaMulta-${index}`}>
+                        <SelectValue placeholder="Selecione a instancia da multa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INSTANCIA_MULTA_OPTIONS.map((option) => (
+                          <SelectItem key={`${option}-${index}`} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`autoDetran-${index}`}>Auto DETRAN</Label>
+                    <Input
+                      id={`autoDetran-${index}`}
+                      value={block.autoDetran}
+                      onChange={(event) => updateMultaBlockField(index, "autoDetran", event.target.value)}
+                      disabled={fieldDisabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`autoRenainf-${index}`}>Auto RENAINF</Label>
+                    <Input
+                      id={`autoRenainf-${index}`}
+                      value={block.autoRenainf}
+                      onChange={(event) => updateMultaBlockField(index, "autoRenainf", event.target.value)}
+                      disabled={fieldDisabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`tipoMulta-${index}`}>Tipo de Multa</Label>
+                    <Input
+                      id={`tipoMulta-${index}`}
+                      value={block.tipoMulta}
+                      onChange={(event) => updateMultaBlockField(index, "tipoMulta", event.target.value)}
+                      disabled={fieldDisabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`placa-${index}`}>Placa</Label>
+                    <Input
+                      id={`placa-${index}`}
+                      value={block.placa}
+                      onChange={(event) => updateMultaBlockField(index, "placa", event.target.value)}
+                      disabled={fieldDisabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`renavam-${index}`}>RENAVAM</Label>
+                    <Input
+                      id={`renavam-${index}`}
+                      value={block.renavam}
+                      onChange={(event) => updateMultaBlockField(index, "renavam", event.target.value)}
+                      disabled={fieldDisabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor={`prazoMulta-${index}`}>Prazo</Label>
+                    <div className="grid grid-cols-[150px_1fr] gap-2">
+                      <Select
+                        value={isPrazoVencida ? "VENCIDA" : "DATA"}
+                        onValueChange={(value) => updateMultaBlockField(index, "prazoMulta", value === "VENCIDA" ? "VENCIDA" : block.prazoMulta === "VENCIDA" ? "" : block.prazoMulta)}
+                        disabled={fieldDisabled}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DATA">Data</SelectItem>
+                          <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        id={`prazoMulta-${index}`}
+                        type="date"
+                        value={isPrazoVencida ? "" : block.prazoMulta}
+                        onChange={(event) => updateMultaBlockField(index, "prazoMulta", event.target.value)}
+                        disabled={fieldDisabled || isPrazoVencida}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor={`assinaturaVistoJuridicoMulta-${index}`}>Assinatura Digital</Label>
+                  <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
+                    <canvas
+                      id={`assinaturaVistoJuridicoMulta-${index}`}
+                      width={900}
+                      height={220}
+                      className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
+                    />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          <div>
+            <Button type="button" variant="outline" onClick={addMultaBlock} disabled={fieldDisabled}>
+              Adicionar Outra Placa
+            </Button>
           </div>
         </CardContent>
       </Card>

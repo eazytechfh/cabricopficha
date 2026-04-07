@@ -1,4 +1,5 @@
-﻿import type { CSSProperties, ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
+import { splitSerializedEntries } from "@/lib/ficha-utils"
 
 type FichaPdfData = {
   dataContrato: string
@@ -45,7 +46,6 @@ const colors = {
   navyDark: "#0a2c52",
   orange: "#f28c18",
   orangeDark: "#d97100",
-  cream: "#fff8ef",
   line: "#d8c7b0",
   text: "#183153",
   muted: "#6b7280",
@@ -58,7 +58,7 @@ const pageStyle: CSSProperties = {
   padding: 26,
   background: "linear-gradient(180deg, #f7f7f9 0%, #f2f0ec 100%)",
   color: colors.text,
-  fontFamily: 'Arial, sans-serif',
+  fontFamily: "Arial, sans-serif",
 }
 
 const cardStyle: CSSProperties = {
@@ -82,6 +82,7 @@ function fallback(value: string) {
 
 function formatDate(value: string) {
   if (!value) return "-"
+  if (value === "VENCIDA") return "VENCIDA"
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -130,7 +131,10 @@ function formatBank(value: string) {
 }
 
 function sectionHeader(title: string, tone: "navy" | "orange" = "navy") {
-  const background = tone === "navy" ? `linear-gradient(90deg, ${colors.navyDark}, ${colors.navy})` : `linear-gradient(90deg, ${colors.orangeDark}, ${colors.orange})`
+  const background =
+    tone === "navy"
+      ? `linear-gradient(90deg, ${colors.navyDark}, ${colors.navy})`
+      : `linear-gradient(90deg, ${colors.orangeDark}, ${colors.orange})`
 
   return (
     <div
@@ -199,10 +203,43 @@ function sectionCard(title: string, tone: "navy" | "orange", children: ReactNode
   )
 }
 
+function getMultaBlocks(data: FichaPdfData) {
+  const instancias = splitSerializedEntries(data.instanciaMulta)
+  const autosDetran = splitSerializedEntries(data.autoDetran)
+  const autosRenainf = splitSerializedEntries(data.autoRenainf)
+  const tipos = splitSerializedEntries(data.tipoMulta)
+  const placas = splitSerializedEntries(data.placa)
+  const renavams = splitSerializedEntries(data.renavam)
+  const prazos = splitSerializedEntries(data.prazoMulta)
+
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    placas.length,
+    renavams.length,
+    prazos.length,
+    1
+  )
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaMulta: instancias[index] || "",
+    autoDetran: autosDetran[index] || "",
+    autoRenainf: autosRenainf[index] || "",
+    tipoMulta: tipos[index] || "",
+    placa: placas[index] || "",
+    renavam: renavams[index] || "",
+    prazoMulta: prazos[index] || "",
+  }))
+}
+
 export default function FichaPdf({ data }: FichaPdfProps) {
+  const multaBlocks = getMultaBlocks(data)
+
   return (
     <div style={pageStyle}>
-            <section style={{ ...cardStyle, marginBottom: 24, borderRadius: 16 }}>
+      <section style={{ ...cardStyle, marginBottom: 24, borderRadius: 16 }}>
         <div
           style={{
             display: "flex",
@@ -325,7 +362,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </div>
 
           <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital do Visto Juridico</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>
+              Assinatura Digital do Visto Juridico
+            </div>
             <div
               style={{
                 height: 214,
@@ -345,48 +384,64 @@ export default function FichaPdf({ data }: FichaPdfProps) {
       {sectionCard(
         "MAIS INFORMACOES (MULTAS)",
         "orange",
-        <div style={{ display: "grid", gridTemplateColumns: "1.35fr 0.9fr" }}>
-          <div style={{ borderRight: `1px solid ${colors.line}` }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-              {infoCell("Instancia da Multa", data.instanciaMulta)}
-              {infoCell("Auto DETRAN", data.autoDetran)}
-              {infoCell("Auto RENAINF", data.autoRenainf)}
-              {infoCell("Tipo de Multa", data.tipoMulta)}
-              {infoCell("Placa", data.placa)}
-              {infoCell("RENAVAM", data.renavam)}
-              {infoCell("Prazo da Multa", formatDate(data.prazoMulta), { span: 2 })}
-            </div>
-          </div>
-
-          <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital</div>
+        <div>
+          {multaBlocks.map((block, index) => (
             <div
+              key={`multa-pdf-${index}`}
               style={{
-                height: 214,
-                border: `1px solid ${colors.line}`,
-                borderRadius: 18,
-                background: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
+                display: "grid",
+                gridTemplateColumns: "1.35fr 0.9fr",
+                borderTop: index > 0 ? `1px solid ${colors.line}` : undefined,
               }}
-            />
-          </div>
+            >
+              <div style={{ borderRight: `1px solid ${colors.line}` }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                  {infoCell("Instancia da Multa", block.instanciaMulta)}
+                  {infoCell("Auto DETRAN", block.autoDetran)}
+                  {infoCell("Auto RENAINF", block.autoRenainf)}
+                  {infoCell("Tipo de Multa", block.tipoMulta)}
+                  {infoCell("Placa", block.placa)}
+                  {infoCell("RENAVAM", block.renavam)}
+                  {infoCell("Prazo da Multa", formatDate(block.prazoMulta), { span: 2 })}
+                </div>
+              </div>
+
+              <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital</div>
+                <div
+                  style={{
+                    height: 214,
+                    border: `1px solid ${colors.line}`,
+                    borderRadius: 18,
+                    background: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {sectionCard(
         "OBSERVACOES ADICIONAIS",
         "orange",
-        <div style={{ padding: 26, minHeight: 220, background: "rgba(255,255,255,0.96)", fontSize: 18, color: data.observacoes?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
+        <div
+          style={{
+            padding: 26,
+            minHeight: 220,
+            background: "rgba(255,255,255,0.96)",
+            fontSize: 18,
+            color: data.observacoes?.trim() ? colors.text : colors.muted,
+            whiteSpace: "pre-wrap",
+          }}
+        >
           {fallback(data.observacoes)}
         </div>
       )}
     </div>
   )
 }
-
-
-
-

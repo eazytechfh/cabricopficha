@@ -1,6 +1,7 @@
 import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 
 const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
+export const MULTI_ENTRY_SEPARATOR = "||__MULTI_ENTRY__||"
 
 export function normalizeDigits(value: string) {
   return (value || "").replace(/\D/g, "")
@@ -8,6 +9,11 @@ export function normalizeDigits(value: string) {
 
 export function normalizeCpfCnpj(value: string) {
   return normalizeDigits(value)
+}
+
+export function splitSerializedEntries(value: string) {
+  if (!value) return [""]
+  return value.split(MULTI_ENTRY_SEPARATOR)
 }
 
 export function parseCurrency(value: string) {
