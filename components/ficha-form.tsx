@@ -215,6 +215,40 @@ export function FichaForm({
     </div>
   )
 
+  const renderPrazoField = (field: "prazoProcesso" | "prazoMulta", label: string) => {
+    const isVencida = values[field] === "VENCIDA"
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={field}>{label}</Label>
+        <div className="grid grid-cols-[150px_1fr] gap-2">
+          <Select
+            value={isVencida ? "VENCIDA" : "DATA"}
+            onValueChange={(value) => setField(field, value === "VENCIDA" ? "VENCIDA" : values[field] === "VENCIDA" ? "" : values[field])}
+            disabled={fieldDisabled}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DATA">Data</SelectItem>
+              <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Input
+            id={field}
+            name={field}
+            type="date"
+            value={isVencida ? "" : values[field]}
+            onChange={(event) => setField(field, event.target.value)}
+            disabled={fieldDisabled || isVencida}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Card className="border-l-4 border-l-primary shadow-md">
@@ -482,7 +516,7 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {renderInput("numeroProcesso", "No do Processo")}
-            <div className="md:col-span-2">{renderInput("prazoProcesso", "Prazo", { type: "date" })}</div>
+            <div className="md:col-span-2">{renderPrazoField("prazoProcesso", "Prazo")}</div>
           </div>
           <div className="space-y-3">
             <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
@@ -534,7 +568,7 @@ export function FichaForm({
             {renderInput("renavam", "RENAVAM")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">{renderInput("prazoMulta", "Prazo", { type: "date" })}</div>
+            <div className="md:col-span-2">{renderPrazoField("prazoMulta", "Prazo")}</div>
           </div>
           <div className="space-y-3">
             <Label htmlFor="assinaturaVistoJuridicoMulta">Assinatura Digital</Label>
