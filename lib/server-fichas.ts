@@ -176,6 +176,68 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
   }))
 }
 
+export async function getFichasByFilters(filters: { cpf?: string; nome?: string }): Promise<FichaListItem[]> {
+  ensureSupabaseConfig()
+
+  const cpfNormalizado = normalizeCpfCnpj(filters.cpf || "")
+  const nome = (filters.nome || "").trim()
+
+  if (!cpfNormalizado && !nome) {
+    return []
+  }
+
+  const select = [
+    "id",
+    "nome_cliente",
+    "cpf_cnpj",
+    "telefones",
+    "endereco",
+    "data_contrato",
+    "nome_consultor",
+    "created_at",
+    "updated_at",
+    "created_by_consultor_id",
+    "updated_by_consultor_id",
+  ].join(",")
+
+  const searchParams = new URLSearchParams({
+    select,
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+  })
+
+  if (cpfNormalizado) {
+    searchParams.set("cpf_cnpj", `eq.${cpfNormalizado}`)
+  }
+
+  if (nome) {
+    searchParams.set("nome_cliente", `ilike.*${nome}*`)
+  }
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
+    headers: headers(),
+    cache: "no-store",
+  })
+
+  const payload = await response.json()
+  if (!response.ok) {
+    throw new Error(payload.message || payload.error || "Erro ao consultar fichas no Supabase.")
+  }
+
+  return (payload as Array<Record<string, unknown>>).map((row) => ({
+    id: String(row.id ?? ""),
+    nomeCliente: String(row.nome_cliente ?? ""),
+    cpfCnpj: String(row.cpf_cnpj ?? ""),
+    telefones: String(row.telefones ?? ""),
+    endereco: String(row.endereco ?? ""),
+    dataContrato: String(row.data_contrato ?? ""),
+    nomeConsultor: String(row.nome_consultor ?? ""),
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
+    createdByConsultorId: String(row.created_by_consultor_id ?? ""),
+    updatedByConsultorId: String(row.updated_by_consultor_id ?? ""),
+  }))
+}
+
 export async function getFichaById(id: string): Promise<FichaRecord> {
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}&select=*`, {
     headers: headers(),

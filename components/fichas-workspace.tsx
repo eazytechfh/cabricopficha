@@ -12,7 +12,7 @@ import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
-import { getFichaById, getFichasByCpf } from "@/lib/fichas-api"
+import { getFichaById, getFichas } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { emptyFichaValues, type ConsultorSession, type FichaFormValues, type FichaListItem, type FichaRecord } from "@/lib/ficha-types"
 
@@ -29,6 +29,7 @@ export default function FichasWorkspace() {
   const [createMessage, setCreateMessage] = useState("")
 
   const [cpfBusca, setCpfBusca] = useState("")
+  const [nomeBusca, setNomeBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
   const [consultaError, setConsultaError] = useState("")
   const [consultaItems, setConsultaItems] = useState<FichaListItem[]>([])
@@ -110,7 +111,7 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleConsultarCpf = async () => {
+  const handleConsultarFichas = async () => {
     setConsultaLoading(true)
     setConsultaError("")
     setEditMessage("")
@@ -118,10 +119,13 @@ export default function FichasWorkspace() {
     setSelectedFicha(null)
 
     try {
-      const response = await getFichasByCpf(normalizeCpfCnpj(cpfBusca))
+      const cpfNormalizado = normalizeCpfCnpj(cpfBusca)
+      const nomeNormalizado = nomeBusca.trim()
+
+      const response = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
       setConsultaItems(response.fichas)
       if (response.fichas.length === 0) {
-        setConsultaError("Nenhuma ficha encontrada para este CPF.")
+        setConsultaError("Nenhuma ficha encontrada para este CPF ou nome.")
       }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao consultar fichas.")
@@ -165,7 +169,7 @@ export default function FichasWorkspace() {
           : "Ficha atualizada, mas houve erro ao enviar os dados para a automacao."
       )
       setViewMode("view")
-      await handleConsultarCpf()
+      await handleConsultarFichas()
     } catch (error) {
       setEditMessage(error instanceof Error ? error.message : "Erro ao atualizar a ficha.")
     } finally {
@@ -244,7 +248,7 @@ export default function FichasWorkspace() {
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_auto]">
                   <div className="space-y-2">
                     <Label htmlFor="cpfBusca">CPF</Label>
                     <Input
@@ -254,8 +258,17 @@ export default function FichasWorkspace() {
                       placeholder="Digite o CPF com ou sem mascara"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nomeBusca">Nome</Label>
+                    <Input
+                      id="nomeBusca"
+                      value={nomeBusca}
+                      onChange={(event) => setNomeBusca(event.target.value)}
+                      placeholder="Digite o nome do cliente"
+                    />
+                  </div>
                   <div className="flex items-end">
-                    <Button onClick={() => void handleConsultarCpf()} disabled={consultaLoading}>
+                    <Button onClick={() => void handleConsultarFichas()} disabled={consultaLoading}>
                       {consultaLoading ? "Consultando..." : "Consultar"}
                     </Button>
                   </div>

@@ -20,9 +20,23 @@ export async function loginWithAccessCode(codigoAcesso: string) {
   return parseResponse<{ consultor: ConsultorSession }>(response)
 }
 
-export async function getFichasByCpf(cpf: string) {
-  const response = await fetch(`/api/fichas?cpf=${encodeURIComponent(cpf)}`)
+export async function getFichas(params: { cpf?: string; nome?: string }) {
+  const searchParams = new URLSearchParams()
+
+  if (params.cpf) {
+    searchParams.set("cpf", params.cpf)
+  }
+
+  if (params.nome) {
+    searchParams.set("nome", params.nome)
+  }
+
+  const response = await fetch(`/api/fichas?${searchParams.toString()}`)
   return parseResponse<{ fichas: FichaListItem[] }>(response)
+}
+
+export async function getFichasByCpf(cpf: string) {
+  return getFichas({ cpf })
 }
 
 export async function getFichaById(id: string) {

@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server"
-import { createFicha, getFichasByCpf, saveFichaToExcel } from "@/lib/server-fichas"
+import { createFicha, getFichasByFilters, saveFichaToExcel } from "@/lib/server-fichas"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const cpf = searchParams.get("cpf") || ""
+    const nome = searchParams.get("nome") || ""
 
-    if (!cpf) {
+    if (!cpf && !nome) {
       return NextResponse.json({ fichas: [] })
     }
 
-    const fichas = await getFichasByCpf(cpf)
+    const fichas = await getFichasByFilters({ cpf, nome })
     return NextResponse.json({ fichas })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro ao consultar fichas."
