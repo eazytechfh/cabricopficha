@@ -153,3 +153,39 @@ export async function deleteAccessCode(id: string) {
     await parseSupabaseResponse(response)
   }
 }
+
+export async function updateAccessCode(
+  id: string,
+  input: {
+    nomeResponsavel: string
+    codigoAcesso: string
+    nivelAcesso: AccessCodeRecord["nivelAcesso"]
+    ativo: boolean
+  }
+) {
+  ensureConfig()
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/access_codes?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: getHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    }),
+    body: JSON.stringify({
+      nome_responsavel: input.nomeResponsavel,
+      codigo_acesso: input.codigoAcesso,
+      nivel_acesso: input.nivelAcesso,
+      ativo: input.ativo,
+      updated_at: new Date().toISOString(),
+    }),
+  })
+
+  const payload = await parseSupabaseResponse<AccessCodeApiRecord[]>(response)
+  const [record] = payload
+
+  if (!record) {
+    throw new Error("Nao foi possivel atualizar o usuario.")
+  }
+
+  return mapAccessCodeRecord(record)
+}

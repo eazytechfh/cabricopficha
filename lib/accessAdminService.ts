@@ -55,3 +55,25 @@ export async function deleteAccessUser(consultor: ConsultorSession, id: string) 
 
   return parseResponse<{ success: boolean }>(response)
 }
+
+export async function updateAccessUser(
+  consultor: ConsultorSession,
+  id: string,
+  input: {
+    nomeResponsavel: string
+    codigoAcesso: string
+    nivelAcesso: AccessCodeRecord["nivelAcesso"]
+    ativo: boolean
+  }
+) {
+  const response = await fetch(`/api/access-codes/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      consultor,
+      input,
+    }),
+  })
+
+  return parseResponse<{ user: AccessCodeRecord }>(response)
+}

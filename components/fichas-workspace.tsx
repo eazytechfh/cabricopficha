@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Settings, Trash2, UserPlus } from "lucide-react"
+import { Pencil, Settings, Trash2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
-import { createAccessUser, deleteAccessUser, getAccessUsers } from "@/lib/accessAdminService"
+import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
@@ -80,6 +80,12 @@ export default function FichasWorkspace() {
   const [newUserLevel, setNewUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [userSaving, setUserSaving] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState("")
+  const [editingUserId, setEditingUserId] = useState("")
+  const [editUserName, setEditUserName] = useState("")
+  const [editUserCode, setEditUserCode] = useState("")
+  const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
+  const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
+  const [userUpdating, setUserUpdating] = useState(false)
 
   useEffect(() => {
     const access = getCurrentAccess()
@@ -195,6 +201,54 @@ export default function FichasWorkspace() {
       setUsersError(error instanceof Error ? error.message : "Erro ao remover usuario.")
     } finally {
       setDeletingUserId("")
+    }
+  }
+
+  const startEditingUser = (user: AccessCodeRecord) => {
+    setEditingUserId(user.id)
+    setEditUserName(user.nomeResponsavel)
+    setEditUserCode(user.codigoAcesso)
+    setEditUserLevel(user.nivelAcesso)
+    setEditUserStatus(user.ativo ? "ativo" : "inativo")
+    setUsersError("")
+    setUsersMessage("")
+  }
+
+  const cancelEditingUser = () => {
+    setEditingUserId("")
+    setEditUserName("")
+    setEditUserCode("")
+    setEditUserLevel("consultor")
+    setEditUserStatus("ativo")
+  }
+
+  const handleUpdateUser = async () => {
+    if (!consultor || !editingUserId) return
+
+    if (!editUserName.trim() || !editUserCode.trim()) {
+      setUsersError("Nome, codigo, nivel e status precisam estar preenchidos.")
+      return
+    }
+
+    setUserUpdating(true)
+    setUsersError("")
+    setUsersMessage("")
+
+    try {
+      await updateAccessUser(consultor, editingUserId, {
+        nomeResponsavel: editUserName.trim(),
+        codigoAcesso: editUserCode.trim(),
+        nivelAcesso: editUserLevel,
+        ativo: editUserStatus === "ativo",
+      })
+
+      setUsersMessage("Usuario atualizado com sucesso.")
+      cancelEditingUser()
+      await loadAccessUsers()
+    } catch (error) {
+      setUsersError(error instanceof Error ? error.message : "Erro ao atualizar usuario.")
+    } finally {
+      setUserUpdating(false)
     }
   }
 
@@ -419,6 +473,72 @@ export default function FichasWorkspace() {
                           <div className="space-y-3">
                             {users.map((user) => (
                               <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
+                                {editingUserId === user.id ? (
+                                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_180px_180px]">
+                                    <div className="space-y-2 min-w-0">
+                                      <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
+                                      <Input
+                                        id={`edit-nome-${user.id}`}
+                                        value={editUserName}
+                                        onChange={(event) => setEditUserName(event.target.value)}
+                                        disabled={userUpdating}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2 min-w-0">
+                                      <Label htmlFor={`edit-codigo-${user.id}`}>Codigo</Label>
+                                      <Input
+                                        id={`edit-codigo-${user.id}`}
+                                        value={editUserCode}
+                                        onChange={(event) => setEditUserCode(event.target.value)}
+                                        disabled={userUpdating}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2 min-w-0">
+                                      <Label htmlFor={`edit-nivel-${user.id}`}>Nivel</Label>
+                                      <Select
+                                        value={editUserLevel}
+                                        onValueChange={(value) => setEditUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                                        disabled={userUpdating}
+                                      >
+                                        <SelectTrigger id={`edit-nivel-${user.id}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="consultor">Consultor</SelectItem>
+                                          <SelectItem value="admin">Admin</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    <div className="space-y-2 min-w-0">
+                                      <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
+                                      <Select
+                                        value={editUserStatus}
+                                        onValueChange={(value) => setEditUserStatus(value as "ativo" | "inativo")}
+                                        disabled={userUpdating || user.id === consultor.id}
+                                      >
+                                        <SelectTrigger id={`edit-status-${user.id}`}>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="ativo">Ativo</SelectItem>
+                                          <SelectItem value="inativo">Inativo</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">
+                                      <Button onClick={() => void handleUpdateUser()} disabled={userUpdating}>
+                                        {userUpdating ? "Salvando..." : "Salvar edicao"}
+                                      </Button>
+                                      <Button variant="outline" onClick={cancelEditingUser} disabled={userUpdating}>
+                                        Cancelar
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                   <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5 xl:gap-4 min-w-0">
                                     <div className="min-w-0">
@@ -445,7 +565,16 @@ export default function FichasWorkspace() {
                                     </div>
                                   </div>
 
-                                  <div className="flex justify-end">
+                                  <div className="flex flex-wrap justify-end gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => startEditingUser(user)}
+                                      disabled={deletingUserId === user.id}
+                                    >
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      Editar
+                                    </Button>
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -457,6 +586,7 @@ export default function FichasWorkspace() {
                                     </Button>
                                   </div>
                                 </div>
+                                )}
                               </div>
                             ))}
 
