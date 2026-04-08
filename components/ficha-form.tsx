@@ -112,6 +112,8 @@ export function FichaForm({
   const [enderecoRua, setEnderecoRua] = useState(values.endereco)
   const [enderecoNumero, setEnderecoNumero] = useState("")
   const [enderecoComplemento, setEnderecoComplemento] = useState("")
+  const [cnhNumero, setCnhNumero] = useState("")
+  const [cnhUf, setCnhUf] = useState("RJ")
 
   useEffect(() => {
     const canvas = signatureCanvasRef.current
@@ -140,6 +142,16 @@ export function FichaForm({
     setEnderecoNumero(numeroMatch?.[1]?.trim() || "")
     setEnderecoComplemento(complementoMatch?.[1]?.trim() || "")
   }, [values.endereco])
+
+  useEffect(() => {
+    const cnhAtual = values.cnh || ""
+    const cnhMatch = cnhAtual.match(/^(.*?)(?:\s*[\/-]\s*([A-Za-z]{2}))?$/)
+    const numero = cnhMatch?.[1]?.trim() || ""
+    const uf = cnhMatch?.[2]?.trim().toUpperCase() || "RJ"
+
+    setCnhNumero(numero)
+    setCnhUf(uf)
+  }, [values.cnh])
 
   useEffect(() => {
     if (readOnly) return
@@ -229,6 +241,13 @@ export function FichaForm({
     }
 
     setField("endereco", parts.filter(Boolean).join(", "))
+  }
+
+  const setCnhParts = (numero: string, uf: string) => {
+    const normalizedUf = (uf || "").trim().toUpperCase()
+    const normalizedNumero = numero.trim()
+
+    setField("cnh", normalizedNumero ? `${normalizedNumero}${normalizedUf ? ` / ${normalizedUf}` : ""}` : "")
   }
 
   const fieldDisabled = readOnly || loading
@@ -433,7 +452,37 @@ export function FichaForm({
                 <p className={`text-xs ${cpfStatus === "CPF valido" ? "text-green-600" : "text-red-600"}`}>{cpfStatus}</p>
               ) : null}
             </div>
-            {renderInput("cnh", "CNH")}
+            <div className="space-y-2">
+              <Label htmlFor="cnhNumero">CNH</Label>
+              <div className="grid grid-cols-[1fr_92px] gap-3">
+                <Input
+                  id="cnhNumero"
+                  name="cnhNumero"
+                  value={cnhNumero}
+                  onChange={(event) => {
+                    const nextValue = event.target.value
+                    setCnhNumero(nextValue)
+                    setCnhParts(nextValue, cnhUf)
+                  }}
+                  disabled={fieldDisabled}
+                />
+                <div className="space-y-2">
+                  <Label htmlFor="cnhUf">UF</Label>
+                  <Input
+                    id="cnhUf"
+                    name="cnhUf"
+                    value={cnhUf}
+                    maxLength={2}
+                    onChange={(event) => {
+                      const nextValue = event.target.value.toUpperCase()
+                      setCnhUf(nextValue)
+                      setCnhParts(cnhNumero, nextValue)
+                    }}
+                    disabled={fieldDisabled}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
