@@ -638,7 +638,9 @@ export function FichaForm({
             return (
               <div key={`multa-block-${index}`} className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-primary">Bloco da Multa {index + 1}</p>
+                  <p className="text-sm font-semibold text-primary">
+                    Multa da Placa {block.placa?.trim() ? `(${block.placa.trim()})` : `${index + 1}`}
+                  </p>
                   {multaBlocks.length > 1 ? (
                     <Button type="button" variant="outline" size="sm" onClick={() => removeMultaBlock(index)} disabled={fieldDisabled}>
                       Remover
