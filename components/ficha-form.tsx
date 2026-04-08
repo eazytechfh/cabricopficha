@@ -769,7 +769,7 @@ export function FichaForm({
                   {multaDetailLines.map((line, lineIndex) => (
                     <div
                       key={`multa-detail-${index}-${lineIndex}`}
-                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[180px_1fr_1fr_1fr_180px_auto]"
+                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
                     >
                       <div className="space-y-2">
                         <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`}>Instancia da Multa</Label>
@@ -823,7 +823,7 @@ export function FichaForm({
 
                       <div className="space-y-2">
                         <Label htmlFor={`prazoMulta-${index}-${lineIndex}`}>Prazo</Label>
-                        <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
                           <Select
                             value={line.prazoMulta === "VENCIDA" ? "VENCIDA" : "DATA"}
                             onValueChange={(value) =>
