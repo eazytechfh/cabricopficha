@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -105,7 +105,6 @@ export function FichaForm({
   onCancelEdit,
   requiredFields = [],
 }: FichaFormProps) {
-  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
   const [cepLookupLoading, setCepLookupLoading] = useState(false)
@@ -114,19 +113,6 @@ export function FichaForm({
   const [enderecoComplemento, setEnderecoComplemento] = useState("")
   const [cnhNumero, setCnhNumero] = useState("")
   const [cnhUf, setCnhUf] = useState("RJ")
-
-  useEffect(() => {
-    const canvas = signatureCanvasRef.current
-    if (!canvas) return
-
-    const context = canvas.getContext("2d")
-    if (!context) return
-
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    context.lineWidth = 2
-    context.lineCap = "round"
-    context.strokeStyle = "#0f172a"
-  }, [])
 
   useEffect(() => {
     const enderecoAtual = values.endereco || ""
@@ -656,18 +642,6 @@ export function FichaForm({
             {renderInput("numeroProcesso", "No do Processo")}
             <div className="md:col-span-2">{renderPrazoField("prazoProcesso", "Prazo")}</div>
           </div>
-          <div className="space-y-3">
-            <Label htmlFor="assinaturaVistoJuridico">Assinatura Digital do Visto Juridico</Label>
-            <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
-              <canvas
-                id="assinaturaVistoJuridico"
-                ref={signatureCanvasRef}
-                width={900}
-                height={220}
-                className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
-              />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -796,17 +770,6 @@ export function FichaForm({
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor={`assinaturaVistoJuridicoMulta-${index}`}>Assinatura Digital</Label>
-                  <div className="rounded-lg border border-border bg-white p-2 shadow-sm">
-                    <canvas
-                      id={`assinaturaVistoJuridicoMulta-${index}`}
-                      width={900}
-                      height={220}
-                      className="h-44 w-full cursor-not-allowed rounded-md bg-slate-50 touch-none opacity-80"
-                    />
-                  </div>
-                </div>
               </div>
             )
           })}
