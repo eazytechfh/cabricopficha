@@ -874,7 +874,7 @@ export function FichaForm({
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
-            Mais Informacoes (Multas)
+            Multas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
