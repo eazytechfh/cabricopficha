@@ -760,7 +760,7 @@ export function FichaForm({
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-primary">Linhas da Multa</p>
+                    <div />
                     <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
                       Adicionar Linha
                     </Button>
