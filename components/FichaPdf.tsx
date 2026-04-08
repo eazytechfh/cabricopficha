@@ -235,8 +235,25 @@ function getMultaBlocks(data: FichaPdfData) {
   }))
 }
 
+function getProcessoLines(data: FichaPdfData) {
+  const instancias = data.instanciaProcesso ? data.instanciaProcesso.split("\n") : [""]
+  const tipos = data.tipoProcesso ? data.tipoProcesso.split("\n") : [""]
+  const numeros = data.numeroProcesso ? data.numeroProcesso.split("\n") : [""]
+  const prazos = data.prazoProcesso ? data.prazoProcesso.split("\n") : [""]
+
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaProcesso: instancias[index] || "",
+    tipoProcesso: tipos[index] || "",
+    numeroProcesso: numeros[index] || "",
+    prazoProcesso: prazos[index] || "",
+  }))
+}
+
 export default function FichaPdf({ data }: FichaPdfProps) {
   const multaBlocks = getMultaBlocks(data)
+  const processoLines = getProcessoLines(data)
 
   return (
     <div style={pageStyle}>
@@ -354,12 +371,21 @@ export default function FichaPdf({ data }: FichaPdfProps) {
         "navy",
         <div style={{ display: "grid", gridTemplateColumns: "1.35fr 0.9fr" }}>
           <div style={{ borderRight: `1px solid ${colors.line}` }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-              {infoCell("Instancia do Processo", data.instanciaProcesso)}
-              {infoCell("Tipo do Processo", data.tipoProcesso)}
-              {infoCell("No do Processo", data.numeroProcesso)}
-              {infoCell("Prazo do Processo", formatDate(data.prazoProcesso))}
-            </div>
+            {processoLines.map((line, index) => (
+              <div
+                key={`processo-pdf-${index}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  borderTop: index > 0 ? `1px solid ${colors.line}` : undefined,
+                }}
+              >
+                {infoCell("Instancia do Processo", line.instanciaProcesso)}
+                {infoCell("Tipo do Processo", line.tipoProcesso)}
+                {infoCell("No do Processo", line.numeroProcesso)}
+                {infoCell("Prazo do Processo", formatDate(line.prazoProcesso))}
+              </div>
+            ))}
           </div>
 
           <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>

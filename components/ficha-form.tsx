@@ -32,9 +32,32 @@ type MultaDetailLine = {
   prazoMulta: string
 }
 
+type ProcessoLine = {
+  instanciaProcesso: string
+  tipoProcesso: string
+  numeroProcesso: string
+  prazoProcesso: string
+}
+
 function splitLineValues(value: string) {
   if (!value) return [""]
   return value.split("\n")
+}
+
+function getProcessoLines(values: FichaFormValues): ProcessoLine[] {
+  const instancias = splitLineValues(values.instanciaProcesso)
+  const tipos = splitLineValues(values.tipoProcesso)
+  const numeros = splitLineValues(values.numeroProcesso)
+  const prazos = splitLineValues(values.prazoProcesso)
+
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaProcesso: instancias[index] || "",
+    tipoProcesso: tipos[index] || "",
+    numeroProcesso: numeros[index] || "",
+    prazoProcesso: prazos[index] || "",
+  }))
 }
 
 function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
@@ -275,6 +298,7 @@ export function FichaForm({
         ? "CPF valido"
         : "CPF invalido"
       : ""
+  const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
 
   const setMultaBlocks = (nextBlocks: MultaBlock[]) => {
@@ -365,6 +389,45 @@ export function FichaForm({
   const removeMultaBlock = (index: number) => {
     if (multaBlocks.length === 1) return
     setMultaBlocks(multaBlocks.filter((_, blockIndex) => blockIndex !== index))
+  }
+
+  const setProcessoLines = (lines: ProcessoLine[]) => {
+    onChange({
+      ...values,
+      instanciaProcesso: lines.map((line) => line.instanciaProcesso).join("\n"),
+      tipoProcesso: lines.map((line) => line.tipoProcesso).join("\n"),
+      numeroProcesso: lines.map((line) => line.numeroProcesso).join("\n"),
+      prazoProcesso: lines.map((line) => line.prazoProcesso).join("\n"),
+    })
+  }
+
+  const updateProcessoLineField = (
+    lineIndex: number,
+    field: keyof ProcessoLine,
+    value: string
+  ) => {
+    const nextLines = processoLines.map((line, currentLineIndex) =>
+      currentLineIndex === lineIndex ? { ...line, [field]: value } : line
+    )
+
+    setProcessoLines(nextLines)
+  }
+
+  const addProcessoLine = () => {
+    setProcessoLines([
+      ...processoLines,
+      {
+        instanciaProcesso: "",
+        tipoProcesso: "",
+        numeroProcesso: "",
+        prazoProcesso: "",
+      },
+    ])
+  }
+
+  const removeProcessoLine = (lineIndex: number) => {
+    if (processoLines.length === 1) return
+    setProcessoLines(processoLines.filter((_, currentLineIndex) => currentLineIndex !== lineIndex))
   }
 
   const renderInput = (field: keyof FichaFormValues, label: string, props?: React.ComponentProps<typeof Input>) => (
@@ -691,45 +754,118 @@ export function FichaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="instanciaProcesso">Instancia do Processo</Label>
-              <Select
-                value={values.instanciaProcesso || undefined}
-                onValueChange={(value) => setField("instanciaProcesso", value)}
-                disabled={fieldDisabled}
+          <div className="space-y-3">
+            <div className="flex items-center justify-end gap-3">
+              <Button type="button" variant="outline" size="sm" onClick={addProcessoLine} disabled={fieldDisabled}>
+                Adicionar Linha
+              </Button>
+            </div>
+
+            {processoLines.map((line, lineIndex) => (
+              <div
+                key={`processo-line-${lineIndex}`}
+                className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_220px_minmax(0,1fr)_250px_auto]"
               >
-                <SelectTrigger id="instanciaProcesso">
-                  <SelectValue placeholder="Selecione a instancia do processo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tipoProcesso">Tipo do Processo</Label>
-              <Select value={values.tipoProcesso || undefined} onValueChange={(value) => setField("tipoProcesso", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="tipoProcesso">
-                  <SelectValue placeholder="Selecione o tipo do processo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPO_PROCESSO_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {renderInput("numeroProcesso", "No do Processo")}
-            <div className="md:col-span-2">{renderPrazoField("prazoProcesso", "Prazo")}</div>
+                <div className="space-y-2">
+                  <Label htmlFor={`instanciaProcesso-${lineIndex}`}>Instancia do Processo</Label>
+                  <Select
+                    value={line.instanciaProcesso || undefined}
+                    onValueChange={(value) => updateProcessoLineField(lineIndex, "instanciaProcesso", value)}
+                    disabled={fieldDisabled}
+                  >
+                    <SelectTrigger id={`instanciaProcesso-${lineIndex}`}>
+                      <SelectValue placeholder="Selecione a instancia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
+                        <SelectItem key={`${option}-${lineIndex}`} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`tipoProcesso-${lineIndex}`}>Tipo do Processo</Label>
+                  <Select
+                    value={line.tipoProcesso || undefined}
+                    onValueChange={(value) => updateProcessoLineField(lineIndex, "tipoProcesso", value)}
+                    disabled={fieldDisabled}
+                  >
+                    <SelectTrigger id={`tipoProcesso-${lineIndex}`}>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPO_PROCESSO_OPTIONS.map((option) => (
+                        <SelectItem key={`${option}-processo-${lineIndex}`} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`numeroProcesso-${lineIndex}`}>No do Processo</Label>
+                  <Input
+                    id={`numeroProcesso-${lineIndex}`}
+                    value={line.numeroProcesso}
+                    onChange={(event) => updateProcessoLineField(lineIndex, "numeroProcesso", event.target.value)}
+                    disabled={fieldDisabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`prazoProcesso-${lineIndex}`}>Prazo</Label>
+                  <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
+                    <Select
+                      value={line.prazoProcesso === "VENCIDA" ? "VENCIDA" : "DATA"}
+                      onValueChange={(value) =>
+                        updateProcessoLineField(
+                          lineIndex,
+                          "prazoProcesso",
+                          value === "VENCIDA"
+                            ? "VENCIDA"
+                            : line.prazoProcesso === "VENCIDA"
+                              ? ""
+                              : line.prazoProcesso
+                        )
+                      }
+                      disabled={fieldDisabled}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DATA">Data</SelectItem>
+                        <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Input
+                      id={`prazoProcesso-${lineIndex}`}
+                      type="date"
+                      value={line.prazoProcesso === "VENCIDA" ? "" : line.prazoProcesso}
+                      onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
+                      disabled={fieldDisabled || line.prazoProcesso === "VENCIDA"}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeProcessoLine(lineIndex)}
+                    disabled={fieldDisabled || processoLines.length === 1}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
