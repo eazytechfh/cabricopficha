@@ -129,10 +129,15 @@ export function FichaForm({
 
   useEffect(() => {
     const enderecoAtual = values.endereco || ""
-    const numeroMatch = enderecoAtual.match(/,\s*(?:N[uú]mero\s*)?(\d+[^,]*)/i)
+    const numeroMatch = enderecoAtual.match(/,\s*(?:Numero\s*)?([^,]+)(?=,\s*Complemento\s+|$)/i)
     const complementoMatch = enderecoAtual.match(/,\s*Complemento\s+(.+)$/i)
+    const enderecoBase = enderecoAtual
+      .replace(/,\s*(?:Numero\s*)?([^,]+)(?=,\s*Complemento\s+|$)/i, "")
+      .replace(/,\s*Complemento\s+(.+)$/i, "")
+      .trim()
+      .replace(/,\s*$/, "")
 
-    setEnderecoRua(enderecoAtual.split(",")[0]?.trim() || "")
+    setEnderecoRua(enderecoBase)
     setEnderecoNumero(numeroMatch?.[1]?.trim() || "")
     setEnderecoComplemento(complementoMatch?.[1]?.trim() || "")
   }, [values.endereco])
@@ -175,7 +180,7 @@ export function FichaForm({
           throw new Error("CEP nao encontrado.")
         }
 
-        const enderecoParts = [payload.logradouro, payload.bairro, payload.localidade, payload.uf]
+        const enderecoParts = [payload.logradouro, payload.bairro]
           .map((part) => (part || "").trim())
           .filter(Boolean)
 
@@ -367,7 +372,21 @@ export function FichaForm({
             {renderInput("telefones", "Telefone(s)")}
             {renderInput("email", "E-mail", { type: "email" })}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cep">CEP</Label>
+              <Input
+                id="cep"
+                name="cep"
+                value={values.cep}
+                onChange={(event) => setField("cep", event.target.value)}
+                disabled={fieldDisabled}
+                inputMode="numeric"
+                placeholder="00000-000"
+              />
+              {cepLookupLoading ? <p className="text-xs text-muted-foreground">Buscando endereco pelo CEP...</p> : null}
+              {!cepLookupLoading && cepLookupMessage ? <p className="text-xs text-muted-foreground">{cepLookupMessage}</p> : null}
+            </div>
             <div className="md:col-span-2 space-y-2">
               <Label htmlFor="endereco">Endereco</Label>
               <Input
@@ -409,22 +428,6 @@ export function FichaForm({
                 }}
                 disabled={fieldDisabled}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="cep">CEP</Label>
-              <Input
-                id="cep"
-                name="cep"
-                value={values.cep}
-                onChange={(event) => setField("cep", event.target.value)}
-                disabled={fieldDisabled}
-                inputMode="numeric"
-                placeholder="00000-000"
-              />
-              {cepLookupLoading ? <p className="text-xs text-muted-foreground">Buscando endereco pelo CEP...</p> : null}
-              {!cepLookupLoading && cepLookupMessage ? <p className="text-xs text-muted-foreground">{cepLookupMessage}</p> : null}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
