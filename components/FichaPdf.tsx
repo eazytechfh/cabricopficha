@@ -186,6 +186,7 @@ function infoCell(label: string, value: string, options?: { span?: number; minHe
           background: "rgba(255,255,255,0.92)",
           fontSize: 17,
           color: value?.trim() ? colors.text : colors.muted,
+          whiteSpace: "pre-wrap",
         }}
       >
         {fallback(value)}

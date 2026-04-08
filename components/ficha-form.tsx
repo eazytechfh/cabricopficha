@@ -24,6 +24,17 @@ type MultaBlock = {
   prazoMulta: string
 }
 
+type MultaDetailLine = {
+  autoDetran: string
+  autoRenainf: string
+  tipoMulta: string
+}
+
+function splitLineValues(value: string) {
+  if (!value) return [""]
+  return value.split("\n")
+}
+
 function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
   const instancias = splitSerializedEntries(values.instanciaMulta)
   const autosDetran = splitSerializedEntries(values.autoDetran)
@@ -56,6 +67,20 @@ function serializeMultaBlocks(blocks: MultaBlock[]) {
     renavam: blocks.map((block) => block.renavam).join(MULTI_ENTRY_SEPARATOR),
     prazoMulta: blocks.map((block) => block.prazoMulta).join(MULTI_ENTRY_SEPARATOR),
   }
+}
+
+function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
+  const autosDetran = splitLineValues(block.autoDetran)
+  const autosRenainf = splitLineValues(block.autoRenainf)
+  const tipos = splitLineValues(block.tipoMulta)
+
+  const maxLength = Math.max(autosDetran.length, autosRenainf.length, tipos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    autoDetran: autosDetran[index] || "",
+    autoRenainf: autosRenainf[index] || "",
+    tipoMulta: tipos[index] || "",
+  }))
 }
 
 type FichaFormProps = {
@@ -256,6 +281,62 @@ export function FichaForm({
   const updateMultaBlockField = (index: number, field: keyof MultaBlock, value: string) => {
     const nextBlocks = multaBlocks.map((block, blockIndex) => (blockIndex === index ? { ...block, [field]: value } : block))
     setMultaBlocks(nextBlocks)
+  }
+
+  const updateMultaDetailLines = (index: number, lines: MultaDetailLine[]) => {
+    const nextBlocks = multaBlocks.map((block, blockIndex) =>
+      blockIndex === index
+        ? {
+            ...block,
+            autoDetran: lines.map((line) => line.autoDetran).join("\n"),
+            autoRenainf: lines.map((line) => line.autoRenainf).join("\n"),
+            tipoMulta: lines.map((line) => line.tipoMulta).join("\n"),
+          }
+        : block
+    )
+
+    setMultaBlocks(nextBlocks)
+  }
+
+  const updateMultaDetailLineField = (
+    blockIndex: number,
+    lineIndex: number,
+    field: keyof MultaDetailLine,
+    value: string
+  ) => {
+    const currentLines = getMultaDetailLines(multaBlocks[blockIndex] || {
+      instanciaMulta: "",
+      autoDetran: "",
+      autoRenainf: "",
+      tipoMulta: "",
+      placa: "",
+      renavam: "",
+      prazoMulta: "",
+    })
+
+    const nextLines = currentLines.map((line, currentLineIndex) =>
+      currentLineIndex === lineIndex ? { ...line, [field]: value } : line
+    )
+
+    updateMultaDetailLines(blockIndex, nextLines)
+  }
+
+  const addMultaDetailLine = (blockIndex: number) => {
+    const currentLines = getMultaDetailLines(multaBlocks[blockIndex])
+    updateMultaDetailLines(blockIndex, [
+      ...currentLines,
+      { autoDetran: "", autoRenainf: "", tipoMulta: "" },
+    ])
+  }
+
+  const removeMultaDetailLine = (blockIndex: number, lineIndex: number) => {
+    const currentLines = getMultaDetailLines(multaBlocks[blockIndex])
+    if (currentLines.length === 1) return
+
+    updateMultaDetailLines(
+      blockIndex,
+      currentLines.filter((_, currentLineIndex) => currentLineIndex !== lineIndex)
+    )
   }
 
   const addMultaBlock = () => {
@@ -655,6 +736,7 @@ export function FichaForm({
         <CardContent className="space-y-4">
           {multaBlocks.map((block, index) => {
             const isPrazoVencida = block.prazoMulta === "VENCIDA"
+            const multaDetailLines = getMultaDetailLines(block)
 
             return (
               <div key={`multa-block-${index}`} className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
@@ -685,38 +767,64 @@ export function FichaForm({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`autoDetran-${index}`}>Auto DETRAN</Label>
-                    <Input
-                      id={`autoDetran-${index}`}
-                      value={block.autoDetran}
-                      onChange={(event) => updateMultaBlockField(index, "autoDetran", event.target.value)}
-                      disabled={fieldDisabled}
-                    />
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`autoRenainf-${index}`}>Auto RENAINF</Label>
-                    <Input
-                      id={`autoRenainf-${index}`}
-                      value={block.autoRenainf}
-                      onChange={(event) => updateMultaBlockField(index, "autoRenainf", event.target.value)}
-                      disabled={fieldDisabled}
-                    />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-primary">Linhas da Multa</p>
+                    <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
+                      Adicionar Linha
+                    </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`tipoMulta-${index}`}>Tipo de Multa</Label>
-                    <Input
-                      id={`tipoMulta-${index}`}
-                      value={block.tipoMulta}
-                      onChange={(event) => updateMultaBlockField(index, "tipoMulta", event.target.value)}
-                      disabled={fieldDisabled}
-                    />
-                  </div>
+                  {multaDetailLines.map((line, lineIndex) => (
+                    <div
+                      key={`multa-detail-${index}-${lineIndex}`}
+                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+                    >
+                      <div className="space-y-2">
+                        <Label htmlFor={`autoDetran-${index}-${lineIndex}`}>Auto DETRAN</Label>
+                        <Input
+                          id={`autoDetran-${index}-${lineIndex}`}
+                          value={line.autoDetran}
+                          onChange={(event) => updateMultaDetailLineField(index, lineIndex, "autoDetran", event.target.value)}
+                          disabled={fieldDisabled}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`autoRenainf-${index}-${lineIndex}`}>Auto RENAINF</Label>
+                        <Input
+                          id={`autoRenainf-${index}-${lineIndex}`}
+                          value={line.autoRenainf}
+                          onChange={(event) => updateMultaDetailLineField(index, lineIndex, "autoRenainf", event.target.value)}
+                          disabled={fieldDisabled}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`tipoMulta-${index}-${lineIndex}`}>Tipo de Multa</Label>
+                        <Input
+                          id={`tipoMulta-${index}-${lineIndex}`}
+                          value={line.tipoMulta}
+                          onChange={(event) => updateMultaDetailLineField(index, lineIndex, "tipoMulta", event.target.value)}
+                          disabled={fieldDisabled}
+                        />
+                      </div>
+
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeMultaDetailLine(index, lineIndex)}
+                          disabled={fieldDisabled || multaDetailLines.length === 1}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
