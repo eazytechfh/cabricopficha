@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -585,17 +584,21 @@ export function FichaForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Instancia do Processo</Label>
-              <div className="rounded-md border border-input bg-background px-3 py-3">
-                <div className="flex flex-col gap-3">
+              <div className="rounded-md border border-input bg-background p-3">
+                <div className="flex flex-wrap gap-2">
                   {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
-                    <label key={option} className="flex items-center gap-3 text-sm text-foreground">
-                      <Checkbox
-                        checked={selectedInstanciasProcesso.includes(option)}
-                        disabled={fieldDisabled}
-                        onCheckedChange={(checked) => toggleInstanciaProcesso(option, checked === true)}
-                      />
-                      <span>{option}</span>
-                    </label>
+                    <Button
+                      key={option}
+                      type="button"
+                      variant={selectedInstanciasProcesso.includes(option) ? "default" : "outline"}
+                      className="h-10 rounded-md px-4 text-sm"
+                      disabled={fieldDisabled}
+                      onClick={() =>
+                        toggleInstanciaProcesso(option, !selectedInstanciasProcesso.includes(option))
+                      }
+                    >
+                      {option}
+                    </Button>
                   ))}
                 </div>
               </div>
