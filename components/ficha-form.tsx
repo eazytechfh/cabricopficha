@@ -436,7 +436,7 @@ export function FichaForm({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.05fr_88px] gap-4">
             <div className="space-y-2">
               <Label htmlFor="cpfCnpj">CPF/CNPJ{requiredFields.includes("cpfCnpj") ? " *" : ""}</Label>
               <Input
@@ -454,34 +454,32 @@ export function FichaForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="cnhNumero">CNH</Label>
-              <div className="grid grid-cols-[1fr_92px] gap-3">
-                <Input
-                  id="cnhNumero"
-                  name="cnhNumero"
-                  value={cnhNumero}
-                  onChange={(event) => {
-                    const nextValue = event.target.value
-                    setCnhNumero(nextValue)
-                    setCnhParts(nextValue, cnhUf)
-                  }}
-                  disabled={fieldDisabled}
-                />
-                <div className="space-y-2">
-                  <Label htmlFor="cnhUf">UF</Label>
-                  <Input
-                    id="cnhUf"
-                    name="cnhUf"
-                    value={cnhUf}
-                    maxLength={2}
-                    onChange={(event) => {
-                      const nextValue = event.target.value.toUpperCase()
-                      setCnhUf(nextValue)
-                      setCnhParts(cnhNumero, nextValue)
-                    }}
-                    disabled={fieldDisabled}
-                  />
-                </div>
-              </div>
+              <Input
+                id="cnhNumero"
+                name="cnhNumero"
+                value={cnhNumero}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                  setCnhNumero(nextValue)
+                  setCnhParts(nextValue, cnhUf)
+                }}
+                disabled={fieldDisabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cnhUf">UF</Label>
+              <Input
+                id="cnhUf"
+                name="cnhUf"
+                value={cnhUf}
+                maxLength={2}
+                onChange={(event) => {
+                  const nextValue = event.target.value.toUpperCase()
+                  setCnhUf(nextValue)
+                  setCnhParts(cnhNumero, nextValue)
+                }}
+                disabled={fieldDisabled}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
