@@ -898,6 +898,28 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`placa-${index}`}>Placa</Label>
+                      <Input
+                        id={`placa-${index}`}
+                        value={block.placa}
+                        onChange={(event) => updateMultaBlockField(index, "placa", event.target.value)}
+                        disabled={fieldDisabled}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`renavam-${index}`}>RENAVAM</Label>
+                      <Input
+                        id={`renavam-${index}`}
+                        value={block.renavam}
+                        onChange={(event) => updateMultaBlockField(index, "renavam", event.target.value)}
+                        disabled={fieldDisabled}
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between gap-3">
                     <div />
                     <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
@@ -1011,28 +1033,6 @@ export function FichaForm({
                       </div>
                     </div>
                   ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`placa-${index}`}>Placa</Label>
-                    <Input
-                      id={`placa-${index}`}
-                      value={block.placa}
-                      onChange={(event) => updateMultaBlockField(index, "placa", event.target.value)}
-                      disabled={fieldDisabled}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`renavam-${index}`}>RENAVAM</Label>
-                    <Input
-                      id={`renavam-${index}`}
-                      value={block.renavam}
-                      onChange={(event) => updateMultaBlockField(index, "renavam", event.target.value)}
-                      disabled={fieldDisabled}
-                    />
-                  </div>
                 </div>
 
               </div>
