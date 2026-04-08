@@ -39,6 +39,23 @@ export function isPresetBankValue(value: string) {
   return PRESET_BANK_VALUES.includes(value.trim().toLowerCase() as (typeof PRESET_BANK_VALUES)[number])
 }
 
+export function normalizeInstanciaValue(value: string) {
+  const normalized = (value || "").trim().toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "DP" || normalized === "DEFESA PRÉVIA" || normalized === "DEFESA PREVIA") {
+    return "DP"
+  }
+  if (normalized === "1° INST" || normalized === "1º INST" || normalized === "1º INSTÂNCIA" || normalized === "1° INSTÂNCIA") {
+    return "1° Inst"
+  }
+  if (normalized === "2° INST" || normalized === "2º INST" || normalized === "2º INSTÂNCIA" || normalized === "2° INSTÂNCIA") {
+    return "2° Inst"
+  }
+
+  return value
+}
+
 export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
   const banco = values.banco === "outros" ? values.bancoOutro.trim() : values.banco
 
@@ -46,6 +63,11 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
     ...values,
     banco,
     bancoOutro: values.banco === "outros" ? values.bancoOutro : "",
+    instanciaProcesso: normalizeInstanciaValue(values.instanciaProcesso),
+    instanciaMulta: values.instanciaMulta
+      .split(MULTI_ENTRY_SEPARATOR)
+      .map((item) => normalizeInstanciaValue(item))
+      .join(MULTI_ENTRY_SEPARATOR),
     vistoJuridico: "",
     assinaturaVistoJuridico: "",
     vistoJuridicoMulta: "",
@@ -69,6 +91,11 @@ export function toRecordValues(record: FichaRecord): FichaFormValues {
 
   return {
     ...record,
+    instanciaProcesso: normalizeInstanciaValue(record.instanciaProcesso),
+    instanciaMulta: record.instanciaMulta
+      .split(MULTI_ENTRY_SEPARATOR)
+      .map((item) => normalizeInstanciaValue(item))
+      .join(MULTI_ENTRY_SEPARATOR),
     banco: usesPresetBank ? banco : banco ? "outros" : "",
     bancoOutro: usesPresetBank ? "" : banco,
   }

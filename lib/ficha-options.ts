@@ -34,9 +34,9 @@ export const ORIGEM_OPTIONS = [
   "RESGATE",
 ] as const
 
-export const INSTANCIA_PROCESSO_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "2º INSTÂNCIA"] as const
+export const INSTANCIA_PROCESSO_OPTIONS = ["DP", "1° Inst", "2° Inst"] as const
 
-export const INSTANCIA_MULTA_OPTIONS = ["DEFESA PRÉVIA", "1º INSTÂNCIA", "2º INSTÂNCIA"] as const
+export const INSTANCIA_MULTA_OPTIONS = ["DP", "1° Inst", "2° Inst"] as const
 
 export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
