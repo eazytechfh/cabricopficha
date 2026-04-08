@@ -25,9 +25,11 @@ type MultaBlock = {
 }
 
 type MultaDetailLine = {
+  instanciaMulta: string
   autoDetran: string
   autoRenainf: string
   tipoMulta: string
+  prazoMulta: string
 }
 
 function splitLineValues(value: string) {
@@ -70,16 +72,20 @@ function serializeMultaBlocks(blocks: MultaBlock[]) {
 }
 
 function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
+  const instancias = splitLineValues(block.instanciaMulta)
   const autosDetran = splitLineValues(block.autoDetran)
   const autosRenainf = splitLineValues(block.autoRenainf)
   const tipos = splitLineValues(block.tipoMulta)
+  const prazos = splitLineValues(block.prazoMulta)
 
-  const maxLength = Math.max(autosDetran.length, autosRenainf.length, tipos.length, 1)
+  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaMulta: instancias[index] || "",
     autoDetran: autosDetran[index] || "",
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
+    prazoMulta: prazos[index] || "",
   }))
 }
 
@@ -288,9 +294,11 @@ export function FichaForm({
       blockIndex === index
         ? {
             ...block,
+            instanciaMulta: lines.map((line) => line.instanciaMulta).join("\n"),
             autoDetran: lines.map((line) => line.autoDetran).join("\n"),
             autoRenainf: lines.map((line) => line.autoRenainf).join("\n"),
             tipoMulta: lines.map((line) => line.tipoMulta).join("\n"),
+            prazoMulta: lines.map((line) => line.prazoMulta).join("\n"),
           }
         : block
     )
@@ -325,7 +333,7 @@ export function FichaForm({
     const currentLines = getMultaDetailLines(multaBlocks[blockIndex])
     updateMultaDetailLines(blockIndex, [
       ...currentLines,
-      { autoDetran: "", autoRenainf: "", tipoMulta: "" },
+      { instanciaMulta: "", autoDetran: "", autoRenainf: "", tipoMulta: "", prazoMulta: "" },
     ])
   }
 
@@ -735,7 +743,6 @@ export function FichaForm({
         </CardHeader>
         <CardContent className="space-y-4">
           {multaBlocks.map((block, index) => {
-            const isPrazoVencida = block.prazoMulta === "VENCIDA"
             const multaDetailLines = getMultaDetailLines(block)
 
             return (
@@ -751,24 +758,6 @@ export function FichaForm({
                   ) : null}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`instanciaMulta-${index}`}>Instancia da Multa</Label>
-                    <Select value={block.instanciaMulta || undefined} onValueChange={(value) => updateMultaBlockField(index, "instanciaMulta", value)} disabled={fieldDisabled}>
-                      <SelectTrigger id={`instanciaMulta-${index}`}>
-                        <SelectValue placeholder="Selecione a instancia da multa" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INSTANCIA_MULTA_OPTIONS.map((option) => (
-                          <SelectItem key={`${option}-${index}`} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-primary">Linhas da Multa</p>
@@ -780,8 +769,28 @@ export function FichaForm({
                   {multaDetailLines.map((line, lineIndex) => (
                     <div
                       key={`multa-detail-${index}-${lineIndex}`}
-                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[180px_1fr_1fr_1fr_180px_auto]"
                     >
+                      <div className="space-y-2">
+                        <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`}>Instancia da Multa</Label>
+                        <Select
+                          value={line.instanciaMulta || undefined}
+                          onValueChange={(value) => updateMultaDetailLineField(index, lineIndex, "instanciaMulta", value)}
+                          disabled={fieldDisabled}
+                        >
+                          <SelectTrigger id={`instanciaMulta-${index}-${lineIndex}`}>
+                            <SelectValue placeholder="Selecione a instancia" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INSTANCIA_MULTA_OPTIONS.map((option) => (
+                              <SelectItem key={`${option}-${index}-${lineIndex}`} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-y-2">
                         <Label htmlFor={`autoDetran-${index}-${lineIndex}`}>Auto DETRAN</Label>
                         <Input
@@ -810,6 +819,44 @@ export function FichaForm({
                           onChange={(event) => updateMultaDetailLineField(index, lineIndex, "tipoMulta", event.target.value)}
                           disabled={fieldDisabled}
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`prazoMulta-${index}-${lineIndex}`}>Prazo</Label>
+                        <div className="grid grid-cols-[110px_1fr] gap-2">
+                          <Select
+                            value={line.prazoMulta === "VENCIDA" ? "VENCIDA" : "DATA"}
+                            onValueChange={(value) =>
+                              updateMultaDetailLineField(
+                                index,
+                                lineIndex,
+                                "prazoMulta",
+                                value === "VENCIDA"
+                                  ? "VENCIDA"
+                                  : line.prazoMulta === "VENCIDA"
+                                    ? ""
+                                    : line.prazoMulta
+                              )
+                            }
+                            disabled={fieldDisabled}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="DATA">Data</SelectItem>
+                              <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Input
+                            id={`prazoMulta-${index}-${lineIndex}`}
+                            type="date"
+                            value={line.prazoMulta === "VENCIDA" ? "" : line.prazoMulta}
+                            onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
+                            disabled={fieldDisabled || line.prazoMulta === "VENCIDA"}
+                          />
+                        </div>
                       </div>
 
                       <div className="flex items-end">
@@ -846,35 +893,6 @@ export function FichaForm({
                       onChange={(event) => updateMultaBlockField(index, "renavam", event.target.value)}
                       disabled={fieldDisabled}
                     />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor={`prazoMulta-${index}`}>Prazo</Label>
-                    <div className="grid grid-cols-[150px_1fr] gap-2">
-                      <Select
-                        value={isPrazoVencida ? "VENCIDA" : "DATA"}
-                        onValueChange={(value) => updateMultaBlockField(index, "prazoMulta", value === "VENCIDA" ? "VENCIDA" : block.prazoMulta === "VENCIDA" ? "" : block.prazoMulta)}
-                        disabled={fieldDisabled}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="DATA">Data</SelectItem>
-                          <SelectItem value="VENCIDA">VENCIDA</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <Input
-                        id={`prazoMulta-${index}`}
-                        type="date"
-                        value={isPrazoVencida ? "" : block.prazoMulta}
-                        onChange={(event) => updateMultaBlockField(index, "prazoMulta", event.target.value)}
-                        disabled={fieldDisabled || isPrazoVencida}
-                      />
-                    </div>
                   </div>
                 </div>
 
