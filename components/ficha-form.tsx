@@ -239,19 +239,7 @@ export function FichaForm({
         ? "CPF valido"
         : "CPF invalido"
       : ""
-  const selectedInstanciasProcesso = values.instanciaProcesso
-    .split(";")
-    .map((item) => item.trim())
-    .filter(Boolean)
   const multaBlocks = parseMultaBlocks(values)
-
-  const toggleInstanciaProcesso = (option: string, checked: boolean) => {
-    const nextValues = checked
-      ? [...selectedInstanciasProcesso, option]
-      : selectedInstanciasProcesso.filter((item) => item !== option)
-
-    setField("instanciaProcesso", nextValues.join("; "))
-  }
 
   const setMultaBlocks = (nextBlocks: MultaBlock[]) => {
     onChange({
@@ -583,25 +571,23 @@ export function FichaForm({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Instancia do Processo</Label>
-              <div className="rounded-md border border-input bg-background p-3">
-                <div className="flex flex-wrap gap-2">
+              <Label htmlFor="instanciaProcesso">Instancia do Processo</Label>
+              <Select
+                value={values.instanciaProcesso || undefined}
+                onValueChange={(value) => setField("instanciaProcesso", value)}
+                disabled={fieldDisabled}
+              >
+                <SelectTrigger id="instanciaProcesso">
+                  <SelectValue placeholder="Selecione a instancia do processo" />
+                </SelectTrigger>
+                <SelectContent>
                   {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
-                    <Button
-                      key={option}
-                      type="button"
-                      variant={selectedInstanciasProcesso.includes(option) ? "default" : "outline"}
-                      className="h-10 rounded-md px-4 text-sm"
-                      disabled={fieldDisabled}
-                      onClick={() =>
-                        toggleInstanciaProcesso(option, !selectedInstanciasProcesso.includes(option))
-                      }
-                    >
+                    <SelectItem key={option} value={option}>
                       {option}
-                    </Button>
+                    </SelectItem>
                   ))}
-                </div>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tipoProcesso">Tipo do Processo</Label>
