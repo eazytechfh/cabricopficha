@@ -747,20 +747,19 @@ export function FichaForm({
       </Card>
 
       <Card className="border-l-4 border-l-primary shadow-md">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <FileText className="w-5 h-5" />
-            Processos
-          </CardTitle>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <FileText className="w-5 h-5" />
+              Processos
+            </CardTitle>
+            <Button type="button" variant="outline" size="sm" onClick={addProcessoLine} disabled={fieldDisabled}>
+              Adicionar Linha
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 pt-2">
           <div className="space-y-3">
-            <div className="flex items-center justify-end gap-3">
-              <Button type="button" variant="outline" size="sm" onClick={addProcessoLine} disabled={fieldDisabled}>
-                Adicionar Linha
-              </Button>
-            </div>
-
             {processoLines.map((line, lineIndex) => (
               <div
                 key={`processo-line-${lineIndex}`}
@@ -871,18 +870,18 @@ export function FichaForm({
       </Card>
 
       <Card className="border-l-4 border-l-secondary shadow-md">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
             Multas
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 pt-2">
           {multaBlocks.map((block, index) => {
             const multaDetailLines = getMultaDetailLines(block)
 
             return (
-              <div key={`multa-block-${index}`} className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
+              <div key={`multa-block-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary">Placa</span>
@@ -890,14 +889,19 @@ export function FichaForm({
                       {block.placa?.trim() || `${index + 1}`}
                     </span>
                   </div>
-                  {multaBlocks.length > 1 ? (
-                    <Button type="button" variant="outline" size="sm" onClick={() => removeMultaBlock(index)} disabled={fieldDisabled}>
-                      Remover
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
+                      Adicionar Linha
                     </Button>
-                  ) : null}
+                    {multaBlocks.length > 1 ? (
+                      <Button type="button" variant="outline" size="sm" onClick={() => removeMultaBlock(index)} disabled={fieldDisabled}>
+                        Remover
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor={`placa-${index}`}>Placa</Label>
@@ -918,13 +922,6 @@ export function FichaForm({
                         disabled={fieldDisabled}
                       />
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3">
-                    <div />
-                    <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
-                      Adicionar Linha
-                    </Button>
                   </div>
 
                   {multaDetailLines.map((line, lineIndex) => (
