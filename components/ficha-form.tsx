@@ -885,7 +885,7 @@ export function FichaForm({
               <div key={`multa-block-${index}`} className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-primary">Multa da Placa</span>
+                    <span className="text-sm font-semibold text-primary">Placa</span>
                     <span className="rounded-md bg-primary px-2.5 py-1 text-sm font-bold text-primary-foreground shadow-sm">
                       {block.placa?.trim() || `${index + 1}`}
                     </span>
