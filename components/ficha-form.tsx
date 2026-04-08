@@ -129,10 +129,10 @@ export function FichaForm({
 
   useEffect(() => {
     const enderecoAtual = values.endereco || ""
-    const numeroMatch = enderecoAtual.match(/,\s*(?:Numero\s*)?([^,]+)(?=,\s*Complemento\s+|$)/i)
+    const numeroMatch = enderecoAtual.match(/,\s*Numero\s+([^,]+)(?=,\s*Complemento\s+|$)/i)
     const complementoMatch = enderecoAtual.match(/,\s*Complemento\s+(.+)$/i)
     const enderecoBase = enderecoAtual
-      .replace(/,\s*(?:Numero\s*)?([^,]+)(?=,\s*Complemento\s+|$)/i, "")
+      .replace(/,\s*Numero\s+([^,]+)(?=,\s*Complemento\s+|$)/i, "")
       .replace(/,\s*Complemento\s+(.+)$/i, "")
       .trim()
       .replace(/,\s*$/, "")
