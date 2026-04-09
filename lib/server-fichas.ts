@@ -33,6 +33,36 @@ function toDatabaseDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
 }
 
+function stripIdentifierSuffix(value: string) {
+  return (value || "").trim().replace(/\s+\d{2}$/, "")
+}
+
+async function getFichaSequenceByCpf(cpf: string) {
+  ensureSupabaseConfig()
+
+  const cpfNormalizado = normalizeCpfCnpj(cpf)
+  if (!cpfNormalizado) {
+    return 1
+  }
+
+  const searchParams = new URLSearchParams({
+    select: "id",
+    cpf_cnpj: `eq.${cpfNormalizado}`,
+  })
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
+    headers: headers(),
+    cache: "no-store",
+  })
+
+  const payload = await response.json()
+  if (!response.ok) {
+    throw new Error(payload.message || payload.error || "Erro ao calcular identificador da ficha.")
+  }
+
+  return (payload as Array<Record<string, unknown>>).length + 1
+}
+
 function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "create" | "update") {
   const now = new Date().toISOString()
   const normalizedData = normalizeFichaValues(data)
@@ -263,13 +293,20 @@ export async function getFichaById(id: string): Promise<FichaRecord> {
 }
 
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
+  const sequence = await getFichaSequenceByCpf(data.cpfCnpj)
+  const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)
+  const identifiedData = {
+    ...data,
+    nomeCliente: `${baseNomeCliente} ${String(sequence).padStart(2, "0")}`.trim(),
+  }
+
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
     method: "POST",
     headers: {
       ...headers(),
       Prefer: "return=representation",
     },
-    body: JSON.stringify(toPayload(data, consultor, "create")),
+    body: JSON.stringify(toPayload(identifiedData, consultor, "create")),
     cache: "no-store",
   })
 
