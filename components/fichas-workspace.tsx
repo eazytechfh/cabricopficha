@@ -58,6 +58,7 @@ export default function FichasWorkspace() {
   const [createValues, setCreateValues] = useState<FichaFormValues>(emptyFichaValues)
   const [createLoading, setCreateLoading] = useState(false)
   const [createMessage, setCreateMessage] = useState("")
+  const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
 
   const [tipoBusca, setTipoBusca] = useState<"cpf" | "nome">("cpf")
   const [cpfBusca, setCpfBusca] = useState("")
@@ -97,6 +98,38 @@ export default function FichasWorkspace() {
     setConsultor(access)
     setCreateValues((current) => ({ ...current, nomeConsultor: current.nomeConsultor || defaultConsultor }))
   }, [])
+
+  useEffect(() => {
+    const cpfNormalizado = normalizeCpfCnpj(createValues.cpfCnpj)
+    const nomeBase = createValues.nomeCliente.trim().replace(/\s+\d{2}$/, "")
+
+    if (!cpfNormalizado || !nomeBase) {
+      setCreateIdentifierPreview("")
+      return
+    }
+
+    let cancelled = false
+
+    const loadPreview = async () => {
+      try {
+        const response = await getFichas({ cpf: cpfNormalizado })
+        if (cancelled) return
+
+        const nextSequence = String(response.fichas.length + 1).padStart(2, "0")
+        setCreateIdentifierPreview(`${nomeBase} ${nextSequence}`)
+      } catch {
+        if (!cancelled) {
+          setCreateIdentifierPreview(`${nomeBase} 01`)
+        }
+      }
+    }
+
+    void loadPreview()
+
+    return () => {
+      cancelled = true
+    }
+  }, [createValues.cpfCnpj, createValues.nomeCliente])
 
   const canEditSelectedFicha = useMemo(() => {
     if (!consultor || !selectedFicha) return false
@@ -629,6 +662,7 @@ export default function FichasWorkspace() {
               loading={createLoading}
               loadingLabel="Salvando..."
               requiredFields={["nomeCliente", "cpfCnpj"]}
+              identifierPreview={createIdentifierPreview}
             />
           </TabsContent>
 

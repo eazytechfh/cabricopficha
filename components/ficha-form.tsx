@@ -130,6 +130,7 @@ type FichaFormProps = {
   showActions?: boolean
   onCancelEdit?: () => void
   requiredFields?: Array<keyof FichaFormValues>
+  identifierPreview?: string
 }
 
 function updateValue(
@@ -172,6 +173,7 @@ export function FichaForm({
   showActions = true,
   onCancelEdit,
   requiredFields = [],
+  identifierPreview,
 }: FichaFormProps) {
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
@@ -549,6 +551,11 @@ export function FichaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {identifierPreview ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("nomeCliente", "Nome Completo")}
             {renderInput("terceiros", "Terceiros")}
