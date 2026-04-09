@@ -51,9 +51,9 @@ const colors = {
 }
 
 const pageStyle: CSSProperties = {
-  width: 980,
+  width: 1120,
   minHeight: 1380,
-  padding: 16,
+  padding: 24,
   background: "#f3f4f6",
   color: colors.text,
   fontFamily: "Arial, sans-serif",
@@ -61,7 +61,7 @@ const pageStyle: CSSProperties = {
 
 const sheetStyle: CSSProperties = {
   background: colors.paper,
-  padding: 12,
+  padding: 18,
 }
 
 function fallback(value: string) {
@@ -190,9 +190,9 @@ function section(title: string, children: ReactNode) {
         style={{
           background: colors.navy,
           color: "#ffffff",
-          fontSize: 15,
+          fontSize: 17,
           fontWeight: 700,
-          padding: "5px 10px",
+          padding: "7px 14px",
           letterSpacing: 0.2,
         }}
       >
@@ -209,10 +209,10 @@ function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
       style={{
         display: "grid",
         gridTemplateColumns: columns,
-        columnGap: 18,
+        columnGap: 28,
         alignItems: "end",
-        minHeight: 28,
-        padding: "4px 0 5px",
+        minHeight: 36,
+        padding: "8px 6px 9px",
         borderBottom: noBorder ? "none" : `1px solid ${colors.line}`,
       }}
     >
@@ -223,9 +223,9 @@ function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
 
 function field(label: string, value: string) {
   return (
-    <div style={{ minWidth: 0 }}>
-      <span style={{ fontSize: 12, fontWeight: 700 }}>{label}: </span>
-      <span style={{ fontSize: 11.5, color: value?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
+    <div style={{ minWidth: 0, lineHeight: 1.45 }}>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>{label}: </span>
+      <span style={{ fontSize: 13.5, color: value?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
         {fallback(value)}
       </span>
     </div>
@@ -234,9 +234,9 @@ function field(label: string, value: string) {
 
 function signatureField(label: string) {
   return (
-    <div style={{ display: "flex", alignItems: "end", gap: 8, minWidth: 0 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{label}</span>
-      <div style={{ flex: 1, borderBottom: `1px solid ${colors.line}`, height: 16 }} />
+    <div style={{ display: "flex", alignItems: "end", gap: 10, minWidth: 0 }}>
+      <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>{label}</span>
+      <div style={{ flex: 1, borderBottom: `1px solid ${colors.line}`, height: 18 }} />
     </div>
   )
 }
@@ -248,24 +248,24 @@ export default function FichaPdf({ data }: FichaPdfProps) {
   return (
     <div style={pageStyle}>
       <div style={sheetStyle}>
-        <section data-pdf-section="true" style={{ marginBottom: 10, borderBottom: `1px solid #d1d5db`, paddingBottom: 10 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 18, alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 8, height: 48, background: colors.orange }} />
+        <section data-pdf-section="true" style={{ marginBottom: 14, borderBottom: `1px solid #d1d5db`, paddingBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 24, alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <div style={{ width: 8, height: 54, background: colors.orange }} />
               <div>
-                <div style={{ fontSize: 23, fontWeight: 800, color: colors.navy }}>FICHA DE VENDA</div>
-                <div style={{ marginTop: 6, fontSize: 11, color: colors.muted }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: colors.navy }}>FICHA DE VENDA</div>
+                <div style={{ marginTop: 8, fontSize: 12.5, color: colors.muted }}>
                   Documento administrativo com dados completos da ficha.
                 </div>
               </div>
             </div>
 
-            <div style={{ borderLeft: `1px solid #d1d5db`, paddingLeft: 16 }}>
+            <div style={{ borderLeft: `1px solid #d1d5db`, paddingLeft: 20 }}>
               <div
                 style={{
                   background: colors.navy,
                   borderRadius: 12,
-                  padding: "10px 14px",
+                  padding: "12px 16px",
                   display: "flex",
                   justifyContent: "center",
                 }}
@@ -274,7 +274,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                   src="/logo.png"
                   alt="CABRICOP"
                   crossOrigin="anonymous"
-                  style={{ height: 40, width: "auto", objectFit: "contain", display: "block" }}
+                  style={{ height: 46, width: "auto", objectFit: "contain", display: "block" }}
                 />
               </div>
             </div>
