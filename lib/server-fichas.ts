@@ -28,13 +28,18 @@ function headers() {
   }
 }
 
+function toDatabaseDate(value: string) {
+  const normalizedValue = (value || "").trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
+}
+
 function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "create" | "update") {
   const now = new Date().toISOString()
   const normalizedData = normalizeFichaValues(data)
 
   return {
-    data_contrato: normalizedData.dataContrato || null,
-    prazo_servico: normalizedData.prazoServico || null,
+    data_contrato: toDatabaseDate(normalizedData.dataContrato),
+    prazo_servico: toDatabaseDate(normalizedData.prazoServico),
     nome_cliente: normalizedData.nomeCliente || null,
     terceiros: normalizedData.terceiros || null,
     telefones: normalizedData.telefones || null,
@@ -43,8 +48,8 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     cpf_cnpj: normalizeCpfCnpj(normalizedData.cpfCnpj) || null,
     cpf_normalizado: normalizeCpfCnpj(normalizedData.cpfCnpj),
     cnh: normalizedData.cnh || null,
-    data_nascimento: normalizedData.dataNascimento || null,
-    data_primeira_cnh: normalizedData.dataPrimeiraCnh || null,
+    data_nascimento: toDatabaseDate(normalizedData.dataNascimento),
+    data_primeira_cnh: toDatabaseDate(normalizedData.dataPrimeiraCnh),
     email: normalizedData.email || null,
     nome_consultor: normalizedData.nomeConsultor || consultor.nome,
     origem: normalizedData.origem || null,
@@ -57,7 +62,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     instancia_processo: normalizedData.instanciaProcesso || null,
     tipo_processo: normalizedData.tipoProcesso || null,
     numero_processo: normalizedData.numeroProcesso || null,
-    prazo_processo: normalizedData.prazoProcesso || null,
+    prazo_processo: toDatabaseDate(normalizedData.prazoProcesso),
     visto_juridico: normalizedData.vistoJuridico || null,
     assinatura_visto_juridico: normalizedData.assinaturaVistoJuridico || null,
     instancia_multa: normalizedData.instanciaMulta || null,
@@ -66,7 +71,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     tipo_multa: normalizedData.tipoMulta || null,
     placa: normalizedData.placa || null,
     renavam: normalizedData.renavam || null,
-    prazo_multa: normalizedData.prazoMulta || null,
+    prazo_multa: toDatabaseDate(normalizedData.prazoMulta),
     visto_juridico_multa: normalizedData.vistoJuridicoMulta || null,
     observacoes: normalizedData.observacoes || null,
     updated_at: now,
