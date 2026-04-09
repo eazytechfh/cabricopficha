@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 import { splitSerializedEntries } from "@/lib/ficha-utils"
 
-type FichaPdfData = {
+export type FichaPdfData = {
   dataContrato: string
   prazoServico: string
   nomeCliente: string
@@ -42,32 +42,26 @@ type FichaPdfProps = {
 }
 
 const colors = {
-  navy: "#193a67",
+  navy: "#1d3f6f",
   orange: "#f29a17",
-  line: "#8f99a8",
-  text: "#1a1f2d",
+  line: "#9aa3b0",
+  text: "#101828",
   muted: "#6b7280",
   paper: "#ffffff",
 }
 
 const pageStyle: CSSProperties = {
-  width: 1120,
-  minHeight: 1580,
-  padding: 28,
-  background: "#f5f5f5",
+  width: 980,
+  minHeight: 1380,
+  padding: 16,
+  background: "#f3f4f6",
   color: colors.text,
   fontFamily: "Arial, sans-serif",
 }
 
 const sheetStyle: CSSProperties = {
   background: colors.paper,
-  padding: 8,
-}
-
-const topCardStyle: CSSProperties = {
-  borderBottom: `1px solid #d4d8df`,
-  paddingBottom: 18,
-  marginBottom: 18,
+  padding: 12,
 }
 
 function fallback(value: string) {
@@ -125,71 +119,16 @@ function formatBank(value: string) {
   return labels[value] || fallback(value)
 }
 
-function sectionTitle(title: string) {
-  return (
-    <div
-      style={{
-        background: colors.navy,
-        color: "#ffffff",
-        fontSize: 20,
-        fontWeight: 700,
-        padding: "8px 12px",
-        marginTop: 18,
-        marginBottom: 10,
-      }}
-    >
-      {title}
-    </div>
-  )
-}
-
-function lineRow(items: Array<{ label: string; value: string; flex?: number }>, options?: { noBorder?: boolean }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: 16,
-        minHeight: 42,
-        padding: "6px 0 8px",
-        borderBottom: options?.noBorder ? "none" : `1px solid ${colors.line}`,
-      }}
-    >
-      {items.map((item) => (
-        <div key={`${item.label}-${item.value}`} style={{ flex: item.flex || 1, minWidth: 0 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: colors.text }}>{item.label}: </span>
-          <span style={{ fontSize: 17, color: item.value?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
-            {fallback(item.value)}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function signatureLine(label: string) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minWidth: 220 }}>
-      <span style={{ fontSize: 17, fontWeight: 700 }}>{label}</span>
-      <div style={{ flex: 1, borderBottom: `2px solid ${colors.line}`, height: 28 }} />
-    </div>
-  )
-}
-
-function sectionBlock(children: ReactNode) {
-  return (
-    <section data-pdf-section="true">
-      {children}
-    </section>
-  )
+function splitLines(value: string) {
+  if (!value) return [""]
+  return value.split("\n")
 }
 
 function getProcessoLines(data: FichaPdfData) {
-  const instancias = data.instanciaProcesso ? data.instanciaProcesso.split("\n") : [""]
-  const tipos = data.tipoProcesso ? data.tipoProcesso.split("\n") : [""]
-  const numeros = data.numeroProcesso ? data.numeroProcesso.split("\n") : [""]
-  const prazos = data.prazoProcesso ? data.prazoProcesso.split("\n") : [""]
-
+  const instancias = splitLines(data.instanciaProcesso)
+  const tipos = splitLines(data.tipoProcesso)
+  const numeros = splitLines(data.numeroProcesso)
+  const prazos = splitLines(data.prazoProcesso)
   const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
@@ -208,7 +147,6 @@ function getMultaBlocks(data: FichaPdfData) {
   const placas = splitSerializedEntries(data.placa)
   const renavams = splitSerializedEntries(data.renavam)
   const prazos = splitSerializedEntries(data.prazoMulta)
-
   const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
@@ -229,12 +167,11 @@ function getMultaLines(block: {
   tipoMulta: string
   prazoMulta: string
 }) {
-  const instancias = block.instanciaMulta ? block.instanciaMulta.split("\n") : [""]
-  const autosDetran = block.autoDetran ? block.autoDetran.split("\n") : [""]
-  const autosRenainf = block.autoRenainf ? block.autoRenainf.split("\n") : [""]
-  const tipos = block.tipoMulta ? block.tipoMulta.split("\n") : [""]
-  const prazos = block.prazoMulta ? block.prazoMulta.split("\n") : [""]
-
+  const instancias = splitLines(block.instanciaMulta)
+  const autosDetran = splitLines(block.autoDetran)
+  const autosRenainf = splitLines(block.autoRenainf)
+  const tipos = splitLines(block.tipoMulta)
+  const prazos = splitLines(block.prazoMulta)
   const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
@@ -246,6 +183,64 @@ function getMultaLines(block: {
   }))
 }
 
+function section(title: string, children: ReactNode) {
+  return (
+    <section data-pdf-section="true" style={{ marginTop: 10 }}>
+      <div
+        style={{
+          background: colors.navy,
+          color: "#ffffff",
+          fontSize: 15,
+          fontWeight: 700,
+          padding: "5px 10px",
+          letterSpacing: 0.2,
+        }}
+      >
+        {title}
+      </div>
+      <div>{children}</div>
+    </section>
+  )
+}
+
+function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: columns,
+        columnGap: 18,
+        alignItems: "end",
+        minHeight: 28,
+        padding: "4px 0 5px",
+        borderBottom: noBorder ? "none" : `1px solid ${colors.line}`,
+      }}
+    >
+      {cells}
+    </div>
+  )
+}
+
+function field(label: string, value: string) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 700 }}>{label}: </span>
+      <span style={{ fontSize: 11.5, color: value?.trim() ? colors.text : colors.muted, whiteSpace: "pre-wrap" }}>
+        {fallback(value)}
+      </span>
+    </div>
+  )
+}
+
+function signatureField(label: string) {
+  return (
+    <div style={{ display: "flex", alignItems: "end", gap: 8, minWidth: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{label}</span>
+      <div style={{ flex: 1, borderBottom: `1px solid ${colors.line}`, height: 16 }} />
+    </div>
+  )
+}
+
 export default function FichaPdf({ data }: FichaPdfProps) {
   const processoLines = getProcessoLines(data)
   const multaBlocks = getMultaBlocks(data)
@@ -253,174 +248,150 @@ export default function FichaPdf({ data }: FichaPdfProps) {
   return (
     <div style={pageStyle}>
       <div style={sheetStyle}>
-        {sectionBlock(
-          <div style={topCardStyle}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 20,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 18, flex: 1 }}>
-                <div style={{ width: 10, height: 92, background: colors.orange }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 34, fontWeight: 800, color: colors.navy }}>FICHA DE VENDA</div>
-                  <div style={{ marginTop: 12, fontSize: 14, color: colors.muted }}>
-                    Documento administrativo com dados completos da Ficha.
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  paddingLeft: 28,
-                  marginLeft: 8,
-                  borderLeft: `1px solid #c8cdd6`,
-                }}
-              >
-                <div
-                  style={{
-                    background: colors.navy,
-                    borderRadius: 18,
-                    padding: "14px 24px",
-                    minWidth: 250,
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <img
-                    src="/logo.png"
-                    alt="CABRICOP"
-                    crossOrigin="anonymous"
-                    style={{ height: 56, width: "auto", objectFit: "contain", display: "block" }}
-                  />
+        <section data-pdf-section="true" style={{ marginBottom: 10, borderBottom: `1px solid #d1d5db`, paddingBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 18, alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 8, height: 48, background: colors.orange }} />
+              <div>
+                <div style={{ fontSize: 23, fontWeight: 800, color: colors.navy }}>FICHA DE VENDA</div>
+                <div style={{ marginTop: 6, fontSize: 11, color: colors.muted }}>
+                  Documento administrativo com dados completos da ficha.
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("DADOS DO CLIENTE")}
-            {lineRow([
-              { label: "Nome Completo", value: data.nomeCliente, flex: 1.2 },
-              { label: "Terceiros", value: data.terceiros, flex: 1 },
-            ])}
-            {lineRow([{ label: "Telefone", value: data.telefones }, { label: "E-mail", value: data.email }])}
-            {lineRow([{ label: "Endereço", value: data.endereco }])}
-            {lineRow([{ label: "CEP", value: data.cep }, { label: "CPF/CNPJ", value: formatCpfCnpj(data.cpfCnpj) }])}
-            {lineRow([{ label: "CNH", value: data.cnh }, { label: "Nascimento", value: formatDate(data.dataNascimento) }])}
-            {lineRow([{ label: "Data da 1ª CNH", value: formatDate(data.dataPrimeiraCnh) }])}
+            <div style={{ borderLeft: `1px solid #d1d5db`, paddingLeft: 16 }}>
+              <div
+                style={{
+                  background: colors.navy,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src="/logo.png"
+                  alt="CABRICOP"
+                  crossOrigin="anonymous"
+                  style={{ height: 40, width: "auto", objectFit: "contain", display: "block" }}
+                />
+              </div>
+            </div>
           </div>
-        )}
+        </section>
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("DADOS DO CONSULTOR")}
-            {lineRow([{ label: "Consultor", value: data.nomeConsultor }])}
-            {lineRow([{ label: "Origem", value: data.origem }])}
-            {lineRow([{ label: "SNE", value: data.sne }])}
-          </div>
-        )}
+        {section("DADOS DO CLIENTE", (
+          <>
+            {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
+            {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
+            {gridRow("1fr", [field("Endereço", data.endereco)])}
+            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
+            {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
+            {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))], true)}
+          </>
+        ))}
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("DADOS DO PAGAMENTO")}
-            {lineRow([
-              { label: "Forma", value: formatPaymentMethod(data.formaPagamento) },
-              { label: "Banco", value: formatBank(data.banco) },
-              { label: "Valor Total", value: formatCurrency(data.valorTotal) },
-              { label: "Valor Entrada", value: formatCurrency(data.valorEntrada) },
-            ])}
-            {lineRow([
-              { label: "Valor Restante", value: formatCurrency(data.valorRestante), flex: 1.1 },
-              { label: "Data do Contrato", value: formatDate(data.dataContrato) },
-              { label: "Prazo", value: formatDate(data.prazoServico) },
-            ])}
-          </div>
-        )}
+        {section("DADOS DO CONSULTOR", (
+          <>
+            {gridRow("1fr", [field("Consultor", data.nomeConsultor)])}
+            {gridRow("1fr", [field("Origem", data.origem)])}
+            {gridRow("1fr", [field("SNE", data.sne)], true)}
+          </>
+        ))}
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("PROCESSOS")}
+        {section("DADOS DO PAGAMENTO", (
+          <>
+            {gridRow(
+              "1.1fr 1fr 0.95fr 0.95fr",
+              [
+                field("Forma", formatPaymentMethod(data.formaPagamento)),
+                field("Banco", formatBank(data.banco)),
+                field("Valor Total", formatCurrency(data.valorTotal)),
+                field("Valor Entrada", formatCurrency(data.valorEntrada)),
+              ]
+            )}
+            {gridRow(
+              "1fr 1fr 0.9fr",
+              [
+                field("Valor Restante", formatCurrency(data.valorRestante)),
+                field("Data do Contrato", formatDate(data.dataContrato)),
+                field("Prazo", formatDate(data.prazoServico)),
+              ],
+              true
+            )}
+          </>
+        ))}
+
+        {section("PROCESSOS", (
+          <>
             {processoLines.map((line, index) => (
-              <div key={`processo-${index}`} style={{ marginBottom: 2 }}>
-                {lineRow([
-                  { label: "Instância", value: line.instanciaProcesso },
-                  { label: "Tipo do Processo", value: line.tipoProcesso, flex: 1.4 },
-                ])}
-                {lineRow(
+              <div key={`processo-${index}`}>
+                {gridRow("0.9fr 1.1fr", [field("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso)])}
+                {gridRow(
+                  "0.9fr 0.8fr 1.1fr",
                   [
-                    { label: "Nº do Processo", value: line.numeroProcesso },
-                    { label: "Data", value: formatDate(line.prazoProcesso) },
-                    { label: "Assinatura Digital", value: "", flex: 1.1 },
+                    field("Nº do Processo", line.numeroProcesso),
+                    field("Data", formatDate(line.prazoProcesso)),
+                    signatureField("Assinatura Digital"),
                   ],
-                  { noBorder: index === processoLines.length - 1 }
+                  index === processoLines.length - 1
                 )}
               </div>
             ))}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -30, marginBottom: 6 }}>
-              {signatureLine("")}
-            </div>
-          </div>
-        )}
+          </>
+        ))}
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("MULTAS")}
+        {section("MULTAS", (
+          <>
             {multaBlocks.map((block, blockIndex) => (
-              <div key={`multa-${blockIndex}`} style={{ marginBottom: 8 }}>
-                {lineRow([
-                  { label: "Placa", value: block.placa },
-                  { label: "RENAVAM", value: block.renavam },
-                ])}
-
+              <div key={`multa-${blockIndex}`}>
+                {gridRow("0.9fr 1.1fr", [field("Placa", block.placa), field("RENAVAM", block.renavam)])}
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {lineRow([
-                      { label: "Instância da Multa", value: line.instanciaMulta },
-                      { label: "Tipo de Multa", value: line.tipoMulta },
-                      { label: "Assinatura Digital", value: "", flex: 1.1 },
-                    ])}
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -30, marginBottom: 6 }}>
-                      {signatureLine("")}
-                    </div>
-                    {lineRow([{ label: "Auto DETRAN", value: line.autoDetran }])}
-                    {lineRow([{ label: "Auto RENAINF", value: line.autoRenainf }])}
-                    {lineRow(
-                      [{ label: "Prazo", value: formatDate(line.prazoMulta) }],
-                      { noBorder: blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1 }
+                    {gridRow(
+                      "0.95fr 1fr 1.05fr",
+                      [
+                        field("Instância da Multa", line.instanciaMulta),
+                        field("Tipo de Multa", line.tipoMulta),
+                        signatureField("Assinatura Digital"),
+                      ]
+                    )}
+                    {gridRow(
+                      "1fr 1fr 0.8fr",
+                      [
+                        field("Auto DETRAN", line.autoDetran),
+                        field("Auto RENAINF", line.autoRenainf),
+                        field("Prazo", formatDate(line.prazoMulta)),
+                      ],
+                      blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1
                     )}
                   </div>
                 ))}
               </div>
             ))}
-          </div>
-        )}
+          </>
+        ))}
 
-        {sectionBlock(
-          <div>
-            {sectionTitle("OBSERVAÇÕES ADICIONAIS")}
+        {section("OBSERVAÇÕES ADICIONAIS", (
+          <>
             <div
               style={{
-                minHeight: 80,
-                padding: "8px 0 10px",
+                minHeight: 42,
+                padding: "6px 0",
                 borderBottom: `1px solid ${colors.line}`,
-                whiteSpace: "pre-wrap",
-                fontSize: 17,
+                fontSize: 11.5,
                 color: data.observacoes?.trim() ? colors.text : colors.muted,
+                whiteSpace: "pre-wrap",
               }}
             >
               {fallback(data.observacoes)}
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-              {signatureLine("Assinatura")}
+            <div style={{ paddingTop: 8 }}>
+              {gridRow("1fr 0.9fr", [<div key="empty" />, signatureField("Assinatura")], true)}
             </div>
-          </div>
-        )}
+          </>
+        ))}
       </div>
     </div>
   )
