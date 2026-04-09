@@ -12,7 +12,7 @@ import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS,
 import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
-import { Calendar, User, CreditCard, FileText, AlertCircle, Building2 } from "lucide-react"
+import { Calendar, User, CreditCard, FileText, AlertCircle, Building2, X } from "lucide-react"
 
 type MultaBlock = {
   instanciaMulta: string
@@ -42,6 +42,13 @@ type ProcessoLine = {
 function splitLineValues(value: string) {
   if (!value) return [""]
   return value.split("\n")
+}
+
+function parseTelefoneValues(value: string) {
+  return (value || "")
+    .split(/[\n;,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function getProcessoLines(values: FichaFormValues): ProcessoLine[] {
@@ -167,6 +174,7 @@ export function FichaForm({
   const [enderecoComplemento, setEnderecoComplemento] = useState("")
   const [cnhNumero, setCnhNumero] = useState("")
   const [cnhUf, setCnhUf] = useState("RJ")
+  const [telefoneInput, setTelefoneInput] = useState("")
 
   useEffect(() => {
     const enderecoAtual = values.endereco || ""
@@ -298,8 +306,31 @@ export function FichaForm({
         ? "CPF valido"
         : "CPF invalido"
       : ""
+  const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
+
+  const setTelefones = (nextTelefones: string[]) => {
+    setField("telefones", nextTelefones.join("\n"))
+  }
+
+  const addTelefone = (rawValue: string) => {
+    const nextTelefone = rawValue.trim()
+    if (!nextTelefone) return
+
+    const currentTelefones = parseTelefoneValues(values.telefones)
+    if (currentTelefones.includes(nextTelefone)) {
+      setTelefoneInput("")
+      return
+    }
+
+    setTelefones([...currentTelefones, nextTelefone])
+    setTelefoneInput("")
+  }
+
+  const removeTelefone = (telefone: string) => {
+    setTelefones(telefonesLista.filter((item) => item !== telefone))
+  }
 
   const setMultaBlocks = (nextBlocks: MultaBlock[]) => {
     onChange({
@@ -513,7 +544,51 @@ export function FichaForm({
             {renderInput("terceiros", "Terceiros")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("telefones", "Telefone(s)")}
+            <div className="space-y-2">
+              <Label htmlFor="telefonesInput">Telefone(s)</Label>
+              <div className="min-h-[48px] rounded-md border border-input bg-background px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {telefonesLista.map((telefone) => (
+                    <span
+                      key={telefone}
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-50 px-3 py-1 text-sm font-medium text-slate-700"
+                    >
+                      <span>{telefone}</span>
+                      {!fieldDisabled ? (
+                        <button
+                          type="button"
+                          onClick={() => removeTelefone(telefone)}
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 transition hover:bg-amber-100 hover:text-slate-700"
+                          aria-label={`Remover telefone ${telefone}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </span>
+                  ))}
+
+                  {!fieldDisabled ? (
+                    <input
+                      id="telefonesInput"
+                      name="telefonesInput"
+                      value={telefoneInput}
+                      onChange={(event) => setTelefoneInput(event.target.value)}
+                      onBlur={() => addTelefone(telefoneInput)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === "," || event.key === ";") {
+                          event.preventDefault()
+                          addTelefone(telefoneInput)
+                        }
+                      }}
+                      className="min-w-[220px] flex-1 border-0 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+                      placeholder={telefonesLista.length === 0 ? "Digite um telefone e pressione Enter" : "Adicionar telefone"}
+                      inputMode="tel"
+                      disabled={fieldDisabled}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
             {renderInput("email", "E-mail", { type: "email" })}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
