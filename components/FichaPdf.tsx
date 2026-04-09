@@ -76,6 +76,40 @@ const sectionTitleLineStyle: CSSProperties = {
   background: "rgba(255,255,255,0.85)",
 }
 
+const formLineCardStyle: CSSProperties = {
+  margin: 20,
+  border: `1px solid ${colors.line}`,
+  borderRadius: 16,
+  background: "#fbfdff",
+  overflow: "hidden",
+}
+
+const formLineHeaderStyle: CSSProperties = {
+  display: "grid",
+  gap: 0,
+  background: "#ffffff",
+}
+
+const formLineCellStyle: CSSProperties = {
+  padding: "12px 14px",
+  borderRight: `1px solid ${colors.line}`,
+  borderBottom: `1px solid ${colors.line}`,
+  background: "#ffffff",
+}
+
+const formLineLabelStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: colors.text,
+  marginBottom: 8,
+}
+
+const formLineValueStyle: CSSProperties = {
+  fontSize: 16,
+  color: colors.text,
+  whiteSpace: "pre-wrap",
+}
+
 function fallback(value: string) {
   return value?.trim() || "-"
 }
@@ -251,6 +285,64 @@ function getProcessoLines(data: FichaPdfData) {
   }))
 }
 
+function getMultaDetailLines(block: {
+  instanciaMulta: string
+  autoDetran: string
+  autoRenainf: string
+  tipoMulta: string
+  prazoMulta: string
+}) {
+  const instancias = block.instanciaMulta ? block.instanciaMulta.split("\n") : [""]
+  const autosDetran = block.autoDetran ? block.autoDetran.split("\n") : [""]
+  const autosRenainf = block.autoRenainf ? block.autoRenainf.split("\n") : [""]
+  const tipos = block.tipoMulta ? block.tipoMulta.split("\n") : [""]
+  const prazos = block.prazoMulta ? block.prazoMulta.split("\n") : [""]
+
+  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    instanciaMulta: instancias[index] || "",
+    autoDetran: autosDetran[index] || "",
+    autoRenainf: autosRenainf[index] || "",
+    tipoMulta: tipos[index] || "",
+    prazoMulta: prazos[index] || "",
+  }))
+}
+
+function lineField(label: string, value: string, style?: CSSProperties) {
+  return (
+    <div style={{ ...formLineCellStyle, ...style }}>
+      <div style={formLineLabelStyle}>{label}</div>
+      <div style={{ ...formLineValueStyle, color: value?.trim() ? colors.text : colors.muted }}>{fallback(value)}</div>
+    </div>
+  )
+}
+
+function blankSignatureBox(title: string) {
+  return (
+    <div
+      style={{
+        ...formLineCardStyle,
+        background: "#fffdfa",
+      }}
+    >
+      <div style={{ padding: "14px 16px", borderBottom: `1px solid ${colors.line}` }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>{title}</div>
+      </div>
+      <div style={{ padding: 18 }}>
+        <div
+          style={{
+            height: 150,
+            border: `1px solid ${colors.line}`,
+            borderRadius: 16,
+            background: "#ffffff",
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function FichaPdf({ data }: FichaPdfProps) {
   const multaBlocks = getMultaBlocks(data)
   const processoLines = getProcessoLines(data)
@@ -361,93 +453,73 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           {infoCell("Forma de Pagamento", formatPaymentMethod(data.formaPagamento))}
           {infoCell("Valor Total", formatCurrency(data.valorTotal))}
           {infoCell("Banco", formatBank(data.banco))}
-          {infoCell("Valor de Entrada", formatCurrency(data.valorEntrada))}
-          {infoCell("Valor Restante", formatCurrency(data.valorRestante), { span: 2 })}
+          {infoCell("Valor de Entrada", data.valorEntrada ? formatCurrency(data.valorEntrada) : "-")}
+          {infoCell("Valor Restante", data.valorRestante ? formatCurrency(data.valorRestante) : "-", { span: 2 })}
         </div>
       )}
 
       {sectionCard(
-        "PROCESSO",
+        "PROCESSOS",
         "navy",
-        <div style={{ display: "grid", gridTemplateColumns: "1.35fr 0.9fr" }}>
-          <div style={{ borderRight: `1px solid ${colors.line}` }}>
-            {processoLines.map((line, index) => (
+        <div style={{ paddingBottom: 4 }}>
+          {processoLines.map((line, index) => (
+            <div key={`processo-pdf-${index}`} style={formLineCardStyle}>
               <div
-                key={`processo-pdf-${index}`}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  borderTop: index > 0 ? `1px solid ${colors.line}` : undefined,
+                  ...formLineHeaderStyle,
+                  gridTemplateColumns: "1.1fr 1.2fr 1.1fr 0.9fr",
                 }}
               >
-                {infoCell("Instancia do Processo", line.instanciaProcesso)}
-                {infoCell("Tipo do Processo", line.tipoProcesso)}
-                {infoCell("No do Processo", line.numeroProcesso)}
-                {infoCell("Prazo do Processo", formatDate(line.prazoProcesso))}
+                {lineField("Instancia do Processo", line.instanciaProcesso)}
+                {lineField("Tipo do Processo", line.tipoProcesso)}
+                {lineField("No do Processo", line.numeroProcesso)}
+                {lineField("Prazo", formatDate(line.prazoProcesso), { borderRight: "none" })}
               </div>
-            ))}
-          </div>
-
-          <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>
-              Assinatura Digital do Visto Juridico
             </div>
-            <div
-              style={{
-                height: 214,
-                border: `1px solid ${colors.line}`,
-                borderRadius: 18,
-                background: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-              }}
-            />
-          </div>
+          ))}
+
+          {blankSignatureBox("Assinatura Digital do Visto Juridico")}
         </div>
       )}
 
       {sectionCard(
-        "MAIS INFORMACOES (MULTAS)",
+        "MULTAS",
         "orange",
         <div>
           {multaBlocks.map((block, index) => (
             <div
               key={`multa-pdf-${index}`}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.35fr 0.9fr",
-                borderTop: index > 0 ? `1px solid ${colors.line}` : undefined,
-              }}
+              style={{ paddingBottom: 4 }}
             >
-              <div style={{ borderRight: `1px solid ${colors.line}` }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-                  {infoCell("Instancia da Multa", block.instanciaMulta)}
-                  {infoCell("Auto DETRAN", block.autoDetran)}
-                  {infoCell("Auto RENAINF", block.autoRenainf)}
-                  {infoCell("Tipo de Multa", block.tipoMulta)}
-                  {infoCell("Placa", block.placa)}
-                  {infoCell("RENAVAM", block.renavam)}
-                  {infoCell("Prazo da Multa", formatDate(block.prazoMulta), { span: 2 })}
-                </div>
-              </div>
-
-              <div style={{ padding: 24, background: "linear-gradient(180deg, #fffdfa 0%, #f6f2ea 100%)" }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: colors.text, marginBottom: 14 }}>Assinatura Digital</div>
+              <div style={formLineCardStyle}>
                 <div
                   style={{
-                    height: 214,
-                    border: `1px solid ${colors.line}`,
-                    borderRadius: 18,
-                    background: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
+                    ...formLineHeaderStyle,
+                    gridTemplateColumns: "1fr 1fr",
                   }}
-                />
+                >
+                  {lineField("Placa", block.placa)}
+                  {lineField("RENAVAM", block.renavam, { borderRight: "none" })}
+                </div>
+
+                {getMultaDetailLines(block).map((line, lineIndex, allLines) => (
+                  <div
+                    key={`multa-line-${index}-${lineIndex}`}
+                    style={{
+                      ...formLineHeaderStyle,
+                      gridTemplateColumns: "1fr 1fr 1fr 1fr 0.95fr",
+                    }}
+                  >
+                    {lineField("Instancia da Multa", line.instanciaMulta, { borderBottom: lineIndex === allLines.length - 1 ? "none" : formLineCellStyle.borderBottom })}
+                    {lineField("Auto DETRAN", line.autoDetran, { borderBottom: lineIndex === allLines.length - 1 ? "none" : formLineCellStyle.borderBottom })}
+                    {lineField("Auto RENAINF", line.autoRenainf, { borderBottom: lineIndex === allLines.length - 1 ? "none" : formLineCellStyle.borderBottom })}
+                    {lineField("Tipo de Multa", line.tipoMulta, { borderBottom: lineIndex === allLines.length - 1 ? "none" : formLineCellStyle.borderBottom })}
+                    {lineField("Prazo", formatDate(line.prazoMulta), { borderRight: "none", borderBottom: lineIndex === allLines.length - 1 ? "none" : formLineCellStyle.borderBottom })}
+                  </div>
+                ))}
               </div>
+
+              {blankSignatureBox("Assinatura Digital")}
             </div>
           ))}
         </div>
