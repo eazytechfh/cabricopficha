@@ -340,7 +340,10 @@ export function FichaForm({
   }
 
   const updateMultaBlockField = (index: number, field: keyof MultaBlock, value: string) => {
-    const nextBlocks = multaBlocks.map((block, blockIndex) => (blockIndex === index ? { ...block, [field]: value } : block))
+    const normalizedValue = field === "placa" ? value.toUpperCase() : value
+    const nextBlocks = multaBlocks.map((block, blockIndex) =>
+      blockIndex === index ? { ...block, [field]: normalizedValue } : block
+    )
     setMultaBlocks(nextBlocks)
   }
 
@@ -980,12 +983,13 @@ export function FichaForm({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor={`placa-${index}`}>Placa</Label>
-                      <Input
-                        id={`placa-${index}`}
-                        value={block.placa}
-                        onChange={(event) => updateMultaBlockField(index, "placa", event.target.value)}
-                        disabled={fieldDisabled}
-                      />
+                        <Input
+                          id={`placa-${index}`}
+                          value={block.placa}
+                          onChange={(event) => updateMultaBlockField(index, "placa", event.target.value)}
+                          disabled={fieldDisabled}
+                          className="uppercase"
+                        />
                     </div>
 
                     <div className="space-y-2">
