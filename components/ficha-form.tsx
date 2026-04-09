@@ -535,7 +535,12 @@ export function FichaForm({
             Data do Contrato
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {identifierPreview ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
             {renderInput("prazoServico", "Prazo", { type: "date" })}
@@ -551,11 +556,6 @@ export function FichaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {identifierPreview ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-              <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
-            </div>
-          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("nomeCliente", "Nome Completo")}
             {renderInput("terceiros", "Terceiros")}
