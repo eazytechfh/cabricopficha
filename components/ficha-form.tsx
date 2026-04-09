@@ -144,8 +144,14 @@ function updateValue(
   }
 
   if (field === "valorTotal" || field === "valorEntrada") {
-    const restante = Math.max(parseCurrency(next.valorTotal) - parseCurrency(next.valorEntrada), 0)
-    next.valorRestante = restante.toFixed(2)
+    const valorEntradaPreenchido = next.valorEntrada.trim() !== ""
+
+    if (valorEntradaPreenchido) {
+      const restante = Math.max(parseCurrency(next.valorTotal) - parseCurrency(next.valorEntrada), 0)
+      next.valorRestante = restante.toFixed(2)
+    } else {
+      next.valorRestante = ""
+    }
   }
 
   if (field === "banco" && value !== "outros" && values.banco !== value) {
