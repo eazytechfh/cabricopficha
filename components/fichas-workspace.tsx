@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
+import { FichaReadView } from "@/components/ficha-read-view"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
@@ -711,7 +712,7 @@ export default function FichasWorkspace() {
                   <CardTitle>Visualizacao da Ficha</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <FichaForm values={editValues} onChange={setEditValues} readOnly showActions={false} />
+                  <FichaReadView values={editValues} />
                   <div className="flex flex-col gap-4 sm:flex-row">
                     {canEditSelectedFicha ? (
                       <Button onClick={() => setViewMode("edit")}>Editar Ficha</Button>
