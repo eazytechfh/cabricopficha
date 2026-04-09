@@ -192,8 +192,9 @@ function section(title: string, children: ReactNode) {
           color: "#ffffff",
           fontSize: 17,
           fontWeight: 700,
-          padding: "7px 14px",
+          padding: "8px 14px",
           letterSpacing: 0.2,
+          textAlign: "center",
         }}
       >
         {title}
