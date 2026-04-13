@@ -297,20 +297,25 @@ export default function FichaPdf({ data }: FichaPdfProps) {
         {section("DADOS DO PAGAMENTO", (
           <>
             {gridRow(
-              "1.1fr 1fr 0.95fr 0.95fr",
+              "1fr 1fr",
               [
-                field("Forma", formatPaymentMethod(data.formaPagamento)),
-                field("Banco", formatBank(data.banco)),
-                field("Valor Total", formatCurrency(data.valorTotal)),
-                field("Valor Entrada", formatCurrency(data.valorEntrada)),
+                field("Data do Contrato", formatDate(data.dataContrato)),
+                field("Prazo", formatDate(data.prazoServico)),
               ]
             )}
             {gridRow(
-              "1fr 1fr 0.9fr",
+              "1.1fr 1fr",
               [
+                field("Forma", formatPaymentMethod(data.formaPagamento)),
+                field("Banco", formatBank(data.banco)),
+              ]
+            )}
+            {gridRow(
+              "1fr 1fr 1fr",
+              [
+                field("Valor Total", formatCurrency(data.valorTotal)),
+                field("Valor Entrada", formatCurrency(data.valorEntrada)),
                 field("Valor Restante", formatCurrency(data.valorRestante)),
-                field("Data do Contrato", formatDate(data.dataContrato)),
-                field("Prazo", formatDate(data.prazoServico)),
               ],
               true
             )}
