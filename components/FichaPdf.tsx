@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react"
+﻿import type { CSSProperties, ReactNode } from "react"
 import { splitSerializedEntries } from "@/lib/ficha-utils"
 
 export type FichaPdfData = {
@@ -117,6 +117,10 @@ function formatBank(value: string) {
     outros: "OUTROS",
   }
   return labels[value] || fallback(value)
+}
+
+function formatAddress(value: string) {
+  return fallback(value).replace(/\bNumero\b/g, "Nº")
 }
 
 function splitLines(value: string) {
@@ -287,6 +291,18 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             </div>
           </div>
         </section>
+
+        {section("DADOS DO CLIENTE", (
+          <>
+            {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
+            {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
+            {gridRow("1fr", [field("Endereço", formatAddress(data.endereco))])}
+            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
+            {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
+            {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
+            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
+          </>
+        ))}
 
         {section("DADOS DO PAGAMENTO", (
           <>
