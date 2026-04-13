@@ -339,23 +339,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 {gridRow("0.9fr 1.1fr", [field("Placa", block.placa), field("RENAVAM", block.renavam)])}
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow(
-                      "0.95fr 1fr 1.05fr",
-                      [
-                        field("Instância da Multa", line.instanciaMulta),
-                        field("Tipo de Multa", line.tipoMulta),
-                        signatureField("Assinatura Digital"),
-                      ]
-                    )}
-                    {gridRow(
-                      "1fr 1fr 0.8fr",
-                      [
-                        field("Auto DETRAN", line.autoDetran),
-                        field("Auto RENAINF", line.autoRenainf),
-                        field("Prazo", formatDate(line.prazoMulta)),
-                      ],
-                      blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1
-                    )}
+                    {gridRow("1fr 1fr 1fr 1fr 0.8fr 0.9fr", [field("Instância da Multa", line.instanciaMulta), field("Tipo de Multa", line.tipoMulta), field("Auto DETRAN", line.autoDetran), field("Auto RENAINF", line.autoRenainf), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
                   </div>
                 ))}
               </div>
