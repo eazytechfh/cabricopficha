@@ -138,7 +138,7 @@ function updateValue(
   field: keyof FichaFormValues,
   value: string
 ): FichaFormValues {
-  const normalizedValue = field === "nomeCliente" ? value.toUpperCase() : value
+  const normalizedValue = field === "nomeCliente" || field === "terceiros" ? value.toUpperCase() : value
   const next = {
     ...values,
     [field]: normalizedValue,
