@@ -882,7 +882,7 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`numeroProcesso-${lineIndex}`}>No do Processo</Label>
+                  <Label htmlFor={`numeroProcesso-${lineIndex}`}>Nº do Processo</Label>
                   <Input
                     id={`numeroProcesso-${lineIndex}`}
                     value={line.numeroProcesso}
