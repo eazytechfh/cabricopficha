@@ -371,7 +371,6 @@ export default function FichasWorkspace() {
       const response = await updateFicha(selectedFicha.id, editValues, consultor)
       setSelectedFicha(response.ficha)
       setEditValues(toRecordValues(response.ficha))
-      await downloadFichaPdf(toRecordValues(response.ficha))
       setEditMessage(
         response.webhookSent
           ? "Ficha atualizada com sucesso."
