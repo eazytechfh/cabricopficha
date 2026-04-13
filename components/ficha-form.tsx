@@ -624,7 +624,7 @@ export function FichaForm({
               {!cepLookupLoading && cepLookupMessage ? <p className="text-xs text-muted-foreground">{cepLookupMessage}</p> : null}
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="endereco">Endereco</Label>
+              <Label htmlFor="endereco">Endereço</Label>
               <Input
                 id="endereco"
                 name="endereco"
@@ -638,7 +638,7 @@ export function FichaForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="numeroEndereco">Numero</Label>
+              <Label htmlFor="numeroEndereco">Número</Label>
               <Input
                 id="numeroEndereco"
                 name="numeroEndereco"
