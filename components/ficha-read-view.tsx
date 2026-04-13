@@ -125,14 +125,6 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <ValueCell label="CNH" value={values.cnh} />
           <ValueCell label="Data de Nascimento" value={formatDate(values.dataNascimento)} />
           <ValueCell label="Data da 1a CNH" value={formatDate(values.dataPrimeiraCnh)} />
-        </CardContent>
-      </Card>
-
-      <Card className="border-l-4 border-l-secondary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Dados do Consultor</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
           <ValueCell label="Origem" value={values.origem} />
           <ValueCell label="SNE" value={values.sne} />

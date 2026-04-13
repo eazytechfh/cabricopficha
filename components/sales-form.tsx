@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import FichaPdf, { type FichaPdfData } from "@/components/FichaPdf"
 import { generatePdf } from "@/lib/generatePdf"
-import { Calendar, User, CreditCard, FileText, AlertCircle, Plus, X, Phone, Building2, CheckCircle2, XCircle } from "lucide-react"
+import { Calendar, User, CreditCard, FileText, AlertCircle, Plus, X, Phone, CheckCircle2, XCircle } from "lucide-react"
 
 type PhoneEntry = {
   id: number
@@ -413,17 +413,6 @@ export default function SalesForm() {
                 <Label htmlFor="email">E-mail</Label>
                 <Input type="email" id="email" name="email" placeholder="email@exemplo.com" required />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-secondary shadow-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Building2 className="w-5 h-5" />
-                Dados do Consultor
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="nomeConsultor">Nome do Consultor</Label>

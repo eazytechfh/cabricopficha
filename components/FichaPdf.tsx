@@ -289,15 +289,8 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {gridRow("1fr", [field("Endereço", data.endereco)])}
             {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
             {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
-            {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))], true)}
-          </>
-        ))}
-
-        {section("DADOS DO CONSULTOR", (
-          <>
-            {gridRow("1fr", [field("Consultor", data.nomeConsultor)])}
-            {gridRow("1fr", [field("Origem", data.origem)])}
-            {gridRow("1fr", [field("SNE", data.sne)], true)}
+            {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
+            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
           </>
         ))}
 

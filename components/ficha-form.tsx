@@ -12,7 +12,7 @@ import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS,
 import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
-import { Calendar, User, CreditCard, FileText, AlertCircle, Building2, X } from "lucide-react"
+import { Calendar, User, CreditCard, FileText, AlertCircle, X } from "lucide-react"
 
 type MultaBlock = {
   instanciaMulta: string
@@ -716,17 +716,6 @@ export function FichaForm({
             {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
             {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-l-4 border-l-secondary shadow-md">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Building2 className="w-5 h-5" />
-            Dados do Consultor
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
