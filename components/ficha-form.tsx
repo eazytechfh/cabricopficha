@@ -349,7 +349,8 @@ export function FichaForm({
   }
 
   const updateMultaBlockField = (index: number, field: keyof MultaBlock, value: string) => {
-    const normalizedValue = field === "placa" ? value.toUpperCase() : value
+    const shouldUppercase = field === "placa" || field === "renavam"
+    const normalizedValue = shouldUppercase ? value.toUpperCase() : value
     const nextBlocks = multaBlocks.map((block, blockIndex) =>
       blockIndex === index ? { ...block, [field]: normalizedValue } : block
     )
@@ -379,6 +380,11 @@ export function FichaForm({
     field: keyof MultaDetailLine,
     value: string
   ) => {
+    const shouldUppercase =
+      field === "autoDetran" ||
+      field === "autoRenainf" ||
+      field === "tipoMulta"
+
     const currentLines = getMultaDetailLines(multaBlocks[blockIndex] || {
       instanciaMulta: "",
       autoDetran: "",
@@ -390,7 +396,9 @@ export function FichaForm({
     })
 
     const nextLines = currentLines.map((line, currentLineIndex) =>
-      currentLineIndex === lineIndex ? { ...line, [field]: value } : line
+      currentLineIndex === lineIndex
+        ? { ...line, [field]: shouldUppercase ? value.toUpperCase() : value }
+        : line
     )
 
     updateMultaDetailLines(blockIndex, nextLines)
