@@ -829,15 +829,10 @@ export function FichaForm({
 
       <Card className="border-l-4 border-l-primary shadow-md">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <FileText className="w-5 h-5" />
-              Processos
-            </CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={addProcessoLine} disabled={fieldDisabled}>
-              Adicionar Linha
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="w-5 h-5" />
+            Processos
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 pt-2">
           <div className="space-y-3">
@@ -946,6 +941,11 @@ export function FichaForm({
                 </div>
               </div>
             ))}
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={addProcessoLine} disabled={fieldDisabled}>
+              Adicionar Linha
+            </Button>
           </div>
         </CardContent>
       </Card>
