@@ -361,9 +361,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             >
               {fallback(data.observacoes)}
             </div>
-            <div style={{ paddingTop: 8 }}>
-              {gridRow("1fr 0.9fr", [<div key="empty" />, signatureField("Assinatura")], true)}
-            </div>
           </>
         ))}
       </div>
