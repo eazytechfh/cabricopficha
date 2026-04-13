@@ -1127,7 +1127,7 @@ export function FichaForm({
 
       <Card className="border-l-4 border-l-muted shadow-md">
         <CardHeader className="pb-4">
-          <CardTitle className="text-primary">Observacoes Adicionais</CardTitle>
+          <CardTitle className="text-primary">Observações Adicionais</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
