@@ -250,49 +250,43 @@ export default function FichaPdf({ data }: FichaPdfProps) {
     <div style={pageStyle}>
       <div style={sheetStyle}>
         <section data-pdf-section="true" style={{ marginBottom: 14, borderBottom: `1px solid #d1d5db`, paddingBottom: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 24, alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-              <div style={{ width: 8, height: 54, background: colors.orange }} />
-              <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: colors.navy }}>FICHA DE VENDA</div>
-                <div style={{ marginTop: 8, fontSize: 12.5, color: colors.muted }}>
-                  Documento administrativo com dados completos da ficha.
-                </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 24, alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                Data do Contrato
+              </div>
+              <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, color: colors.navy }}>
+                {formatDate(data.dataContrato)}
               </div>
             </div>
 
-            <div style={{ borderLeft: `1px solid #d1d5db`, paddingLeft: 20 }}>
-              <div
-                style={{
-                  background: colors.navy,
-                  borderRadius: 12,
-                  padding: "12px 16px",
-                  display: "flex",
-                  justifyContent: "center",
-                }}
-              >
-                <img
-                  src="/logo.png"
-                  alt="CABRICOP"
-                  crossOrigin="anonymous"
-                  style={{ height: 46, width: "auto", objectFit: "contain", display: "block" }}
-                />
+            <div
+              style={{
+                background: colors.navy,
+                borderRadius: 12,
+                padding: "12px 24px",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="CABRICOP"
+                crossOrigin="anonymous"
+                style={{ height: 46, width: "auto", objectFit: "contain", display: "block" }}
+              />
+            </div>
+
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                Prazo
+              </div>
+              <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, color: colors.navy }}>
+                {formatDate(data.prazoServico)}
               </div>
             </div>
           </div>
         </section>
-
-        {section("DADOS DO CLIENTE", (
-          <>
-            {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
-            {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
-            {gridRow("1fr", [field("Endereço", data.endereco)])}
-            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
-            {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
-            {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
-            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
-          </>
-        ))}
 
         {section("DADOS DO PAGAMENTO", (
           <>
