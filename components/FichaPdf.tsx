@@ -307,13 +307,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
         {section("DADOS DO PAGAMENTO", (
           <>
             {gridRow(
-              "1fr 1fr",
-              [
-                field("Data do Contrato", formatDate(data.dataContrato)),
-                field("Prazo", formatDate(data.prazoServico)),
-              ]
-            )}
-            {gridRow(
               "1.1fr 1fr",
               [
                 field("Forma", formatPaymentMethod(data.formaPagamento)),
