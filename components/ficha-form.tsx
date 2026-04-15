@@ -1121,7 +1121,7 @@ export function FichaForm({
                     </div>
                   ))}
 
-                  <div className="flex justify-start pt-1">
+                  <div className="flex justify-end pt-1">
                     <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
                       Adicionar Linha
                     </Button>
