@@ -1013,11 +1013,6 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex justify-end">
-                    <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
-                      Adicionar Linha
-                    </Button>
-                  </div>
 
                   {multaDetailLines.map((line, lineIndex) => (
                     <div
@@ -1125,6 +1120,12 @@ export function FichaForm({
                       </div>
                     </div>
                   ))}
+
+                  <div className="flex justify-start pt-1">
+                    <Button type="button" variant="outline" size="sm" onClick={() => addMultaDetailLine(index)} disabled={fieldDisabled}>
+                      Adicionar Linha
+                    </Button>
+                  </div>
                 </div>
 
               </div>
