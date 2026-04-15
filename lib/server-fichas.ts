@@ -10,6 +10,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const fichasTableName = "fichas_venda"
 const excelBaseDir = process.env.VERCEL ? path.join(tmpdir(), "cabricopficha") : path.join(process.cwd(), "storage")
 const excelPath = path.join(excelBaseDir, "fichas.xlsx")
+const VENCIDA_SENTINEL_DATE = "1900-01-01"
 
 function ensureSupabaseConfig() {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -30,7 +31,15 @@ function headers() {
 
 function toDatabaseDate(value: string) {
   const normalizedValue = (value || "").trim()
+  if (normalizedValue === "VENCIDA") {
+    return VENCIDA_SENTINEL_DATE
+  }
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
+}
+
+function fromDatabaseDate(value: unknown) {
+  const normalizedValue = String(value ?? "")
+  return normalizedValue === VENCIDA_SENTINEL_DATE ? "VENCIDA" : normalizedValue
 }
 
 function stripIdentifierSuffix(value: string) {
@@ -142,7 +151,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     instanciaProcesso: String(row.instancia_processo ?? ""),
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
-    prazoProcesso: String(row.prazo_processo ?? ""),
+    prazoProcesso: fromDatabaseDate(row.prazo_processo),
     vistoJuridico: String(row.visto_juridico ?? ""),
     assinaturaVistoJuridico: String(row.assinatura_visto_juridico ?? ""),
     instanciaMulta: String(row.instancia_multa ?? ""),
@@ -151,7 +160,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     tipoMulta: String(row.tipo_multa ?? ""),
     placa: String(row.placa ?? ""),
     renavam: String(row.renavam ?? ""),
-    prazoMulta: String(row.prazo_multa ?? ""),
+    prazoMulta: fromDatabaseDate(row.prazo_multa),
     vistoJuridicoMulta: String(row.visto_juridico_multa ?? ""),
     observacoes: String(row.observacoes ?? ""),
     createdAt: String(row.created_at ?? ""),
