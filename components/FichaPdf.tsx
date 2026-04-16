@@ -188,6 +188,8 @@ function getMultaLines(block: {
 }
 
 function section(title: string, children: ReactNode) {
+  const sectionBarHeight = 38
+
   return (
     <section data-pdf-section="true" style={{ marginTop: 10 }}>
       <div
@@ -196,7 +198,7 @@ function section(title: string, children: ReactNode) {
           color: "#ffffff",
           fontSize: 16.5,
           fontWeight: 700,
-          height: 38,
+          height: sectionBarHeight,
           padding: "0 14px",
           letterSpacing: 0.2,
           position: "relative",
@@ -204,15 +206,14 @@ function section(title: string, children: ReactNode) {
       >
         <span
           style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transform: "translateY(-1px)",
-            whiteSpace: "nowrap",
-            lineHeight: 1,
+            display: "block",
+            width: "100%",
+            height: "100%",
             textAlign: "center",
+            lineHeight: `${sectionBarHeight - 4}px`,
+            paddingTop: 1,
+            whiteSpace: "nowrap",
+            boxSizing: "border-box",
           }}
         >
           {title}
