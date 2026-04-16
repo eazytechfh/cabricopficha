@@ -972,15 +972,15 @@ export function FichaForm({
             return (
               <div key={`multa-block-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
-                  <div className="flex items-center gap-2 xl:pb-2">
-                    <span className="text-sm font-semibold text-primary">Placa</span>
+                    <div className="flex items-center gap-2 xl:pb-2">
+                      <span className="text-sm font-semibold uppercase text-primary">PLACA</span>
                     <span className="rounded-md bg-primary px-2.5 py-1 text-sm font-bold text-primary-foreground shadow-sm">
                       {block.placa?.trim() || `${index + 1}`}
                     </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor={`placa-${index}`}>Placa</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor={`placa-${index}`}>PLACA</Label>
                     <Input
                       id={`placa-${index}`}
                       value={block.placa}

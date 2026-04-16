@@ -237,6 +237,24 @@ function field(label: string, value: string) {
   )
 }
 
+function centeredField(label: string, value: string) {
+  return (
+    <div style={{ minWidth: 0, lineHeight: 1.45, textAlign: "center" }}>
+      <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
+      <div
+        style={{
+          marginTop: 4,
+          fontSize: 13.5,
+          color: value?.trim() ? colors.text : colors.muted,
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {fallback(value)}
+      </div>
+    </div>
+  )
+}
+
 function signatureField(label: string) {
   return (
     <div style={{ display: "flex", alignItems: "end", gap: 10, minWidth: 0 }}>
@@ -339,7 +357,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {multaBlocks.map((block, blockIndex) => (
               <div key={`multa-${blockIndex}`}>
-                {gridRow("0.9fr 1.1fr", [field("Placa", block.placa), field("RENAVAM", block.renavam)])}
+                {gridRow("0.9fr 1.1fr", [centeredField("PLACA", block.placa), centeredField("RENAVAM", block.renavam)])}
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
                     {gridRow("1fr 1fr 1fr 1fr 0.8fr 0.9fr", [field("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
