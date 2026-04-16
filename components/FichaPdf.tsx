@@ -194,19 +194,27 @@ function section(title: string, children: ReactNode) {
         style={{
           background: colors.navy,
           color: "#ffffff",
-          fontSize: 17,
+          fontSize: 16.5,
           fontWeight: 700,
           height: 38,
           padding: "0 14px",
           letterSpacing: 0.2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          lineHeight: 1,
+          position: "relative",
         }}
       >
-        {title}
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -46%)",
+            whiteSpace: "nowrap",
+            lineHeight: 1,
+            textAlign: "center",
+          }}
+        >
+          {title}
+        </span>
       </div>
       <div>{children}</div>
     </section>
@@ -364,18 +372,17 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               <div key={`multa-${blockIndex}`}>
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0, 260px) minmax(0, 260px)",
+                    display: "flex",
                     justifyContent: "center",
-                    columnGap: 14,
                     alignItems: "center",
+                    gap: 32,
                     minHeight: 36,
                     padding: "8px 6px 9px",
                     borderBottom: `1px solid ${colors.line}`,
                   }}
                 >
-                  {centeredField("PLACA", block.placa)}
-                  {centeredField("RENAVAM", block.renavam)}
+                  <div style={{ width: 170 }}>{centeredField("PLACA", block.placa)}</div>
+                  <div style={{ width: 170 }}>{centeredField("RENAVAM", block.renavam)}</div>
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
