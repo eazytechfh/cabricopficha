@@ -196,8 +196,12 @@ function section(title: string, children: ReactNode) {
           color: "#ffffff",
           fontSize: 17,
           fontWeight: 700,
-          padding: "8px 14px",
+          minHeight: 38,
+          padding: "4px 14px",
           letterSpacing: 0.2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           textAlign: "center",
         }}
       >
