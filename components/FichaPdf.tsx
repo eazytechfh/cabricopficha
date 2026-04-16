@@ -196,13 +196,14 @@ function section(title: string, children: ReactNode) {
           color: "#ffffff",
           fontSize: 17,
           fontWeight: 700,
-          minHeight: 38,
-          padding: "4px 14px",
+          height: 38,
+          padding: "0 14px",
           letterSpacing: 0.2,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           textAlign: "center",
+          lineHeight: 1,
         }}
       >
         {title}
@@ -243,11 +244,11 @@ function field(label: string, value: string) {
 
 function centeredField(label: string, value: string) {
   return (
-    <div style={{ minWidth: 0, lineHeight: 1.45, textAlign: "center" }}>
+    <div style={{ minWidth: 0, lineHeight: 1.35, textAlign: "center" }}>
       <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
       <div
         style={{
-          marginTop: 4,
+          marginTop: 3,
           fontSize: 13.5,
           color: value?.trim() ? colors.text : colors.muted,
           whiteSpace: "pre-wrap",
@@ -361,7 +362,21 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {multaBlocks.map((block, blockIndex) => (
               <div key={`multa-${blockIndex}`}>
-                {gridRow("0.9fr 1.1fr", [centeredField("PLACA", block.placa), centeredField("RENAVAM", block.renavam)])}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(0, 260px) minmax(0, 260px)",
+                    justifyContent: "center",
+                    columnGap: 14,
+                    alignItems: "center",
+                    minHeight: 36,
+                    padding: "8px 6px 9px",
+                    borderBottom: `1px solid ${colors.line}`,
+                  }}
+                >
+                  {centeredField("PLACA", block.placa)}
+                  {centeredField("RENAVAM", block.renavam)}
+                </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
                     {gridRow("1fr 1fr 1fr 1fr 0.8fr 0.9fr", [field("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
