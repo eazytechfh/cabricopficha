@@ -205,9 +205,11 @@ function section(title: string, children: ReactNode) {
         <span
           style={{
             position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -46%)",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: "translateY(-1px)",
             whiteSpace: "nowrap",
             lineHeight: 1,
             textAlign: "center",
