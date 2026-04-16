@@ -97,13 +97,13 @@ function formatCpfCnpj(value: string) {
 
 function formatPaymentMethod(value: string) {
   const labels: Record<string, string> = {
-    credito: "Credito",
-    debito: "Debito",
+    credito: "Crédito",
+    debito: "Débito",
     pix: "PIX",
-    transferencia: "Transferencia",
+    transferencia: "Transferência",
     ted: "TED",
-    especie: "Especie",
-    deposito: "Deposito",
+    especie: "Espécie",
+    deposito: "Depósito",
     cheque: "Cheque",
   }
   return labels[value] || fallback(value)
@@ -347,7 +347,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("0.95fr 1.1fr 0.95fr 0.8fr 0.9fr", [field("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("0.95fr 1.1fr 0.95fr 0.8fr 0.9fr", [field("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>

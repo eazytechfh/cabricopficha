@@ -505,8 +505,9 @@ export function FichaForm({
     field: keyof ProcessoLine,
     value: string
   ) => {
+    const normalizedValue = field === "numeroProcesso" ? value.toUpperCase() : value
     const nextLines = processoLines.map((line, currentLineIndex) =>
-      currentLineIndex === lineIndex ? { ...line, [field]: value } : line
+      currentLineIndex === lineIndex ? { ...line, [field]: normalizedValue } : line
     )
 
     setProcessoLines(nextLines)
@@ -857,13 +858,13 @@ export function FichaForm({
                   <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credito">Credito</SelectItem>
-                  <SelectItem value="debito">Debito</SelectItem>
+                  <SelectItem value="credito">Crédito</SelectItem>
+                  <SelectItem value="debito">Débito</SelectItem>
                   <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="transferencia">Transferencia</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
                   <SelectItem value="ted">TED</SelectItem>
-                  <SelectItem value="especie">Especie</SelectItem>
-                  <SelectItem value="deposito">Deposito</SelectItem>
+                  <SelectItem value="especie">Espécie</SelectItem>
+                  <SelectItem value="deposito">Depósito</SelectItem>
                   <SelectItem value="cheque">Cheque</SelectItem>
                 </SelectContent>
               </Select>
@@ -957,6 +958,7 @@ export function FichaForm({
                     value={line.numeroProcesso}
                     onChange={(event) => updateProcessoLineField(lineIndex, "numeroProcesso", event.target.value)}
                     disabled={fieldDisabled}
+                    className="uppercase"
                   />
                 </div>
 
