@@ -20,6 +20,32 @@ function formatDate(value: string) {
   return `${day}/${month}/${year}`
 }
 
+function formatPaymentMethod(value: string) {
+  const labels: Record<string, string> = {
+    credito: "Crédito",
+    debito: "Débito",
+    pix: "PIX",
+    transferencia: "Transferência",
+    ted: "TED",
+    especie: "Espécie",
+    deposito: "Depósito",
+    cheque: "Cheque",
+  }
+
+  return labels[value] || fallback(value)
+}
+
+function formatBank(value: string) {
+  const labels: Record<string, string> = {
+    asaas: "ASAAS",
+    rede: "REDE",
+    itau: "ITAU",
+    outros: "OUTROS",
+  }
+
+  return labels[value] || fallback(value)
+}
+
 function splitLines(value: string) {
   if (!value) return [""]
   return value.split("\n")
@@ -120,11 +146,11 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <ValueCell label="Telefone(s)" value={values.telefones} />
           <ValueCell label="E-mail" value={values.email} />
           <ValueCell label="CEP" value={values.cep} />
-          <ValueCell label="Endereco" value={values.endereco} />
+          <ValueCell label="Endereço" value={values.endereco} />
           <ValueCell label="CPF/CNPJ" value={values.cpfCnpj} />
           <ValueCell label="CNH" value={values.cnh} />
           <ValueCell label="Data de Nascimento" value={formatDate(values.dataNascimento)} />
-          <ValueCell label="Data da 1a CNH" value={formatDate(values.dataPrimeiraCnh)} />
+          <ValueCell label="Data da 1ª CNH" value={formatDate(values.dataPrimeiraCnh)} />
           <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
           <ValueCell label="Origem" value={values.origem} />
           <ValueCell label="SNE" value={values.sne} />
@@ -136,8 +162,8 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <CardTitle className="text-primary">Dados do Pagamento</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <ValueCell label="Forma de Pagamento" value={values.formaPagamento} />
-          <ValueCell label="Banco" value={values.banco} />
+          <ValueCell label="Forma de Pagamento" value={formatPaymentMethod(values.formaPagamento)} />
+          <ValueCell label="Banco" value={formatBank(values.banco)} />
           <ValueCell label="Valor Total" value={values.valorTotal} />
           <ValueCell label="Valor de Entrada" value={values.valorEntrada} />
           <ValueCell label="Valor Restante" value={values.valorRestante} />
@@ -151,9 +177,9 @@ export function FichaReadView({ values }: FichaReadViewProps) {
         <CardContent className="space-y-3">
           {processoLines.map((line, index) => (
             <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-4">
-              <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
+              <ValueCell label="Instância do Processo" value={line.instanciaProcesso} />
               <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
-              <ValueCell label="No do Processo" value={line.numeroProcesso} />
+              <ValueCell label="Nº do Processo" value={line.numeroProcesso.toUpperCase()} />
               <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
             </div>
           ))}
@@ -168,16 +194,16 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           {multaBlocks.map((block, index) => (
             <div key={`multa-read-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <ValueCell label="Placa" value={block.placa} />
+                <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
                 <ValueCell label="RENAVAM" value={block.renavam} />
               </div>
 
               {getMultaLines(block).map((line, lineIndex) => (
                 <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
-                  <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
-                  <ValueCell label="Auto DETRAN" value={line.autoDetran} />
-                  <ValueCell label="Auto RENAINF" value={line.autoRenainf} />
-                  <ValueCell label="Tipo de Multa" value={line.tipoMulta} />
+                  <ValueCell label="Instância da Multa" value={line.instanciaMulta} />
+                  <ValueCell label="Detran" value={line.autoDetran} />
+                  <ValueCell label="Renainf" value={line.autoRenainf} />
+                  <ValueCell label="Tipo" value={line.tipoMulta} />
                   <ValueCell label="Prazo" value={formatDate(line.prazoMulta)} />
                 </div>
               ))}
@@ -188,7 +214,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
 
       <Card className="border-l-4 border-l-muted shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Observacoes Adicionais</CardTitle>
+          <CardTitle className="text-primary">Observações Adicionais</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-border bg-background px-4 py-3">
