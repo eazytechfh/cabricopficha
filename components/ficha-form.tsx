@@ -119,6 +119,28 @@ function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
   }))
 }
 
+function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
+  const processoPrazo = processoLines
+    .map((line) => line.prazoProcesso?.trim())
+    .find((value) => value && value !== "VENCIDA")
+
+  if (processoPrazo) {
+    return processoPrazo
+  }
+
+  for (const block of multaBlocks) {
+    const multaPrazo = getMultaDetailLines(block)
+      .map((line) => line.prazoMulta?.trim())
+      .find((value) => value && value !== "VENCIDA")
+
+    if (multaPrazo) {
+      return multaPrazo
+    }
+  }
+
+  return ""
+}
+
 type FichaFormProps = {
   values: FichaFormValues
   onChange: (values: FichaFormValues) => void
@@ -184,6 +206,7 @@ export function FichaForm({
   const [cnhNumero, setCnhNumero] = useState("")
   const [cnhUf, setCnhUf] = useState("RJ")
   const [telefoneInput, setTelefoneInput] = useState("")
+  const lastAutoPrazoServicoRef = useRef("")
 
   useEffect(() => {
     const enderecoAtual = values.endereco || ""
@@ -318,6 +341,31 @@ export function FichaForm({
   const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
+
+  useEffect(() => {
+    if (readOnly) return
+
+    const suggestedPrazo = getSuggestedPrazoServico(processoLines, multaBlocks)
+    const currentPrazo = values.prazoServico?.trim() || ""
+    const lastAutoPrazo = lastAutoPrazoServicoRef.current
+
+    if (!suggestedPrazo) {
+      if (currentPrazo === lastAutoPrazo && currentPrazo !== "") {
+        lastAutoPrazoServicoRef.current = ""
+        onChange(updateValue(values, "prazoServico", ""))
+      }
+      return
+    }
+
+    if (!currentPrazo || currentPrazo === lastAutoPrazo) {
+      if (currentPrazo !== suggestedPrazo) {
+        lastAutoPrazoServicoRef.current = suggestedPrazo
+        onChange(updateValue(values, "prazoServico", suggestedPrazo))
+      } else {
+        lastAutoPrazoServicoRef.current = suggestedPrazo
+      }
+    }
+  }, [multaBlocks, onChange, processoLines, readOnly, values])
 
   const setTelefones = (nextTelefones: string[]) => {
     setField("telefones", nextTelefones.join("\n"))
@@ -544,17 +592,30 @@ export function FichaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {identifierPreview ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-              <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
+            {identifierPreview ? (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
+              <div className="space-y-2">
+                <Label htmlFor="prazoServico">Prazo</Label>
+                <Input
+                  id="prazoServico"
+                  name="prazoServico"
+                  type="date"
+                  value={values.prazoServico}
+                  onChange={(event) => {
+                    lastAutoPrazoServicoRef.current = ""
+                    setField("prazoServico", event.target.value)
+                  }}
+                  disabled={fieldDisabled}
+                />
+              </div>
             </div>
-          ) : null}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
-            {renderInput("prazoServico", "Prazo", { type: "date" })}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       <Card className="border-l-4 border-l-primary shadow-md">
         <CardHeader className="pb-4">
