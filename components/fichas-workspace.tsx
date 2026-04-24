@@ -37,6 +37,15 @@ import {
 
 type ViewMode = "list" | "view" | "edit"
 
+function getFichaLabel(nomeCliente: string) {
+  const match = (nomeCliente || "").trim().match(/(\d{2})$/)
+  if (match) {
+    return `Contrato ${match[1]}`
+  }
+
+  return "Contrato"
+}
+
 function formatAccessDate(value: string) {
   if (!value) return "-"
 
@@ -734,6 +743,7 @@ export default function FichasWorkspace() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {consultaItems.map((item) => {
+                    const fichaLabel = getFichaLabel(item.nomeCliente)
                     const createdLabel = formatAccessDate(item.createdAt)
                     const updatedLabel = formatAccessDate(item.updatedAt ? item.updatedAt : item.createdAt)
 
@@ -743,8 +753,7 @@ export default function FichasWorkspace() {
                         className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
                       >
                         <div className="space-y-1">
-                          <p className="font-semibold">{item.nomeCliente}</p>
-                          <p className="text-sm text-muted-foreground">CPF: {item.cpfCnpj}</p>
+                          <p className="font-semibold">{fichaLabel}</p>
                           <p className="text-sm text-muted-foreground">Criado em: {createdLabel}</p>
                           <p className="text-sm text-muted-foreground">Atualizada em: {updatedLabel}</p>
                         </div>
