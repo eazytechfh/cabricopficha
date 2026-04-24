@@ -22,13 +22,13 @@ function formatDate(value: string) {
 
 function formatPaymentMethod(value: string) {
   const labels: Record<string, string> = {
-    credito: "Crédito",
-    debito: "Débito",
+    credito: "Credito",
+    debito: "Debito",
     pix: "PIX",
-    transferencia: "Transferência",
+    transferencia: "Transferencia",
     ted: "TED",
-    especie: "Espécie",
-    deposito: "Depósito",
+    especie: "Especie",
+    deposito: "Deposito",
     cheque: "Cheque",
   }
 
@@ -126,37 +126,6 @@ export function FichaReadView({ values }: FichaReadViewProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-l-4 border-l-primary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Data do Contrato</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ValueCell label="Data do Contrato" value={formatDate(values.dataContrato)} />
-          <ValueCell label="Prazo" value={formatDate(values.prazoServico)} />
-        </CardContent>
-      </Card>
-
-      <Card className="border-l-4 border-l-primary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Dados do Cliente</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ValueCell label="Nome Completo" value={values.nomeCliente} />
-          <ValueCell label="Terceiros" value={values.terceiros} />
-          <ValueCell label="Telefone(s)" value={values.telefones} />
-          <ValueCell label="E-mail" value={values.email} />
-          <ValueCell label="CEP" value={values.cep} />
-          <ValueCell label="Endereço" value={values.endereco} />
-          <ValueCell label="CPF/CNPJ" value={values.cpfCnpj} />
-          <ValueCell label="CNH" value={values.cnh} />
-          <ValueCell label="Data de Nascimento" value={formatDate(values.dataNascimento)} />
-          <ValueCell label="Data da 1ª CNH" value={formatDate(values.dataPrimeiraCnh)} />
-          <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
-          <ValueCell label="Origem" value={values.origem} />
-          <ValueCell label="SNE" value={values.sne} />
-        </CardContent>
-      </Card>
-
       <Card className="border-l-4 border-l-secondary shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-primary">Dados do Pagamento</CardTitle>
@@ -177,9 +146,9 @@ export function FichaReadView({ values }: FichaReadViewProps) {
         <CardContent className="space-y-3">
           {processoLines.map((line, index) => (
             <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-4">
-              <ValueCell label="Instância do Processo" value={line.instanciaProcesso} />
+              <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
               <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
-              <ValueCell label="Nº do Processo" value={line.numeroProcesso.toUpperCase()} />
+              <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
               <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
             </div>
           ))}
@@ -200,7 +169,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
 
               {getMultaLines(block).map((line, lineIndex) => (
                 <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
-                  <ValueCell label="Instância da Multa" value={line.instanciaMulta} />
+                  <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
                   <ValueCell label="Detran" value={line.autoDetran} />
                   <ValueCell label="Renainf" value={line.autoRenainf} />
                   <ValueCell label="Tipo" value={line.tipoMulta} />
@@ -214,7 +183,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
 
       <Card className="border-l-4 border-l-muted shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Observações Adicionais</CardTitle>
+          <CardTitle className="text-primary">Observacoes Adicionais</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-border bg-background px-4 py-3">
