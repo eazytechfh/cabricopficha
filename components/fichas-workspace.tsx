@@ -724,24 +724,32 @@ export default function FichasWorkspace() {
                   <CardTitle>Fichas Encontradas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {consultaItems.map((item) => (
-                    <div key={item.id} className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div className="space-y-1">
-                        <p className="font-semibold">{item.nomeCliente}</p>
-                        <p className="text-sm text-muted-foreground">CPF: {item.cpfCnpj}</p>
-                        <p className="text-sm text-muted-foreground">Criado em: {formatAccessDate(item.createdAt)}</p>
-                        <p className="text-sm text-muted-foreground">Atualizada em: {formatAccessDate(item.updatedAt || item.createdAt)}</p>
+                  {consultaItems.map((item) => {
+                    const createdLabel = formatAccessDate(item.createdAt)
+                    const updatedLabel = formatAccessDate(item.updatedAt ? item.updatedAt : item.createdAt)
+
+                    return (
+                      <div
+                        key={`${item.id}-${item.updatedAt || item.createdAt}`}
+                        className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div className="space-y-1">
+                          <p className="font-semibold">{item.nomeCliente}</p>
+                          <p className="text-sm text-muted-foreground">CPF: {item.cpfCnpj}</p>
+                          <p className="text-sm text-muted-foreground">Criado em: {createdLabel}</p>
+                          <p className="text-sm text-muted-foreground">Atualizada em: {updatedLabel}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
+                            Visualizar
+                          </Button>
+                          {canEditFicha(consultor.id, consultor.nivelAcesso, item) && (
+                            <Button onClick={() => void openFicha(item.id, "edit")}>Editar</Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
-                          Visualizar
-                        </Button>
-                        {canEditFicha(consultor.id, consultor.nivelAcesso, item) && (
-                          <Button onClick={() => void openFicha(item.id, "edit")}>Editar</Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </CardContent>
               </Card>
             )}
