@@ -40,13 +40,22 @@ type ViewMode = "list" | "view" | "edit"
 function formatAccessDate(value: string) {
   if (!value) return "-"
 
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/)
+  if (isoMatch) {
+    const [, year, month, day, hours, minutes] = isoMatch
+    return `${day}/${month}/${year} as ${hours}:${minutes}`
+  }
+
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date)
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const year = date.getFullYear()
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+
+  return `${day}/${month}/${year} as ${hours}:${minutes}`
 }
 
 export default function FichasWorkspace() {
@@ -720,10 +729,8 @@ export default function FichasWorkspace() {
                       <div className="space-y-1">
                         <p className="font-semibold">{item.nomeCliente}</p>
                         <p className="text-sm text-muted-foreground">CPF: {item.cpfCnpj}</p>
-                        <p className="text-sm text-muted-foreground">Telefone: {item.telefones || "-"}</p>
-                        <p className="text-sm text-muted-foreground">Endereco: {item.endereco || "-"}</p>
-                        <p className="text-sm text-muted-foreground">Consultor: {item.nomeConsultor || "-"}</p>
-                        <p className="text-sm text-muted-foreground">Atualizada em: {item.updatedAt || item.createdAt || "-"}</p>
+                        <p className="text-sm text-muted-foreground">Criado em: {formatAccessDate(item.createdAt)}</p>
+                        <p className="text-sm text-muted-foreground">Atualizada em: {formatAccessDate(item.updatedAt || item.createdAt)}</p>
                       </div>
                       <div className="flex gap-3">
                         <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
