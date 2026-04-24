@@ -40,20 +40,29 @@ type ViewMode = "list" | "view" | "edit"
 function formatAccessDate(value: string) {
   if (!value) return "-"
 
-  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/)
-  if (isoMatch) {
-    const [, year, month, day, hours, minutes] = isoMatch
-    return `${day}/${month}/${year} as ${hours}:${minutes}`
-  }
-
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
 
-  const day = String(date.getDate()).padStart(2, "0")
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const year = date.getFullYear()
-  const hours = String(date.getHours()).padStart(2, "0")
-  const minutes = String(date.getMinutes()).padStart(2, "0")
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(date)
+  const day = parts.find((part) => part.type === "day")?.value
+  const month = parts.find((part) => part.type === "month")?.value
+  const year = parts.find((part) => part.type === "year")?.value
+  const hours = parts.find((part) => part.type === "hour")?.value
+  const minutes = parts.find((part) => part.type === "minute")?.value
+
+  if (!day || !month || !year || !hours || !minutes) {
+    return value
+  }
 
   return `${day}/${month}/${year} as ${hours}:${minutes}`
 }
