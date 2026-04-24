@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatCurrency, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 
 type FichaReadViewProps = {
   values: FichaFormValues
@@ -120,6 +120,11 @@ function ValueCell({ label, value }: { label: string; value: string }) {
   )
 }
 
+function formatMoneyValue(value: string) {
+  if (!value?.trim()) return "-"
+  return formatCurrency(parseCurrency(value))
+}
+
 export function FichaReadView({ values }: FichaReadViewProps) {
   const processoLines = getProcessoLines(values)
   const multaBlocks = getMultaBlocks(values)
@@ -133,9 +138,9 @@ export function FichaReadView({ values }: FichaReadViewProps) {
         <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
           <ValueCell label="Forma de Pagamento" value={formatPaymentMethod(values.formaPagamento)} />
           <ValueCell label="Banco" value={formatBank(values.banco)} />
-          <ValueCell label="Valor Total" value={values.valorTotal} />
-          <ValueCell label="Valor de Entrada" value={values.valorEntrada} />
-          <ValueCell label="Valor Restante" value={values.valorRestante} />
+          <ValueCell label="Valor Total" value={formatMoneyValue(values.valorTotal)} />
+          <ValueCell label="Valor de Entrada" value={formatMoneyValue(values.valorEntrada)} />
+          <ValueCell label="Valor Restante" value={formatMoneyValue(values.valorRestante)} />
         </CardContent>
       </Card>
 
