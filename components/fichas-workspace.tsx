@@ -46,6 +46,18 @@ function getFichaLabel(nomeCliente: string) {
   return "Contrato"
 }
 
+type ConsultaClienteGroup = {
+  key: string
+  nomeCliente: string
+  cpfCnpj: string
+  telefones: string
+  endereco: string
+  nomeConsultor: string
+  updatedAt: string
+  createdAt: string
+  contratos: FichaListItem[]
+}
+
 function formatAccessDate(value: string) {
   if (!value) return "-"
 
@@ -162,6 +174,38 @@ export default function FichasWorkspace() {
     if (!consultor || !selectedFicha) return false
     return canEditFicha(consultor.id, consultor.nivelAcesso, selectedFicha)
   }, [consultor, selectedFicha])
+
+  const consultaClienteGroups = useMemo(() => {
+    const groups = new Map<string, ConsultaClienteGroup>()
+
+    consultaItems.forEach((item) => {
+      const key = normalizeCpfCnpj(item.cpfCnpj) || item.nomeCliente.trim().toLowerCase() || item.id
+      const existing = groups.get(key)
+
+      if (existing) {
+        existing.contratos.push(item)
+        if ((item.updatedAt || item.createdAt) > (existing.updatedAt || existing.createdAt)) {
+          existing.updatedAt = item.updatedAt
+          existing.createdAt = item.createdAt
+        }
+        return
+      }
+
+      groups.set(key, {
+        key,
+        nomeCliente: item.nomeCliente,
+        cpfCnpj: item.cpfCnpj,
+        telefones: item.telefones,
+        endereco: item.endereco,
+        nomeConsultor: item.nomeConsultor,
+        updatedAt: item.updatedAt,
+        createdAt: item.createdAt,
+        contratos: [item],
+      })
+    })
+
+    return Array.from(groups.values())
+  }, [consultaItems])
 
   const isAdmin = hasAdminAccess(consultor)
 
@@ -742,32 +786,52 @@ export default function FichasWorkspace() {
                   <CardTitle>Fichas Encontradas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {consultaItems.map((item) => {
-                    const fichaLabel = getFichaLabel(item.nomeCliente)
-                    const createdLabel = formatAccessDate(item.createdAt)
-                    const updatedLabel = formatAccessDate(item.updatedAt ? item.updatedAt : item.createdAt)
-
-                    return (
-                      <div
-                        key={`${item.id}-${item.updatedAt || item.createdAt}`}
-                        className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-semibold">{fichaLabel}</p>
-                          <p className="text-sm text-muted-foreground">Criado em: {createdLabel}</p>
-                          <p className="text-sm text-muted-foreground">Atualizada em: {updatedLabel}</p>
+                  {consultaClienteGroups.map((cliente) => (
+                    <div key={cliente.key} className="space-y-4 rounded-lg border border-border p-4">
+                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+                        <div className="xl:col-span-2">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
+                          <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
                         </div>
-                        <div className="flex gap-3">
-                          <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
-                            Visualizar
-                          </Button>
-                          {canEditFicha(consultor.id, consultor.nivelAcesso, item) && (
-                            <Button onClick={() => void openFicha(item.id, "edit")}>Editar</Button>
-                          )}
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPF/CNPJ</p>
+                          <p className="mt-1 text-sm break-words">{cliente.cpfCnpj || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
+                          <p className="mt-1 text-sm break-words">{cliente.telefones || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Consultor</p>
+                          <p className="mt-1 text-sm break-words">{cliente.nomeConsultor || "-"}</p>
+                        </div>
+                        <div className="md:col-span-2 xl:col-span-5">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Endereco</p>
+                          <p className="mt-1 text-sm break-words">{cliente.endereco || "-"}</p>
                         </div>
                       </div>
-                    )
-                  })}
+
+                      <div className="space-y-3">
+                        {cliente.contratos.map((item) => (
+                          <div
+                            key={`${item.id}-${item.updatedAt || item.createdAt}`}
+                            className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4 md:flex-row md:items-center md:justify-between"
+                          >
+                            <div className="space-y-1">
+                              <p className="font-semibold">{getFichaLabel(item.nomeCliente)}</p>
+                              <p className="text-sm text-muted-foreground">Criado em: {formatAccessDate(item.createdAt)}</p>
+                              <p className="text-sm text-muted-foreground">Atualizada em: {formatAccessDate(item.updatedAt || item.createdAt)}</p>
+                            </div>
+                            <div className="flex gap-3">
+                              <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
+                                Visualizar
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
@@ -781,7 +845,7 @@ export default function FichasWorkspace() {
                   <FichaReadView values={editValues} />
                   <div className="flex flex-col gap-4 sm:flex-row">
                     {canEditSelectedFicha ? (
-                      <Button onClick={() => setViewMode("edit")}>Editar Ficha</Button>
+                      <Button onClick={() => setViewMode("edit")}>Editar Contrato</Button>
                     ) : (
                       <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
                     )}
