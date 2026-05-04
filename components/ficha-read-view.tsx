@@ -22,17 +22,17 @@ function formatDate(value: string) {
 
 function formatPaymentMethod(value: string) {
   const labels: Record<string, string> = {
-    credito: "Credito",
-    debito: "Debito",
+    credito: "CRÉDITO",
+    debito: "DÉBITO",
     pix: "PIX",
-    transferencia: "Transferencia",
+    transferencia: "TRANSFERÊNCIA",
     ted: "TED",
-    especie: "Especie",
-    deposito: "Deposito",
-    cheque: "Cheque",
+    especie: "ESPÉCIE",
+    deposito: "DEPÓSITO",
+    cheque: "CHEQUE",
   }
 
-  return labels[value] || fallback(value)
+  return labels[value] || fallback(value).toLocaleUpperCase("pt-BR")
 }
 
 function formatBank(value: string) {

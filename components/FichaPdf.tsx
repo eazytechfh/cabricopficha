@@ -97,16 +97,16 @@ function formatCpfCnpj(value: string) {
 
 function formatPaymentMethod(value: string) {
   const labels: Record<string, string> = {
-    credito: "Crédito",
-    debito: "Débito",
+    credito: "CRÉDITO",
+    debito: "DÉBITO",
     pix: "PIX",
-    transferencia: "Transferência",
+    transferencia: "TRANSFERÊNCIA",
     ted: "TED",
-    especie: "Espécie",
-    deposito: "Depósito",
-    cheque: "Cheque",
+    especie: "ESPÉCIE",
+    deposito: "DEPÓSITO",
+    cheque: "CHEQUE",
   }
-  return labels[value] || fallback(value)
+  return labels[value] || fallback(value).toLocaleUpperCase("pt-BR")
 }
 
 function formatBank(value: string) {
