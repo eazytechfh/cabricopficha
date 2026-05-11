@@ -431,7 +431,7 @@ export function FichaForm({
       blockIndex === index
         ? {
             ...block,
-            placaProprietario: checked ? "sim" : "",
+            placaProprietario: checked ? "sim" : "nao",
             cpfProprietario: checked ? "" : block.cpfProprietario,
           }
         : block
