@@ -37,24 +37,12 @@ import {
 
 type ViewMode = "list" | "view" | "edit"
 
-function getFichaLabel(nomeCliente: string) {
-  const match = (nomeCliente || "").trim().match(/(\d{2})$/)
-  if (match) {
-    return `Contrato ${match[1]}`
-  }
-
-  return "Contrato"
-}
-
 type ConsultaClienteGroup = {
   key: string
   nomeCliente: string
   cpfCnpj: string
   telefones: string
-  endereco: string
   nomeConsultor: string
-  updatedAt: string
-  createdAt: string
   contratos: FichaListItem[]
 }
 
@@ -184,10 +172,6 @@ export default function FichasWorkspace() {
 
       if (existing) {
         existing.contratos.push(item)
-        if ((item.updatedAt || item.createdAt) > (existing.updatedAt || existing.createdAt)) {
-          existing.updatedAt = item.updatedAt
-          existing.createdAt = item.createdAt
-        }
         return
       }
 
@@ -196,10 +180,7 @@ export default function FichasWorkspace() {
         nomeCliente: item.nomeCliente,
         cpfCnpj: item.cpfCnpj,
         telefones: item.telefones,
-        endereco: item.endereco,
         nomeConsultor: item.nomeConsultor,
-        updatedAt: item.updatedAt,
-        createdAt: item.createdAt,
         contratos: [item],
       })
     })
@@ -786,52 +767,39 @@ export default function FichasWorkspace() {
                   <CardTitle>Fichas Encontradas</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {consultaClienteGroups.map((cliente) => (
-                    <div key={cliente.key} className="space-y-4 rounded-lg border border-border p-4">
-                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-                        <div className="xl:col-span-2">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
-                          <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPF/CNPJ</p>
-                          <p className="mt-1 text-sm break-words">{cliente.cpfCnpj || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
-                          <p className="mt-1 text-sm break-words">{cliente.telefones || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Consultor</p>
-                          <p className="mt-1 text-sm break-words">{cliente.nomeConsultor || "-"}</p>
-                        </div>
-                        <div className="md:col-span-2 xl:col-span-5">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Endereco</p>
-                          <p className="mt-1 text-sm break-words">{cliente.endereco || "-"}</p>
-                        </div>
-                      </div>
+                  {consultaClienteGroups.map((cliente) => {
+                    const fichaPrincipal = cliente.contratos[0]
 
-                      <div className="space-y-3">
-                        {cliente.contratos.map((item) => (
-                          <div
-                            key={`${item.id}-${item.updatedAt || item.createdAt}`}
-                            className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4 md:flex-row md:items-center md:justify-between"
-                          >
-                            <div className="space-y-1">
-                              <p className="font-semibold">{getFichaLabel(item.nomeCliente)}</p>
-                              <p className="text-sm text-muted-foreground">Criado em: {formatAccessDate(item.createdAt)}</p>
-                              <p className="text-sm text-muted-foreground">Atualizada em: {formatAccessDate(item.updatedAt || item.createdAt)}</p>
-                            </div>
-                            <div className="flex gap-3">
-                              <Button variant="outline" onClick={() => void openFicha(item.id, "view")}>
+                    return (
+                      <div key={cliente.key} className="rounded-lg border border-border p-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto] xl:items-start">
+                          <div className="xl:col-span-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
+                            <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPF/CNPJ</p>
+                            <p className="mt-1 text-sm break-words">{cliente.cpfCnpj || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
+                            <p className="mt-1 text-sm break-words">{cliente.telefones || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Consultor</p>
+                            <p className="mt-1 text-sm break-words">{cliente.nomeConsultor || "-"}</p>
+                          </div>
+                          <div className="flex items-start md:col-span-2 xl:col-span-1">
+                            {fichaPrincipal ? (
+                              <Button variant="outline" onClick={() => void openFicha(fichaPrincipal.id, "view")}>
                                 Visualizar
                               </Button>
-                            </div>
+                            ) : null}
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </CardContent>
               </Card>
             )}
