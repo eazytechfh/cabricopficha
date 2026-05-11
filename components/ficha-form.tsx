@@ -101,7 +101,7 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
-    placaProprietario: placasProprietario[index] || "",
+    placaProprietario: placasProprietario[index] || "sim",
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
@@ -432,7 +432,7 @@ export function FichaForm({
         ? {
             ...block,
             placaProprietario: checked ? "sim" : "",
-            cpfProprietario: checked ? block.cpfProprietario : "",
+            cpfProprietario: checked ? "" : block.cpfProprietario,
           }
         : block
     )
@@ -473,7 +473,7 @@ export function FichaForm({
       autoRenainf: "",
       tipoMulta: "",
       placa: "",
-      placaProprietario: "",
+      placaProprietario: "sim",
       cpfProprietario: "",
       renavam: "",
       prazoMulta: "",
@@ -515,7 +515,7 @@ export function FichaForm({
         autoRenainf: "",
         tipoMulta: "",
         placa: "",
-        placaProprietario: "",
+        placaProprietario: "sim",
         cpfProprietario: "",
         renavam: "",
         prazoMulta: "",
@@ -1130,10 +1130,10 @@ export function FichaForm({
                         disabled={fieldDisabled}
                       />
                       <Label htmlFor={`placaProprietario-${index}`} className="cursor-pointer">
-                        É do proprietário
+                        Não é de terceiros
                       </Label>
                     </div>
-                    {block.placaProprietario === "sim" ? (
+                    {block.placaProprietario !== "sim" ? (
                       <div className="space-y-2">
                         <Label htmlFor={`cpfProprietario-${index}`}>CPF</Label>
                         <Input

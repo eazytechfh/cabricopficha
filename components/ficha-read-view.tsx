@@ -96,7 +96,7 @@ function getMultaBlocks(values: FichaFormValues) {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
-    placaProprietario: placasProprietario[index] || "",
+    placaProprietario: placasProprietario[index] || "sim",
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
@@ -185,7 +185,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
                 <ValueCell label="RENAVAM" value={block.renavam} />
-                {block.placaProprietario === "sim" ? (
+                {block.placaProprietario !== "sim" ? (
                   <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
                 ) : null}
               </div>

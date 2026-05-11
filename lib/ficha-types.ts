@@ -117,7 +117,7 @@ export const emptyFichaValues: FichaFormValues = {
   autoRenainf: "",
   tipoMulta: "",
   placa: "",
-  placaProprietario: "",
+  placaProprietario: "sim",
   cpfProprietario: "",
   renavam: "",
   prazoMulta: "",

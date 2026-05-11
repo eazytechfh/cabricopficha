@@ -174,7 +174,7 @@ function getMultaBlocks(data: FichaPdfData) {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
-    placaProprietario: placasProprietario[index] || "",
+    placaProprietario: placasProprietario[index] || "sim",
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
@@ -402,7 +402,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                   }}
                 >
                   <div style={{ width: 170 }}>{centeredField("PLACA", block.placa)}</div>
-                  {block.placaProprietario === "sim" ? (
+                  {block.placaProprietario !== "sim" ? (
                     <div style={{ width: 190 }}>{centeredField("CPF PROPRIETARIO", block.cpfProprietario)}</div>
                   ) : null}
                   <div style={{ width: 170 }}>{centeredField("RENAVAM", block.renavam)}</div>
