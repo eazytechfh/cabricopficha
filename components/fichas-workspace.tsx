@@ -37,6 +37,19 @@ import {
 
 type ViewMode = "list" | "view" | "edit"
 
+function getFichaLabel(nomeCliente: string) {
+  const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
+  if (match) {
+    return `Contrato ${match[1]}`
+  }
+
+  return "Contrato"
+}
+
+function getClienteBaseName(nomeCliente: string) {
+  return (nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
+}
+
 type ConsultaClienteGroup = {
   key: string
   nomeCliente: string
@@ -93,6 +106,7 @@ export default function FichasWorkspace() {
   const [consultaLoading, setConsultaLoading] = useState(false)
   const [consultaError, setConsultaError] = useState("")
   const [consultaItems, setConsultaItems] = useState<FichaListItem[]>([])
+  const [selectedContratos, setSelectedContratos] = useState<FichaListItem[]>([])
   const [selectedFicha, setSelectedFicha] = useState<FichaRecord | null>(null)
   const [editValues, setEditValues] = useState<FichaFormValues>(emptyFichaValues)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
@@ -167,7 +181,7 @@ export default function FichasWorkspace() {
     const groups = new Map<string, ConsultaClienteGroup>()
 
     consultaItems.forEach((item) => {
-      const key = normalizeCpfCnpj(item.cpfCnpj) || item.nomeCliente.trim().toLowerCase() || item.id
+      const key = normalizeCpfCnpj(item.cpfCnpj) || getClienteBaseName(item.nomeCliente).toLowerCase() || item.id
       const existing = groups.get(key)
 
       if (existing) {
@@ -177,7 +191,7 @@ export default function FichasWorkspace() {
 
       groups.set(key, {
         key,
-        nomeCliente: item.nomeCliente,
+        nomeCliente: getClienteBaseName(item.nomeCliente) || item.nomeCliente,
         cpfCnpj: item.cpfCnpj,
         telefones: item.telefones,
         nomeConsultor: item.nomeConsultor,
@@ -185,7 +199,10 @@ export default function FichasWorkspace() {
       })
     })
 
-    return Array.from(groups.values())
+    return Array.from(groups.values()).map((group) => ({
+      ...group,
+      contratos: [...group.contratos].sort((a, b) => a.nomeCliente.localeCompare(b.nomeCliente, "pt-BR", { numeric: true })),
+    }))
   }, [consultaItems])
 
   const isAdmin = hasAdminAccess(consultor)
@@ -385,6 +402,7 @@ export default function FichasWorkspace() {
 
       const response = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
       setConsultaItems(response.fichas)
+      setSelectedContratos([])
       if (response.fichas.length === 0) {
         setConsultaError(tipoBusca === "cpf" ? "Nenhuma ficha encontrada para este CPF." : "Nenhuma ficha encontrada para este nome.")
       }
@@ -396,7 +414,7 @@ export default function FichasWorkspace() {
     }
   }
 
-  const openFicha = async (id: string, mode: ViewMode) => {
+  const openFicha = async (id: string, mode: ViewMode, contratos: FichaListItem[] = []) => {
     setConsultaLoading(true)
     setConsultaError("")
     setEditMessage("")
@@ -404,6 +422,7 @@ export default function FichasWorkspace() {
     try {
       const response = await getFichaById(id)
       setSelectedFicha(response.ficha)
+      setSelectedContratos(contratos)
       setEditValues(toRecordValues(response.ficha))
       setViewMode(mode)
     } catch (error) {
@@ -791,7 +810,7 @@ export default function FichasWorkspace() {
                           </div>
                           <div className="flex items-start md:col-span-2 xl:col-span-1">
                             {fichaPrincipal ? (
-                              <Button variant="outline" onClick={() => void openFicha(fichaPrincipal.id, "view")}>
+                              <Button variant="outline" onClick={() => void openFicha(fichaPrincipal.id, "view", cliente.contratos)}>
                                 Visualizar
                               </Button>
                             ) : null}
@@ -810,6 +829,21 @@ export default function FichasWorkspace() {
                   <CardTitle>Visualizacao da Ficha</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {selectedContratos.length > 1 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedContratos.map((contrato) => (
+                        <Button
+                          key={contrato.id}
+                          type="button"
+                          variant={selectedFicha.id === contrato.id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => void openFicha(contrato.id, "view", selectedContratos)}
+                        >
+                          {getFichaLabel(contrato.nomeCliente)}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
                   <FichaReadView values={editValues} />
                   <div className="flex flex-col gap-4 sm:flex-row">
                     {canEditSelectedFicha ? (

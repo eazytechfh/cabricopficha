@@ -8,7 +8,8 @@ export function normalizeDigits(value: string) {
 }
 
 export function normalizeCpfCnpj(value: string) {
-  return normalizeDigits(value)
+  const normalizedValue = String(value || "").trim().replace(/\.0$/, "")
+  return normalizeDigits(normalizedValue)
 }
 
 export function splitSerializedEntries(value: string) {

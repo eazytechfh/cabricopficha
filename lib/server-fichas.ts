@@ -56,7 +56,7 @@ async function getFichaSequenceByCpf(cpf: string) {
 
   const searchParams = new URLSearchParams({
     select: "id",
-    cpf_cnpj: `eq.${cpfNormalizado}`,
+    or: `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`,
   })
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
@@ -196,13 +196,16 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     "updated_by_consultor_id",
   ].join(",")
 
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/${fichasTableName}?cpf_cnpj=eq.${encodeURIComponent(cpfNormalizado)}&select=${select}&order=updated_at.desc.nullslast,created_at.desc.nullslast`,
-    {
-      headers: headers(),
-      cache: "no-store",
-    }
-  )
+  const searchParams = new URLSearchParams({
+    select,
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+    or: `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`,
+  })
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
+    headers: headers(),
+    cache: "no-store",
+  })
 
   const payload = await response.json()
   if (!response.ok) {
@@ -254,7 +257,10 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   })
 
   if (cpfNormalizado) {
-    searchParams.set("cpf_cnpj", `eq.${cpfNormalizado}`)
+    searchParams.set(
+      "or",
+      `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`
+    )
   }
 
   if (nome) {
