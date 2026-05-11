@@ -12,6 +12,8 @@ type MultaWebhookItem = {
   autoRenainf: string
   tipo: string
   placa: string
+  placaProprietario: string
+  cpfProprietario: string
   renavam: string
   prazo: string
 }
@@ -78,10 +80,23 @@ function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
   const autosRenainf = splitSerializedEntries(ficha.autoRenainf)
   const tipos = splitSerializedEntries(ficha.tipoMulta)
   const placas = splitSerializedEntries(ficha.placa)
+  const placasProprietario = splitSerializedEntries(ficha.placaProprietario)
+  const cpfsProprietario = splitSerializedEntries(ficha.cpfProprietario)
   const renavams = splitSerializedEntries(ficha.renavam)
   const prazos = splitSerializedEntries(ficha.prazoMulta)
 
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    placas.length,
+    placasProprietario.length,
+    cpfsProprietario.length,
+    renavams.length,
+    prazos.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instancia: instancias[index] || "",
@@ -89,6 +104,8 @@ function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
     autoRenainf: autosRenainf[index] || "",
     tipo: tipos[index] || "",
     placa: placas[index] || "",
+    placaProprietario: placasProprietario[index] || "",
+    cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazo: prazos[index] || "",
   }))
@@ -135,6 +152,8 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         autoRenainf: "",
         tipo: "",
         placa: "",
+        placaProprietario: "",
+        cpfProprietario: "",
         renavam: "",
         prazo: "",
       },

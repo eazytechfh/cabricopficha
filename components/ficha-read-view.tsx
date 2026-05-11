@@ -72,10 +72,23 @@ function getMultaBlocks(values: FichaFormValues) {
   const autosRenainf = splitSerializedEntries(values.autoRenainf)
   const tipos = splitSerializedEntries(values.tipoMulta)
   const placas = splitSerializedEntries(values.placa)
+  const placasProprietario = splitSerializedEntries(values.placaProprietario)
+  const cpfsProprietario = splitSerializedEntries(values.cpfProprietario)
   const renavams = splitSerializedEntries(values.renavam)
   const prazos = splitSerializedEntries(values.prazoMulta)
 
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    placas.length,
+    placasProprietario.length,
+    cpfsProprietario.length,
+    renavams.length,
+    prazos.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -83,6 +96,8 @@ function getMultaBlocks(values: FichaFormValues) {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
+    placaProprietario: placasProprietario[index] || "",
+    cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
   }))
@@ -170,6 +185,9 @@ export function FichaReadView({ values }: FichaReadViewProps) {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
                 <ValueCell label="RENAVAM" value={block.renavam} />
+                {block.placaProprietario === "sim" ? (
+                  <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
+                ) : null}
               </div>
 
               {getMultaLines(block).map((line, lineIndex) => (

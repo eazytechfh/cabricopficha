@@ -32,6 +32,8 @@ create table if not exists public.fichas_venda (
   auto_renainf text,
   tipo_multa text,
   placa text,
+  placa_proprietario text,
+  cpf_proprietario text,
   renavam text,
   prazo_multa date,
   visto_juridico_multa text,
@@ -45,6 +47,10 @@ create table if not exists public.fichas_venda (
 
 create index if not exists fichas_venda_cpf_normalizado_idx
 on public.fichas_venda (cpf_normalizado);
+
+alter table public.fichas_venda
+add column if not exists placa_proprietario text,
+add column if not exists cpf_proprietario text;
 
 alter table public.fichas_venda enable row level security;
 

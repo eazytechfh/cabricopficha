@@ -32,6 +32,8 @@ export type FichaPdfData = {
   autoRenainf: string
   tipoMulta: string
   placa: string
+  placaProprietario: string
+  cpfProprietario: string
   renavam: string
   prazoMulta: string
   observacoes: string
@@ -149,9 +151,22 @@ function getMultaBlocks(data: FichaPdfData) {
   const autosRenainf = splitSerializedEntries(data.autoRenainf)
   const tipos = splitSerializedEntries(data.tipoMulta)
   const placas = splitSerializedEntries(data.placa)
+  const placasProprietario = splitSerializedEntries(data.placaProprietario)
+  const cpfsProprietario = splitSerializedEntries(data.cpfProprietario)
   const renavams = splitSerializedEntries(data.renavam)
   const prazos = splitSerializedEntries(data.prazoMulta)
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    placas.length,
+    placasProprietario.length,
+    cpfsProprietario.length,
+    renavams.length,
+    prazos.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -159,6 +174,8 @@ function getMultaBlocks(data: FichaPdfData) {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
+    placaProprietario: placasProprietario[index] || "",
+    cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
   }))
@@ -385,6 +402,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                   }}
                 >
                   <div style={{ width: 170 }}>{centeredField("PLACA", block.placa)}</div>
+                  {block.placaProprietario === "sim" ? (
+                    <div style={{ width: 190 }}>{centeredField("CPF PROPRIETARIO", block.cpfProprietario)}</div>
+                  ) : null}
                   <div style={{ width: 170 }}>{centeredField("RENAVAM", block.renavam)}</div>
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (

@@ -52,6 +52,8 @@ export type FichaFormValues = {
   autoRenainf: string
   tipoMulta: string
   placa: string
+  placaProprietario: string
+  cpfProprietario: string
   renavam: string
   prazoMulta: string
   vistoJuridicoMulta: string
@@ -115,6 +117,8 @@ export const emptyFichaValues: FichaFormValues = {
   autoRenainf: "",
   tipoMulta: "",
   placa: "",
+  placaProprietario: "",
+  cpfProprietario: "",
   renavam: "",
   prazoMulta: "",
   vistoJuridicoMulta: "",

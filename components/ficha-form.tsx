@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
@@ -21,6 +22,8 @@ type MultaBlock = {
   autoRenainf: string
   tipoMulta: string
   placa: string
+  placaProprietario: string
+  cpfProprietario: string
   renavam: string
   prazoMulta: string
 }
@@ -74,10 +77,23 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
   const autosRenainf = splitSerializedEntries(values.autoRenainf)
   const tipos = splitSerializedEntries(values.tipoMulta)
   const placas = splitSerializedEntries(values.placa)
+  const placasProprietario = splitSerializedEntries(values.placaProprietario)
+  const cpfsProprietario = splitSerializedEntries(values.cpfProprietario)
   const renavams = splitSerializedEntries(values.renavam)
   const prazos = splitSerializedEntries(values.prazoMulta)
 
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, placas.length, renavams.length, prazos.length, 1)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    placas.length,
+    placasProprietario.length,
+    cpfsProprietario.length,
+    renavams.length,
+    prazos.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -85,6 +101,8 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     placa: placas[index] || "",
+    placaProprietario: placasProprietario[index] || "",
+    cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
   }))
@@ -97,6 +115,8 @@ function serializeMultaBlocks(blocks: MultaBlock[]) {
     autoRenainf: blocks.map((block) => block.autoRenainf).join(MULTI_ENTRY_SEPARATOR),
     tipoMulta: blocks.map((block) => block.tipoMulta).join(MULTI_ENTRY_SEPARATOR),
     placa: blocks.map((block) => block.placa).join(MULTI_ENTRY_SEPARATOR),
+    placaProprietario: blocks.map((block) => block.placaProprietario).join(MULTI_ENTRY_SEPARATOR),
+    cpfProprietario: blocks.map((block) => block.cpfProprietario).join(MULTI_ENTRY_SEPARATOR),
     renavam: blocks.map((block) => block.renavam).join(MULTI_ENTRY_SEPARATOR),
     prazoMulta: blocks.map((block) => block.prazoMulta).join(MULTI_ENTRY_SEPARATOR),
   }
@@ -406,6 +426,19 @@ export function FichaForm({
     setMultaBlocks(nextBlocks)
   }
 
+  const updateMultaBlockProprietario = (index: number, checked: boolean) => {
+    const nextBlocks = multaBlocks.map((block, blockIndex) =>
+      blockIndex === index
+        ? {
+            ...block,
+            placaProprietario: checked ? "sim" : "",
+            cpfProprietario: checked ? block.cpfProprietario : "",
+          }
+        : block
+    )
+    setMultaBlocks(nextBlocks)
+  }
+
   const updateMultaDetailLines = (index: number, lines: MultaDetailLine[]) => {
     const nextBlocks = multaBlocks.map((block, blockIndex) =>
       blockIndex === index
@@ -440,6 +473,8 @@ export function FichaForm({
       autoRenainf: "",
       tipoMulta: "",
       placa: "",
+      placaProprietario: "",
+      cpfProprietario: "",
       renavam: "",
       prazoMulta: "",
     })
@@ -480,6 +515,8 @@ export function FichaForm({
         autoRenainf: "",
         tipoMulta: "",
         placa: "",
+        placaProprietario: "",
+        cpfProprietario: "",
         renavam: "",
         prazoMulta: "",
       },
@@ -1065,7 +1102,7 @@ export function FichaForm({
 
             return (
               <div key={`multa-block-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[140px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
                     <div className="flex items-center gap-2 xl:pb-2">
                       <span className="text-sm font-semibold uppercase text-primary">PLACA</span>
                     <span className="rounded-md bg-primary px-2.5 py-1 text-sm font-bold text-primary-foreground shadow-sm">
@@ -1082,6 +1119,32 @@ export function FichaForm({
                       disabled={fieldDisabled}
                       className="uppercase"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex min-h-10 items-center gap-2 pt-6">
+                      <Checkbox
+                        id={`placaProprietario-${index}`}
+                        checked={block.placaProprietario === "sim"}
+                        onCheckedChange={(checked) => updateMultaBlockProprietario(index, checked === true)}
+                        disabled={fieldDisabled}
+                      />
+                      <Label htmlFor={`placaProprietario-${index}`} className="cursor-pointer">
+                        É do proprietário
+                      </Label>
+                    </div>
+                    {block.placaProprietario === "sim" ? (
+                      <div className="space-y-2">
+                        <Label htmlFor={`cpfProprietario-${index}`}>CPF</Label>
+                        <Input
+                          id={`cpfProprietario-${index}`}
+                          value={block.cpfProprietario}
+                          onChange={(event) => updateMultaBlockField(index, "cpfProprietario", event.target.value)}
+                          disabled={fieldDisabled}
+                          placeholder="000.000.000-00"
+                        />
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="space-y-2">
