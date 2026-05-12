@@ -865,12 +865,6 @@ export default function FichasWorkspace() {
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-end">
-                  <Button type="button" onClick={handleAddNovoContrato}>
-                    <Plus className="size-4" />
-                    Adicionar Novo Contrato
-                  </Button>
-                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
@@ -954,16 +948,15 @@ export default function FichasWorkspace() {
 
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
-                <CardHeader>
+                <CardContent className="space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle>Contratos</CardTitle>
+                    <h2 className="text-lg font-semibold text-foreground">Contratos</h2>
                     <Button type="button" onClick={handleAddNovoContrato}>
                       <Plus className="size-4" />
                       Adicionar Novo Contrato
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+
                   <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
 
                   <Accordion
