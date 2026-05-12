@@ -12,6 +12,14 @@ function fallback(value: string) {
   return value?.trim() || "-"
 }
 
+function hasText(value: string) {
+  return Boolean(value?.trim())
+}
+
+function hasAnyText(values: string[]) {
+  return values.some(hasText)
+}
+
 function formatDate(value: string) {
   if (!value) return "-"
   if (value === "VENCIDA") return "VENCIDA"
@@ -141,8 +149,21 @@ function formatMoneyValue(value: string) {
 }
 
 export function FichaReadView({ values }: FichaReadViewProps) {
-  const processoLines = getProcessoLines(values)
-  const multaBlocks = getMultaBlocks(values)
+  const processoLines = getProcessoLines(values).filter((line) =>
+    hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.prazoProcesso])
+  )
+  const multaBlocks = getMultaBlocks(values).filter((block) =>
+    hasAnyText([
+      block.instanciaMulta,
+      block.autoDetran,
+      block.autoRenainf,
+      block.tipoMulta,
+      block.placa,
+      block.cpfProprietario,
+      block.renavam,
+      block.prazoMulta,
+    ])
+  )
 
   return (
     <div className="space-y-6">
@@ -159,50 +180,60 @@ export function FichaReadView({ values }: FichaReadViewProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-l-4 border-l-primary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Processos</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {processoLines.map((line, index) => (
-            <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-4">
-              <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
-              <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
-              <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
-              <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="border-l-4 border-l-secondary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Multas</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {multaBlocks.map((block, index) => (
-            <div key={`multa-read-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
-                <ValueCell label="RENAVAM" value={block.renavam} />
-                {block.placaProprietario !== "sim" ? (
-                  <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
-                ) : null}
+      {processoLines.length > 0 ? (
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-primary">Processos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {processoLines.map((line, index) => (
+              <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-4">
+                <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
+                <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
+                <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
+                <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
-              {getMultaLines(block).map((line, lineIndex) => (
-                <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
-                  <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
-                  <ValueCell label="Detran" value={line.autoDetran} />
-                  <ValueCell label="Renainf" value={line.autoRenainf} />
-                  <ValueCell label="Tipo" value={line.tipoMulta} />
-                  <ValueCell label="Prazo" value={formatDate(line.prazoMulta)} />
+      {multaBlocks.length > 0 ? (
+        <Card className="border-l-4 border-l-secondary shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-primary">Multas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {multaBlocks.map((block, index) => {
+              const multaLines = getMultaLines(block).filter((line) =>
+                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
+              )
+
+              return (
+                <div key={`multa-read-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
+                    <ValueCell label="RENAVAM" value={block.renavam} />
+                    {block.placaProprietario !== "sim" && hasText(block.cpfProprietario) ? (
+                      <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
+                    ) : null}
+                  </div>
+
+                  {multaLines.map((line, lineIndex) => (
+                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
+                      <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
+                      <ValueCell label="Detran" value={line.autoDetran} />
+                      <ValueCell label="Renainf" value={line.autoRenainf} />
+                      <ValueCell label="Tipo" value={line.tipoMulta} />
+                      <ValueCell label="Prazo" value={formatDate(line.prazoMulta)} />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+              )
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-l-4 border-l-muted shadow-sm">
         <CardHeader className="pb-3">

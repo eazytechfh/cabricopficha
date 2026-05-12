@@ -126,6 +126,16 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
   }
 }
 
+function getMissingSchemaColumn(payload: Record<string, unknown>) {
+  const message = String(payload.message ?? payload.error ?? "")
+  const match = message.match(/coluna ['"]([^'"]+)['"]/i) || message.match(/column ['"]([^'"]+)['"]/i)
+  return match?.[1] || ""
+}
+
+async function parseSupabasePayload(response: Response) {
+  return (await response.json()) as Record<string, unknown> | Array<Record<string, unknown>>
+}
+
 function fromRow(row: Record<string, unknown>): FichaRecord {
   return {
     id: String(row.id ?? ""),
@@ -318,42 +328,87 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
     ...data,
     nomeCliente: `${baseNomeCliente} ${String(sequence).padStart(2, "0")}`.trim(),
   }
+  const payload: Record<string, unknown> = toPayload(identifiedData, consultor, "create")
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
+  let response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
     method: "POST",
     headers: {
       ...headers(),
       Prefer: "return=representation",
     },
-    body: JSON.stringify(toPayload(identifiedData, consultor, "create")),
+    body: JSON.stringify(payload),
     cache: "no-store",
   })
 
-  const payload = await response.json()
-  if (!response.ok) {
-    throw new Error(payload.message || payload.error || "Erro ao criar ficha.")
+  let responsePayload = await parseSupabasePayload(response)
+  if (!response.ok && !Array.isArray(responsePayload)) {
+    const missingColumn = getMissingSchemaColumn(responsePayload)
+
+    if (missingColumn && missingColumn in payload) {
+      delete payload[missingColumn]
+      response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
+        method: "POST",
+        headers: {
+          ...headers(),
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      })
+      responsePayload = await parseSupabasePayload(response)
+    }
   }
 
-  return fromRow(payload[0])
+  if (!response.ok || !Array.isArray(responsePayload)) {
+    throw new Error(
+      !Array.isArray(responsePayload) ? String(responsePayload.message || responsePayload.error || "Erro ao criar ficha.") : "Erro ao criar ficha."
+    )
+  }
+
+  return fromRow(responsePayload[0])
 }
 
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
-  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
+  const payload: Record<string, unknown> = toPayload(data, consultor, "update")
+
+  let response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
     method: "PATCH",
     headers: {
       ...headers(),
       Prefer: "return=representation",
     },
-    body: JSON.stringify(toPayload(data, consultor, "update")),
+    body: JSON.stringify(payload),
     cache: "no-store",
   })
 
-  const payload = await response.json()
-  if (!response.ok) {
-    throw new Error(payload.message || payload.error || "Erro ao atualizar ficha.")
+  let responsePayload = await parseSupabasePayload(response)
+  if (!response.ok && !Array.isArray(responsePayload)) {
+    const missingColumn = getMissingSchemaColumn(responsePayload)
+
+    if (missingColumn && missingColumn in payload) {
+      delete payload[missingColumn]
+      response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
+        method: "PATCH",
+        headers: {
+          ...headers(),
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      })
+      responsePayload = await parseSupabasePayload(response)
+    }
   }
 
-  return fromRow(payload[0])
+  if (!response.ok || !Array.isArray(responsePayload)) {
+    throw new Error(
+      !Array.isArray(responsePayload)
+        ? String(responsePayload.message || responsePayload.error || "Erro ao atualizar ficha.")
+        : "Erro ao atualizar ficha."
+    )
+  }
+
+  return fromRow(responsePayload[0])
 }
 
 async function readWorkbookRows() {

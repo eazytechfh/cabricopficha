@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Pencil, Settings, Trash2, UserPlus } from "lucide-react"
+import { Plus, Settings, Trash2, UserPlus } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ import {
 } from "@/lib/ficha-types"
 
 type ViewMode = "list" | "view" | "edit"
+type WorkspaceTab = "cadastrar" | "consultar"
 
 function getFichaLabel(nomeCliente: string) {
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
@@ -50,6 +52,17 @@ function getClienteBaseName(nomeCliente: string) {
   return (nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
 }
 
+function fallback(value: string) {
+  return value?.trim() || "-"
+}
+
+function formatDisplayDate(value: string) {
+  if (!value) return "-"
+  const [year, month, day] = value.split("-")
+  if (!year || !month || !day) return value
+  return `${day}/${month}/${year}`
+}
+
 type ConsultaClienteGroup = {
   key: string
   nomeCliente: string
@@ -57,6 +70,64 @@ type ConsultaClienteGroup = {
   telefones: string
   nomeConsultor: string
   contratos: FichaListItem[]
+}
+
+function ClienteValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <div className="min-h-10 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-xs">
+        {fallback(value)}
+      </div>
+    </div>
+  )
+}
+
+function ClienteReadCard({ values, onEdit }: { values: FichaFormValues; onEdit: () => void }) {
+  return (
+    <div className="relative rounded-lg border border-border border-l-4 border-l-primary bg-background p-4 pb-16 shadow-sm">
+      <div className="mb-6 flex items-center gap-2">
+        <UserPlus className="size-5 text-primary" />
+        <h3 className="text-lg font-semibold text-primary">Dados do Cliente</h3>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ClienteValue label="Nome Completo" value={getClienteBaseName(values.nomeCliente) || values.nomeCliente} />
+        <ClienteValue label="Terceiros" value={values.terceiros} />
+        <ClienteValue label="Telefone(s)" value={values.telefones} />
+        <ClienteValue label="E-mail" value={values.email} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[190px_1fr_190px_190px]">
+        <ClienteValue label="CEP" value={values.cep} />
+        <ClienteValue label="Endereco" value={values.endereco} />
+        <ClienteValue label="Numero" value="" />
+        <ClienteValue label="Complemento" value="" />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_90px]">
+        <ClienteValue label="CPF/CNPJ" value={values.cpfCnpj} />
+        <ClienteValue label="CNH" value={values.cnh} />
+        <ClienteValue label="UF" value="" />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ClienteValue label="Data de Nascimento" value={formatDisplayDate(values.dataNascimento)} />
+        <ClienteValue label="Data da 1a CNH" value={formatDisplayDate(values.dataPrimeiraCnh)} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
+        <ClienteValue label="Origem" value={values.origem} />
+        <ClienteValue label="SNE" value={values.sne} />
+      </div>
+
+      <Button type="button" variant="outline" size="sm" onClick={onEdit} className="absolute bottom-4 right-4">
+        <Plus className="size-4" />
+        Editar
+      </Button>
+    </div>
+  )
 }
 
 function formatAccessDate(value: string) {
@@ -99,6 +170,7 @@ export default function FichasWorkspace() {
   const [createLoading, setCreateLoading] = useState(false)
   const [createMessage, setCreateMessage] = useState("")
   const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
   const [tipoBusca, setTipoBusca] = useState<"cpf" | "nome">("cpf")
   const [cpfBusca, setCpfBusca] = useState("")
@@ -110,6 +182,7 @@ export default function FichasWorkspace() {
   const [selectedFicha, setSelectedFicha] = useState<FichaRecord | null>(null)
   const [editValues, setEditValues] = useState<FichaFormValues>(emptyFichaValues)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
+  const [expandedContratoId, setExpandedContratoId] = useState("")
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
 
@@ -395,6 +468,7 @@ export default function FichasWorkspace() {
     setEditMessage("")
     setViewMode("list")
     setSelectedFicha(null)
+    setExpandedContratoId("")
 
     try {
       const cpfNormalizado = tipoBusca === "cpf" ? normalizeCpfCnpj(cpfBusca) : ""
@@ -425,11 +499,56 @@ export default function FichasWorkspace() {
       setSelectedContratos(contratos)
       setEditValues(toRecordValues(response.ficha))
       setViewMode(mode)
+      setExpandedContratoId("")
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao abrir ficha.")
     } finally {
       setConsultaLoading(false)
     }
+  }
+
+  const handleContratoAccordionChange = async (id: string) => {
+    if (!id) {
+      setExpandedContratoId("")
+      return
+    }
+
+    setExpandedContratoId(id)
+
+    if (selectedFicha?.id !== id) {
+      await openFicha(id, "view", selectedContratos)
+      setExpandedContratoId(id)
+    }
+  }
+
+  const handleAddNovoContrato = () => {
+    setCreateMessage("")
+    setActiveTab("cadastrar")
+
+    if (!selectedFicha) {
+      setCreateValues((current) => ({
+        ...emptyFichaValues,
+        nomeConsultor: current.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
+      }))
+      return
+    }
+
+    setCreateValues({
+      ...emptyFichaValues,
+      nomeCliente: getClienteBaseName(selectedFicha.nomeCliente) || selectedFicha.nomeCliente,
+      terceiros: selectedFicha.terceiros,
+      telefones: selectedFicha.telefones,
+      endereco: selectedFicha.endereco,
+      cep: selectedFicha.cep,
+      cpfCnpj: selectedFicha.cpfCnpj,
+      cnh: selectedFicha.cnh,
+      dataNascimento: selectedFicha.dataNascimento,
+      dataPrimeiraCnh: selectedFicha.dataPrimeiraCnh,
+      email: selectedFicha.email,
+      nomeConsultor: selectedFicha.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
+      origem: selectedFicha.origem,
+      sne: selectedFicha.sne,
+    })
   }
 
   const handleUpdate = async () => {
@@ -448,7 +567,11 @@ export default function FichasWorkspace() {
           : "Ficha atualizada, mas houve erro ao enviar os dados para a automacao."
       )
       setViewMode("view")
-      await handleConsultarFichas()
+      const cpfNormalizado = tipoBusca === "cpf" ? normalizeCpfCnpj(cpfBusca) : ""
+      const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
+      const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
+      setConsultaItems(refreshed.fichas)
+      setSelectedContratos((current) => current.map((contrato) => (contrato.id === response.ficha.id ? response.ficha : contrato)))
     } catch (error) {
       setEditMessage(error instanceof Error ? error.message : "Erro ao atualizar a ficha.")
     } finally {
@@ -716,7 +839,7 @@ export default function FichasWorkspace() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Tabs defaultValue="cadastrar" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as WorkspaceTab)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="cadastrar">Cadastrar Ficha</TabsTrigger>
             <TabsTrigger value="consultar">Consulta de Ficha</TabsTrigger>
@@ -742,6 +865,12 @@ export default function FichasWorkspace() {
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex justify-end">
+                  <Button type="button" onClick={handleAddNovoContrato}>
+                    <Plus className="size-4" />
+                    Adicionar Novo Contrato
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
@@ -826,35 +955,54 @@ export default function FichasWorkspace() {
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>Visualizacao da Ficha</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {selectedContratos.length > 1 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedContratos.map((contrato) => (
-                        <Button
-                          key={contrato.id}
-                          type="button"
-                          variant={selectedFicha.id === contrato.id ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => void openFicha(contrato.id, "view", selectedContratos)}
-                        >
-                          {getFichaLabel(contrato.nomeCliente)}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : null}
-                  <FichaReadView values={editValues} />
-                  <div className="flex flex-col gap-4 sm:flex-row">
-                    {canEditSelectedFicha ? (
-                      <Button onClick={() => setViewMode("edit")}>Editar Contrato</Button>
-                    ) : (
-                      <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
-                    )}
-                    <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
-                      Gerar PDF novamente
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <CardTitle>Contratos</CardTitle>
+                    <Button type="button" onClick={handleAddNovoContrato}>
+                      <Plus className="size-4" />
+                      Adicionar Novo Contrato
                     </Button>
                   </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
+
+                  <Accordion
+                    type="single"
+                    collapsible
+                    value={expandedContratoId}
+                    onValueChange={(value) => void handleContratoAccordionChange(value)}
+                    className="space-y-3"
+                  >
+                    {(selectedContratos.length > 0 ? selectedContratos : [selectedFicha]).map((contrato) => (
+                      <AccordionItem key={contrato.id} value={contrato.id} className="rounded-lg border border-border px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex w-full flex-col gap-1 pr-2 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="font-semibold text-primary">{getFichaLabel(contrato.nomeCliente)}</span>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Data do contrato: {formatDisplayDate(contrato.dataContrato)}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {selectedFicha.id === contrato.id ? (
+                            <div className="space-y-4">
+                              <FichaReadView values={editValues} />
+                              <div className="flex flex-col gap-4 sm:flex-row">
+                                {canEditSelectedFicha ? (
+                                  <Button onClick={() => setViewMode("edit")}>Editar Contrato</Button>
+                                ) : (
+                                  <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
+                                )}
+                                <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
+                                  Gerar PDF novamente
+                                </Button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 </CardContent>
               </Card>
             )}
