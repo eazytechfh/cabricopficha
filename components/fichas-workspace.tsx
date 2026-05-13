@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Plus, Settings, Trash2, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -202,6 +202,7 @@ export default function FichasWorkspace() {
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
   const [userUpdating, setUserUpdating] = useState(false)
+  const consultaTopRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const access = getCurrentAccess()
@@ -500,6 +501,9 @@ export default function FichasWorkspace() {
       setEditValues(toRecordValues(response.ficha))
       setViewMode(mode)
       setExpandedContratoId("")
+      window.setTimeout(() => {
+        consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 0)
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao abrir ficha.")
     } finally {
@@ -860,7 +864,7 @@ export default function FichasWorkspace() {
           </TabsContent>
 
           <TabsContent value="consultar" className="space-y-6">
-            <Card className="border-l-4 border-l-primary shadow-md">
+            <Card ref={consultaTopRef} className="border-l-4 border-l-primary shadow-md">
               <CardHeader>
                 <CardTitle>Consulta de Ficha</CardTitle>
               </CardHeader>
