@@ -952,7 +952,9 @@ export default function FichasWorkspace() {
 
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
-                <CardContent className="space-y-4 pt-10">
+                <CardContent className="space-y-4">
+                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
+
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-lg font-semibold text-foreground">Contratos</h2>
                     <Button type="button" onClick={handleAddNovoContrato}>
@@ -960,8 +962,6 @@ export default function FichasWorkspace() {
                       Adicionar Novo Contrato
                     </Button>
                   </div>
-
-                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
 
                   <Accordion
                     type="single"
