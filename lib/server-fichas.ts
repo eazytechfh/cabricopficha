@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
-import { normalizeCpfCnpj, normalizeFichaValues } from "@/lib/ficha-utils"
+import { normalizeCpfCnpj, normalizeFichaValues, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -146,9 +146,9 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
     cep: String(row.cep ?? ""),
-    cpfCnpj: String(row.cpf_cnpj ?? ""),
+    cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     cpfNormalizado: String(row.cpf_normalizado ?? ""),
-    cnh: String(row.cnh ?? ""),
+    cnh: stripNumericDecimalSuffix(String(row.cnh ?? "")),
     dataNascimento: String(row.data_nascimento ?? ""),
     dataPrimeiraCnh: String(row.data_primeira_cnh ?? ""),
     email: String(row.email ?? ""),
@@ -225,7 +225,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
     nomeCliente: String(row.nome_cliente ?? ""),
-    cpfCnpj: String(row.cpf_cnpj ?? ""),
+    cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
     dataContrato: String(row.data_contrato ?? ""),
@@ -290,7 +290,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
     nomeCliente: String(row.nome_cliente ?? ""),
-    cpfCnpj: String(row.cpf_cnpj ?? ""),
+    cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
     dataContrato: String(row.data_contrato ?? ""),

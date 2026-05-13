@@ -12,6 +12,10 @@ export function normalizeCpfCnpj(value: string) {
   return normalizeDigits(normalizedValue)
 }
 
+export function stripNumericDecimalSuffix(value: string) {
+  return String(value || "").trim().replace(/(\d+)\.0(\s*(?:\/|-)\s*[A-Za-z]{2})?$/, "$1$2")
+}
+
 export function splitSerializedEntries(value: string) {
   if (!value) return [""]
   return value.split(MULTI_ENTRY_SEPARATOR)
