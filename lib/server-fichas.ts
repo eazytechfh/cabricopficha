@@ -135,6 +135,10 @@ function getMissingSchemaColumn(payload: Record<string, unknown>) {
   return match?.[1] || ""
 }
 
+function canRetryWithoutColumn(column: string) {
+  return column !== "cpf_proprietario"
+}
+
 async function parseSupabasePayload(response: Response) {
   return (await response.json()) as Record<string, unknown> | Array<Record<string, unknown>>
 }
@@ -347,7 +351,7 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
   if (!response.ok && !Array.isArray(responsePayload)) {
     const missingColumn = getMissingSchemaColumn(responsePayload)
 
-    if (missingColumn && missingColumn in payload) {
+    if (missingColumn && missingColumn in payload && canRetryWithoutColumn(missingColumn)) {
       delete payload[missingColumn]
       response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
         method: "POST",
@@ -388,7 +392,7 @@ export async function updateFicha(id: string, data: FichaFormValues, consultor: 
   if (!response.ok && !Array.isArray(responsePayload)) {
     const missingColumn = getMissingSchemaColumn(responsePayload)
 
-    if (missingColumn && missingColumn in payload) {
+    if (missingColumn && missingColumn in payload && canRetryWithoutColumn(missingColumn)) {
       delete payload[missingColumn]
       response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
         method: "PATCH",
