@@ -128,7 +128,10 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
 
 function getMissingSchemaColumn(payload: Record<string, unknown>) {
   const message = String(payload.message ?? payload.error ?? "")
-  const match = message.match(/coluna ['"]([^'"]+)['"]/i) || message.match(/column ['"]([^'"]+)['"]/i)
+  const match =
+    message.match(/coluna ['"]([^'"]+)['"]/i) ||
+    message.match(/column ['"]([^'"]+)['"]/i) ||
+    message.match(/['"]([^'"]+)['"]\s+column/i)
   return match?.[1] || ""
 }
 

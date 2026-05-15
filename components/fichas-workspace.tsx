@@ -1036,6 +1036,7 @@ export default function FichasWorkspace() {
                         submitLabel="Atualizar Ficha"
                         loading={editLoading}
                         loadingLabel="Atualizando..."
+                        showInlineSubmit
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>

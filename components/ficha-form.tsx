@@ -171,6 +171,7 @@ type FichaFormProps = {
   loadingLabel?: string
   readOnly?: boolean
   showActions?: boolean
+  showInlineSubmit?: boolean
   onCancelEdit?: () => void
   requiredFields?: Array<keyof FichaFormValues>
   identifierPreview?: string
@@ -214,6 +215,7 @@ export function FichaForm({
   loadingLabel = "Salvando...",
   readOnly = false,
   showActions = true,
+  showInlineSubmit = false,
   onCancelEdit,
   requiredFields = [],
   identifierPreview,
@@ -359,6 +361,14 @@ export function FichaForm({
         ? "CPF valido"
         : "CPF invalido"
       : ""
+  const submitContent = loading ? (
+    <>
+      <Spinner className="w-5 h-5 mr-2" />
+      {loadingLabel}
+    </>
+  ) : (
+    submitLabel
+  )
   const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
@@ -854,7 +864,13 @@ export function FichaForm({
             {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
             {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            className={
+              showInlineSubmit
+                ? "grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]"
+                : "grid grid-cols-1 md:grid-cols-3 gap-4"
+            }
+          >
             <div className="space-y-2">
               <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
               <Select
@@ -906,6 +922,19 @@ export function FichaForm({
                 </SelectContent>
               </Select>
             </div>
+
+            {showActions && showInlineSubmit ? (
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground md:w-auto"
+                  onClick={() => void onSubmit?.()}
+                  disabled={loading || readOnly}
+                >
+                  {submitContent}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -1306,28 +1335,23 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      {showActions && (
+      {showActions && (onCancelEdit || !showInlineSubmit) && (
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
           {onCancelEdit && (
             <Button type="button" variant="outline" className="px-8 py-6 text-lg" onClick={onCancelEdit} disabled={loading}>
               Cancelar
             </Button>
           )}
-          <Button
-            type="button"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold shadow-lg"
-            onClick={() => void onSubmit?.()}
-            disabled={loading || readOnly}
-          >
-            {loading ? (
-              <>
-                <Spinner className="w-5 h-5 mr-2" />
-                {loadingLabel}
-              </>
-            ) : (
-              submitLabel
-            )}
-          </Button>
+          {!showInlineSubmit ? (
+            <Button
+              type="button"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold shadow-lg"
+              onClick={() => void onSubmit?.()}
+              disabled={loading || readOnly}
+            >
+              {submitContent}
+            </Button>
+          ) : null}
         </div>
       )}
     </div>
