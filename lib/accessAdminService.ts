@@ -3,13 +3,17 @@
 import type { AccessCodeRecord, ConsultorSession } from "@/lib/ficha-types"
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json()
+  const payload = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(payload.error || "Erro ao processar a requisicao de usuarios.")
+    throw new Error(payload?.error || "Erro ao processar a requisicao de usuarios.")
   }
 
-  return payload
+  if (!payload) {
+    throw new Error("Resposta invalida ao processar a requisicao de usuarios.")
+  }
+
+  return payload as T
 }
 
 export async function getAccessUsers(consultor: ConsultorSession) {

@@ -312,9 +312,16 @@ export default function FichasWorkspace() {
 
     try {
       const response = await getAccessUsers(consultor)
+      if (!Array.isArray(response.users)) {
+        setUsers([])
+        setUsersError("Nao foi possivel carregar a lista de usuarios.")
+        return
+      }
+
       setUsers(response.users)
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : "Erro ao carregar usuarios.")
+      setUsers([])
     } finally {
       setUsersLoading(false)
     }
