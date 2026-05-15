@@ -497,6 +497,30 @@ export default function FichasWorkspace() {
     setViewMode("list")
   }
 
+  const resetConsulta = () => {
+    setTipoBusca("cpf")
+    setCpfBusca("")
+    setNomeBusca("")
+    setConsultaError("")
+    setConsultaItems([])
+    setSelectedContratos([])
+    setSelectedFicha(null)
+    setEditValues(emptyFichaValues)
+    setViewMode("list")
+    setExpandedContratoId("")
+    setEditMessage("")
+  }
+
+  const handleTabChange = (value: string) => {
+    const nextTab = value as WorkspaceTab
+
+    if (activeTab !== "consultar" && nextTab === "consultar") {
+      resetConsulta()
+    }
+
+    setActiveTab(nextTab)
+  }
+
   const openFicha = async (id: string, mode: ViewMode, contratos: FichaListItem[] = []) => {
     setConsultaLoading(true)
     setConsultaError("")
@@ -851,7 +875,7 @@ export default function FichasWorkspace() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as WorkspaceTab)} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="cadastrar">Cadastrar Ficha</TabsTrigger>
             <TabsTrigger value="consultar">Consulta de Ficha</TabsTrigger>
