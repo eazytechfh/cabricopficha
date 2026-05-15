@@ -873,8 +873,14 @@ export default function FichasWorkspace() {
 
           <TabsContent value="consultar" className="space-y-6">
             <Card ref={consultaTopRef} className="border-l-4 border-l-primary shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <CardTitle>Consulta de Ficha</CardTitle>
+                {viewMode !== "list" && consultaItems.length > 0 && (
+                  <Button type="button" variant="outline" onClick={handleVoltarConsulta}>
+                    <ArrowLeft className="size-4" />
+                    Voltar
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
@@ -905,13 +911,7 @@ export default function FichasWorkspace() {
                       placeholder={tipoBusca === "cpf" ? "Digite o CPF com ou sem mascara" : "Digite o nome do cliente"}
                     />
                   </div>
-                  <div className="flex flex-col items-stretch justify-end gap-8 md:items-end">
-                    {viewMode !== "list" && consultaItems.length > 0 && (
-                      <Button type="button" variant="outline" onClick={handleVoltarConsulta}>
-                        <ArrowLeft className="size-4" />
-                        Voltar
-                      </Button>
-                    )}
+                  <div className="flex items-end">
                     <Button onClick={() => void handleConsultarFichas()} disabled={consultaLoading}>
                       {consultaLoading ? "Consultando..." : "Consultar"}
                     </Button>
