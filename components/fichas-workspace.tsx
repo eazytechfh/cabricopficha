@@ -905,7 +905,7 @@ export default function FichasWorkspace() {
                       placeholder={tipoBusca === "cpf" ? "Digite o CPF com ou sem mascara" : "Digite o nome do cliente"}
                     />
                   </div>
-                  <div className="flex flex-col items-stretch justify-end gap-4 md:items-end">
+                  <div className="flex flex-col items-stretch justify-end gap-8 md:items-end">
                     {viewMode !== "list" && consultaItems.length > 0 && (
                       <Button type="button" variant="outline" onClick={handleVoltarConsulta}>
                         <ArrowLeft className="size-4" />
