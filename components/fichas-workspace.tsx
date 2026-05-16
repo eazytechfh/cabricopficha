@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, Plus, Settings, Trash2, UserPlus } from "lucide-react"
+import { ArrowLeft, Pencil, Plus, Settings, Trash2, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,14 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
@@ -664,19 +656,23 @@ export default function FichasWorkspace() {
 
           <div className="flex items-center gap-3">
             {isAdmin && (
-              <Dialog open={settingsOpen} onOpenChange={(open) => void handleOpenSettings(open)}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="icon" aria-label="Configuracoes">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-[1200px] max-h-[88vh] overflow-x-hidden overflow-y-auto p-0">
-                  <DialogHeader>
-                    <DialogTitle className="px-6 pt-6">Usuarios</DialogTitle>
-                    <DialogDescription className="px-6 pb-4">
-                      Gerencie os acessos de administradores e consultores.
-                    </DialogDescription>
-                  </DialogHeader>
+              <>
+                <Button variant="secondary" size="icon" aria-label="Configuracoes" onClick={() => void handleOpenSettings(true)}>
+                  <Settings className="h-5 w-5" />
+                </Button>
+
+                {settingsOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 text-foreground">
+                    <div className="max-h-[88vh] w-full max-w-[1200px] overflow-x-hidden overflow-y-auto rounded-lg border bg-background shadow-lg">
+                      <div className="flex items-start justify-between gap-4 px-6 pt-6">
+                        <div className="space-y-2">
+                          <h2 className="text-lg font-semibold leading-none">Usuarios</h2>
+                          <p className="text-sm text-muted-foreground">Gerencie os acessos de administradores e consultores.</p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => void handleOpenSettings(false)}>
+                          Fechar
+                        </Button>
+                      </div>
 
                   <div className="space-y-5 px-6 pb-6">
                     <Card className="border border-border/70 shadow-sm">
@@ -870,8 +866,10 @@ export default function FichasWorkspace() {
                       </CardContent>
                     </Card>
                   </div>
-                </DialogContent>
-              </Dialog>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <Button variant="secondary" onClick={handleLogout}>
