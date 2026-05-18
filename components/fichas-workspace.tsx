@@ -30,6 +30,7 @@ import {
 
 type ViewMode = "list" | "view" | "edit"
 type WorkspaceTab = "cadastrar" | "consultar"
+type TipoBusca = "cpf" | "cnpj" | "nome"
 
 function getFichaLabel(nomeCliente: string) {
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
@@ -164,7 +165,7 @@ export default function FichasWorkspace() {
   const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
-  const [tipoBusca, setTipoBusca] = useState<"cpf" | "nome">("cpf")
+  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
   const [cpfBusca, setCpfBusca] = useState("")
   const [nomeBusca, setNomeBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
@@ -471,14 +472,15 @@ export default function FichasWorkspace() {
     setExpandedContratoId("")
 
     try {
-      const cpfNormalizado = tipoBusca === "cpf" ? normalizeCpfCnpj(cpfBusca) : ""
+      const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
       const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
 
       const response = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
       setConsultaItems(response.fichas)
       setSelectedContratos([])
       if (response.fichas.length === 0) {
-        setConsultaError(tipoBusca === "cpf" ? "Nenhuma ficha encontrada para este CPF." : "Nenhuma ficha encontrada para este nome.")
+        const tipoLabel = tipoBusca === "nome" ? "nome" : tipoBusca.toUpperCase()
+        setConsultaError(`Nenhuma ficha encontrada para este ${tipoLabel}.`)
       }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao consultar fichas.")
@@ -602,7 +604,7 @@ export default function FichasWorkspace() {
           : "Ficha atualizada, mas houve erro ao enviar os dados para a automacao."
       )
       setViewMode("view")
-      const cpfNormalizado = tipoBusca === "cpf" ? normalizeCpfCnpj(cpfBusca) : ""
+      const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
       const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
       const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
       setConsultaItems(refreshed.fichas)
@@ -915,29 +917,34 @@ export default function FichasWorkspace() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
-                    <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as "cpf" | "nome")}>
+                    <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as TipoBusca)}>
                       <SelectTrigger id="tipoBusca">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cpf">CPF</SelectItem>
+                        <SelectItem value="cnpj">CNPJ</SelectItem>
                         <SelectItem value="nome">Nome</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="valorBusca">{tipoBusca === "cpf" ? "CPF" : "Nome"}</Label>
+                    <Label htmlFor="valorBusca">{tipoBusca === "nome" ? "Nome" : tipoBusca.toUpperCase()}</Label>
                     <Input
                       id="valorBusca"
-                      value={tipoBusca === "cpf" ? cpfBusca : nomeBusca}
+                      value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
                       onChange={(event) => {
-                        if (tipoBusca === "cpf") {
+                        if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
                           setCpfBusca(event.target.value)
                         } else {
                           setNomeBusca(event.target.value)
                         }
                       }}
-                      placeholder={tipoBusca === "cpf" ? "Digite o CPF com ou sem mascara" : "Digite o nome do cliente"}
+                      placeholder={
+                        tipoBusca === "nome"
+                          ? "Digite o nome do cliente"
+                          : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
+                      }
                     />
                   </div>
                   <div className="flex items-end">
