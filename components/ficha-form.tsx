@@ -1174,7 +1174,9 @@ export function FichaForm({
                 className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_210px_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
               >
                       <div className="space-y-2">
-                        <Label htmlFor={`instanciaProcesso-${lineIndex}`}>Instancia do Processo</Label>
+                        <Label htmlFor={`instanciaProcesso-${lineIndex}`} className="flex min-h-8 items-end">
+                          Instancia do Processo
+                        </Label>
                         <MultiSelectInstancia
                           id={`instanciaProcesso-${lineIndex}`}
                           value={line.instanciaProcesso}
@@ -1185,7 +1187,9 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`tipoProcesso-${lineIndex}`}>Tipo do Processo</Label>
+                  <Label htmlFor={`tipoProcesso-${lineIndex}`} className="flex min-h-8 items-end">
+                    Tipo do Processo
+                  </Label>
                   <Select
                     value={line.tipoProcesso || undefined}
                     onValueChange={(value) => updateProcessoLineField(lineIndex, "tipoProcesso", value)}
@@ -1205,7 +1209,9 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`numeroProcesso-${lineIndex}`}>Nº do Processo</Label>
+                  <Label htmlFor={`numeroProcesso-${lineIndex}`} className="flex min-h-8 items-end">
+                    Nº do Processo
+                  </Label>
                   <Input
                     id={`numeroProcesso-${lineIndex}`}
                     value={line.numeroProcesso}
@@ -1216,7 +1222,9 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`multasProcesso-${lineIndex}`}>Multas do Processo</Label>
+                  <Label htmlFor={`multasProcesso-${lineIndex}`} className="flex min-h-8 items-end">
+                    Multas do Processo
+                  </Label>
                   <MultiSelectInstancia
                     id={`multasProcesso-${lineIndex}`}
                     value={line.multasProcesso}
@@ -1227,7 +1235,9 @@ export function FichaForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`prazoProcesso-${lineIndex}`}>Prazo</Label>
+                  <Label htmlFor={`prazoProcesso-${lineIndex}`} className="flex min-h-8 items-end">
+                    Prazo
+                  </Label>
                   <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
                     <Select
                       value={getPrazoMode(line.prazoProcesso)}
