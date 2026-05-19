@@ -47,6 +47,12 @@ type ProcessoLine = {
   prazoProcesso: string
 }
 
+type MultaProcessoOption = {
+  label: string
+  blockIndex: number
+  lineIndex: number
+}
+
 function splitLineValues(value: string) {
   if (!value) return [""]
   return value.split("\n")
@@ -234,6 +240,27 @@ function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
     prazoMulta: prazos[index] || "",
     processoVinculado: processosVinculados[index] || "",
   }))
+}
+
+function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
+  let count = 0
+
+  return blocks.flatMap((block, blockIndex) => {
+    const lines = getMultaDetailLines(block)
+    const placa = block.placa?.trim().toUpperCase() || `${blockIndex + 1}`
+
+    return lines.map((line, lineIndex) => {
+      count += 1
+      const auto = line.autoDetran?.trim() || line.autoRenainf?.trim()
+      const suffix = auto ? ` - ${auto}` : ""
+
+      return {
+        label: `Multa ${count} - Placa ${placa}${suffix}`,
+        blockIndex,
+        lineIndex,
+      }
+    })
+  })
 }
 
 function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
@@ -484,6 +511,7 @@ export function FichaForm({
   const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
+  const multaProcessoOptions = getMultaProcessoOptions(multaBlocks)
 
   useEffect(() => {
     if (readOnly) return
@@ -654,6 +682,23 @@ export function FichaForm({
   }
 
   const setProcessoLines = (lines: ProcessoLine[]) => {
+    const selectedMultas = new Set(lines.flatMap((line) => getSelectedOptions(line.multasProcesso)))
+    const nextBlocks = multaBlocks.map((block, blockIndex) => {
+      const currentLines = getMultaDetailLines(block)
+      const nextLines = currentLines.map((line, lineIndex) => {
+        const option = multaProcessoOptions.find((item) => item.blockIndex === blockIndex && item.lineIndex === lineIndex)
+        return {
+          ...line,
+          processoVinculado: option && selectedMultas.has(option.label) ? "sim" : "",
+        }
+      })
+
+      return {
+        ...block,
+        processoVinculado: nextLines.map((line) => line.processoVinculado).join("\n"),
+      }
+    })
+
     onChange({
       ...values,
       instanciaProcesso: lines.map((line) => line.instanciaProcesso).join("\n"),
@@ -661,6 +706,7 @@ export function FichaForm({
       numeroProcesso: lines.map((line) => line.numeroProcesso).join("\n"),
       vistoJuridico: lines.map((line) => line.multasProcesso).join("\n"),
       prazoProcesso: lines.map((line) => line.prazoProcesso).join("\n"),
+      ...serializeMultaBlocks(nextBlocks),
     })
   }
 
@@ -781,8 +827,8 @@ export function FichaForm({
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-l-4 border-l-primary shadow-md">
+    <div className="flex flex-col gap-6">
+      <Card className="order-[10] border-l-4 border-l-primary shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Calendar className="w-5 h-5" />
@@ -815,7 +861,7 @@ export function FichaForm({
           </CardContent>
         </Card>
 
-      <Card className="border-l-4 border-l-primary shadow-md">
+      <Card className="order-[20] border-l-4 border-l-primary shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <User className="w-5 h-5" />
@@ -1058,7 +1104,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="border-l-4 border-l-secondary shadow-md">
+      <Card className="order-[30] border-l-4 border-l-secondary shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <CreditCard className="w-5 h-5" />
@@ -1113,7 +1159,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="border-l-4 border-l-primary shadow-md">
+      <Card className="order-[50] border-l-4 border-l-primary shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileText className="w-5 h-5" />
@@ -1171,12 +1217,12 @@ export function FichaForm({
 
                 <div className="space-y-2">
                   <Label htmlFor={`multasProcesso-${lineIndex}`}>Multas do Processo</Label>
-                  <Input
+                  <MultiSelectInstancia
                     id={`multasProcesso-${lineIndex}`}
                     value={line.multasProcesso}
-                    onChange={(event) => updateProcessoLineField(lineIndex, "multasProcesso", event.target.value)}
+                    options={multaProcessoOptions.map((option) => option.label)}
+                    onChange={(value) => updateProcessoLineField(lineIndex, "multasProcesso", value)}
                     disabled={fieldDisabled}
-                    placeholder="Ex: I53552418, I53552419"
                   />
                 </div>
 
@@ -1236,7 +1282,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="border-l-4 border-l-secondary shadow-md">
+      <Card className="order-[40] border-l-4 border-l-secondary shadow-md">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
@@ -1456,7 +1502,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="border-l-4 border-l-muted shadow-md">
+      <Card className="order-[60] border-l-4 border-l-muted shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="text-primary">Observações Adicionais</CardTitle>
         </CardHeader>
@@ -1472,7 +1518,7 @@ export function FichaForm({
       </Card>
 
       {showActions && (onCancelEdit || onBack || !showInlineSubmit) && (
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+        <div className="order-[70] flex flex-col sm:flex-row gap-4 justify-center pt-2">
           {onCancelEdit && (
             <Button type="button" variant="outline" className="px-8 py-6 text-lg" onClick={onCancelEdit} disabled={loading}>
               Cancelar
