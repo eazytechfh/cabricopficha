@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
@@ -14,7 +15,7 @@ import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS,
 import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
-import { Calendar, User, CreditCard, FileText, AlertCircle, X } from "lucide-react"
+import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, X } from "lucide-react"
 
 type MultaBlock = {
   instanciaMulta: string
@@ -26,6 +27,7 @@ type MultaBlock = {
   cpfProprietario: string
   renavam: string
   prazoMulta: string
+  processoVinculado: string
 }
 
 type MultaDetailLine = {
@@ -34,6 +36,7 @@ type MultaDetailLine = {
   autoRenainf: string
   tipoMulta: string
   prazoMulta: string
+  processoVinculado: string
 }
 
 type ProcessoLine = {
@@ -46,6 +49,82 @@ type ProcessoLine = {
 function splitLineValues(value: string) {
   if (!value) return [""]
   return value.split("\n")
+}
+
+function getSelectedOptions(value: string) {
+  return (value || "")
+    .split(/[,\n]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function MultiSelectInstancia({
+  id,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  id: string
+  value: string
+  options: readonly string[]
+  onChange: (value: string) => void
+  disabled?: boolean
+}) {
+  const selected = getSelectedOptions(value)
+
+  const toggleOption = (option: string, checked: boolean) => {
+    const selectedSet = new Set(selected)
+
+    if (checked) {
+      selectedSet.add(option)
+    } else {
+      selectedSet.delete(option)
+    }
+
+    const orderedValues = options.filter((item) => selectedSet.has(item))
+    onChange(orderedValues.join(", "))
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          className="h-10 w-full justify-between px-3 text-left font-normal"
+          disabled={disabled}
+        >
+          <span className="truncate">{selected.length > 0 ? selected.join(", ") : "Selecione"}</span>
+          <ChevronDown className="size-4 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-2">
+        <div className="space-y-1">
+          {options.map((option) => {
+            const optionId = `${id}-${option.replace(/\W+/g, "-")}`
+            const checked = selected.includes(option)
+
+            return (
+              <label
+                key={option}
+                htmlFor={optionId}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-accent"
+              >
+                <Checkbox
+                  id={optionId}
+                  checked={checked}
+                  onCheckedChange={(nextChecked) => toggleOption(option, nextChecked === true)}
+                />
+                <span>{option}</span>
+              </label>
+            )
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 function parseTelefoneValues(value: string) {
@@ -81,6 +160,7 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
   const cpfsProprietario = splitSerializedEntries(values.cpfProprietario)
   const renavams = splitSerializedEntries(values.renavam)
   const prazos = splitSerializedEntries(values.prazoMulta)
+  const processosVinculados = splitSerializedEntries(values.vistoJuridicoMulta)
 
   const maxLength = Math.max(
     instancias.length,
@@ -92,6 +172,7 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
     cpfsProprietario.length,
     renavams.length,
     prazos.length,
+    processosVinculados.length,
     1
   )
 
@@ -105,6 +186,7 @@ function parseMultaBlocks(values: FichaFormValues): MultaBlock[] {
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -119,6 +201,7 @@ function serializeMultaBlocks(blocks: MultaBlock[]) {
     cpfProprietario: blocks.map((block) => block.cpfProprietario).join(MULTI_ENTRY_SEPARATOR),
     renavam: blocks.map((block) => block.renavam).join(MULTI_ENTRY_SEPARATOR),
     prazoMulta: blocks.map((block) => block.prazoMulta).join(MULTI_ENTRY_SEPARATOR),
+    vistoJuridicoMulta: blocks.map((block) => block.processoVinculado).join(MULTI_ENTRY_SEPARATOR),
   }
 }
 
@@ -128,8 +211,17 @@ function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
   const autosRenainf = splitLineValues(block.autoRenainf)
   const tipos = splitLineValues(block.tipoMulta)
   const prazos = splitLineValues(block.prazoMulta)
+  const processosVinculados = splitLineValues(block.processoVinculado)
 
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    prazos.length,
+    processosVinculados.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -137,13 +229,14 @@ function getMultaDetailLines(block: MultaBlock): MultaDetailLine[] {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
 function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
   const processoPrazo = processoLines
     .map((line) => line.prazoProcesso?.trim())
-    .find((value) => value && value !== "VENCIDA")
+    .find((value) => value && value !== "Vencida" && value !== "VENCIDA" && value !== "Revisão de Ato")
 
   if (processoPrazo) {
     return processoPrazo
@@ -152,7 +245,7 @@ function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: Mu
   for (const block of multaBlocks) {
     const multaPrazo = getMultaDetailLines(block)
       .map((line) => line.prazoMulta?.trim())
-      .find((value) => value && value !== "VENCIDA")
+      .find((value) => value && value !== "Vencida" && value !== "VENCIDA" && value !== "Revisão de Ato")
 
     if (multaPrazo) {
       return multaPrazo
@@ -160,6 +253,18 @@ function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: Mu
   }
 
   return ""
+}
+
+function getPrazoMode(value: string) {
+  if (value === "Vencida" || value === "VENCIDA") return "Vencida"
+  if (value === "Revisão de Ato") return "Revisão de Ato"
+  return "DATA"
+}
+
+function getPrazoValue(currentValue: string, nextMode: string) {
+  const currentMode = getPrazoMode(currentValue)
+  if (nextMode === "DATA") return currentMode === "DATA" ? currentValue : ""
+  return nextMode
 }
 
 type FichaFormProps = {
@@ -173,6 +278,8 @@ type FichaFormProps = {
   showActions?: boolean
   showInlineSubmit?: boolean
   onCancelEdit?: () => void
+  onBack?: () => void
+  backLabel?: string
   requiredFields?: Array<keyof FichaFormValues>
   identifierPreview?: string
 }
@@ -217,6 +324,8 @@ export function FichaForm({
   showActions = true,
   showInlineSubmit = false,
   onCancelEdit,
+  onBack,
+  backLabel = "Voltar",
   requiredFields = [],
   identifierPreview,
 }: FichaFormProps) {
@@ -459,6 +568,7 @@ export function FichaForm({
             autoRenainf: lines.map((line) => line.autoRenainf).join("\n"),
             tipoMulta: lines.map((line) => line.tipoMulta).join("\n"),
             prazoMulta: lines.map((line) => line.prazoMulta).join("\n"),
+            processoVinculado: lines.map((line) => line.processoVinculado).join("\n"),
           }
         : block
     )
@@ -487,6 +597,7 @@ export function FichaForm({
       cpfProprietario: "",
       renavam: "",
       prazoMulta: "",
+      processoVinculado: "",
     })
 
     const nextLines = currentLines.map((line, currentLineIndex) =>
@@ -502,7 +613,7 @@ export function FichaForm({
     const currentLines = getMultaDetailLines(multaBlocks[blockIndex])
     updateMultaDetailLines(blockIndex, [
       ...currentLines,
-      { instanciaMulta: "", autoDetran: "", autoRenainf: "", tipoMulta: "", prazoMulta: "" },
+      { instanciaMulta: "", autoDetran: "", autoRenainf: "", tipoMulta: "", prazoMulta: "", processoVinculado: "" },
     ])
   }
 
@@ -529,6 +640,7 @@ export function FichaForm({
         cpfProprietario: "",
         renavam: "",
         prazoMulta: "",
+        processoVinculado: "",
       },
     ])
   }
@@ -628,15 +740,16 @@ export function FichaForm({
   )
 
   const renderPrazoField = (field: "prazoProcesso" | "prazoMulta", label: string) => {
-    const isVencida = values[field] === "VENCIDA"
+    const selectedMode = getPrazoMode(values[field])
+    const dateDisabled = selectedMode !== "DATA"
 
     return (
       <div className="space-y-2">
         <Label htmlFor={field}>{label}</Label>
         <div className="grid grid-cols-[150px_1fr] gap-2">
           <Select
-            value={isVencida ? "VENCIDA" : "DATA"}
-            onValueChange={(value) => setField(field, value === "VENCIDA" ? "VENCIDA" : values[field] === "VENCIDA" ? "" : values[field])}
+            value={selectedMode}
+            onValueChange={(value) => setField(field, getPrazoValue(values[field], value))}
             disabled={fieldDisabled}
           >
             <SelectTrigger>
@@ -644,7 +757,8 @@ export function FichaForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="DATA">Data</SelectItem>
-              <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+              <SelectItem value="Vencida">Vencida</SelectItem>
+              <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
             </SelectContent>
           </Select>
 
@@ -652,9 +766,9 @@ export function FichaForm({
             id={field}
             name={field}
             type="date"
-            value={isVencida ? "" : values[field]}
+            value={dateDisabled ? "" : values[field]}
             onChange={(event) => setField(field, event.target.value)}
-            disabled={fieldDisabled || isVencida}
+            disabled={fieldDisabled || dateDisabled}
           />
         </div>
       </div>
@@ -1008,24 +1122,15 @@ export function FichaForm({
                 key={`processo-line-${lineIndex}`}
                 className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_220px_minmax(0,1fr)_250px_auto]"
               >
-                <div className="space-y-2">
-                  <Label htmlFor={`instanciaProcesso-${lineIndex}`}>Instancia do Processo</Label>
-                  <Select
-                    value={line.instanciaProcesso || undefined}
-                    onValueChange={(value) => updateProcessoLineField(lineIndex, "instanciaProcesso", value)}
-                    disabled={fieldDisabled}
-                  >
-                    <SelectTrigger id={`instanciaProcesso-${lineIndex}`}>
-                      <SelectValue placeholder="Selecione a instancia" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INSTANCIA_PROCESSO_OPTIONS.map((option) => (
-                        <SelectItem key={`${option}-${lineIndex}`} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <div className="space-y-2">
+                        <Label htmlFor={`instanciaProcesso-${lineIndex}`}>Instancia do Processo</Label>
+                        <MultiSelectInstancia
+                          id={`instanciaProcesso-${lineIndex}`}
+                          value={line.instanciaProcesso}
+                          options={INSTANCIA_PROCESSO_OPTIONS}
+                          onChange={(value) => updateProcessoLineField(lineIndex, "instanciaProcesso", value)}
+                          disabled={fieldDisabled}
+                        />
                 </div>
 
                 <div className="space-y-2">
@@ -1063,35 +1168,32 @@ export function FichaForm({
                   <Label htmlFor={`prazoProcesso-${lineIndex}`}>Prazo</Label>
                   <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
                     <Select
-                      value={line.prazoProcesso === "VENCIDA" ? "VENCIDA" : "DATA"}
+                      value={getPrazoMode(line.prazoProcesso)}
                       onValueChange={(value) =>
                         updateProcessoLineField(
                           lineIndex,
                           "prazoProcesso",
-                          value === "VENCIDA"
-                            ? "VENCIDA"
-                            : line.prazoProcesso === "VENCIDA"
-                              ? ""
-                              : line.prazoProcesso
+                          getPrazoValue(line.prazoProcesso, value)
                         )
                       }
                       disabled={fieldDisabled}
                     >
                       <SelectTrigger>
                         <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DATA">Data</SelectItem>
-                        <SelectItem value="VENCIDA">VENCIDA</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DATA">Data</SelectItem>
+                      <SelectItem value="Vencida">Vencida</SelectItem>
+                      <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                     <Input
                       id={`prazoProcesso-${lineIndex}`}
                       type="date"
-                      value={line.prazoProcesso === "VENCIDA" ? "" : line.prazoProcesso}
+                      value={getPrazoMode(line.prazoProcesso) === "DATA" ? line.prazoProcesso : ""}
                       onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
-                      disabled={fieldDisabled || line.prazoProcesso === "VENCIDA"}
+                      disabled={fieldDisabled || getPrazoMode(line.prazoProcesso) !== "DATA"}
                     />
                   </div>
                 </div>
@@ -1203,26 +1305,17 @@ export function FichaForm({
                   {multaDetailLines.map((line, lineIndex) => (
                     <div
                       key={`multa-detail-${index}-${lineIndex}`}
-                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
+                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_170px_250px_auto]"
                     >
                       <div className="space-y-2">
                         <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`}>Instancia da Multa</Label>
-                        <Select
-                          value={line.instanciaMulta || undefined}
-                          onValueChange={(value) => updateMultaDetailLineField(index, lineIndex, "instanciaMulta", value)}
+                        <MultiSelectInstancia
+                          id={`instanciaMulta-${index}-${lineIndex}`}
+                          value={line.instanciaMulta}
+                          options={INSTANCIA_MULTA_OPTIONS}
+                          onChange={(value) => updateMultaDetailLineField(index, lineIndex, "instanciaMulta", value)}
                           disabled={fieldDisabled}
-                        >
-                          <SelectTrigger id={`instanciaMulta-${index}-${lineIndex}`}>
-                            <SelectValue placeholder="Selecione a instancia" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INSTANCIA_MULTA_OPTIONS.map((option) => (
-                              <SelectItem key={`${option}-${index}-${lineIndex}`} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
 
                       <div className="space-y-2">
@@ -1256,20 +1349,34 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
+                        <Label htmlFor={`processoVinculado-${index}-${lineIndex}`}>Processo</Label>
+                        <label
+                          htmlFor={`processoVinculado-${index}-${lineIndex}`}
+                          className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          <Checkbox
+                            id={`processoVinculado-${index}-${lineIndex}`}
+                            checked={line.processoVinculado === "sim"}
+                            onCheckedChange={(checked) =>
+                              updateMultaDetailLineField(index, lineIndex, "processoVinculado", checked === true ? "sim" : "")
+                            }
+                            disabled={fieldDisabled}
+                          />
+                          <span>Faz parte</span>
+                        </label>
+                      </div>
+
+                      <div className="space-y-2">
                         <Label htmlFor={`prazoMulta-${index}-${lineIndex}`}>Prazo</Label>
                         <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
                           <Select
-                            value={line.prazoMulta === "VENCIDA" ? "VENCIDA" : "DATA"}
+                            value={getPrazoMode(line.prazoMulta)}
                             onValueChange={(value) =>
                               updateMultaDetailLineField(
                                 index,
                                 lineIndex,
                                 "prazoMulta",
-                                value === "VENCIDA"
-                                  ? "VENCIDA"
-                                  : line.prazoMulta === "VENCIDA"
-                                    ? ""
-                                    : line.prazoMulta
+                                getPrazoValue(line.prazoMulta, value)
                               )
                             }
                             disabled={fieldDisabled}
@@ -1279,16 +1386,17 @@ export function FichaForm({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="DATA">Data</SelectItem>
-                              <SelectItem value="VENCIDA">VENCIDA</SelectItem>
+                              <SelectItem value="Vencida">Vencida</SelectItem>
+                              <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
                             </SelectContent>
                           </Select>
 
                           <Input
                             id={`prazoMulta-${index}-${lineIndex}`}
                             type="date"
-                            value={line.prazoMulta === "VENCIDA" ? "" : line.prazoMulta}
+                            value={getPrazoMode(line.prazoMulta) === "DATA" ? line.prazoMulta : ""}
                             onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
-                            disabled={fieldDisabled || line.prazoMulta === "VENCIDA"}
+                            disabled={fieldDisabled || getPrazoMode(line.prazoMulta) !== "DATA"}
                           />
                         </div>
                       </div>
@@ -1335,11 +1443,16 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      {showActions && (onCancelEdit || !showInlineSubmit) && (
+      {showActions && (onCancelEdit || onBack || !showInlineSubmit) && (
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
           {onCancelEdit && (
             <Button type="button" variant="outline" className="px-8 py-6 text-lg" onClick={onCancelEdit} disabled={loading}>
               Cancelar
+            </Button>
+          )}
+          {onBack && (
+            <Button type="button" variant="outline" className="px-8 py-6 text-lg" onClick={onBack} disabled={loading}>
+              {backLabel}
             </Button>
           )}
           {!showInlineSubmit ? (

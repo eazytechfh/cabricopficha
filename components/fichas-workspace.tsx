@@ -35,10 +35,10 @@ type TipoBusca = "cpf" | "cnpj" | "nome"
 function getFichaLabel(nomeCliente: string) {
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
   if (match) {
-    return `Contrato ${match[1]}`
+    return `Ficha ${match[1]}`
   }
 
-  return "Contrato"
+  return "Ficha"
 }
 
 function getClienteBaseName(nomeCliente: string) {
@@ -163,6 +163,7 @@ export default function FichasWorkspace() {
   const [createLoading, setCreateLoading] = useState(false)
   const [createMessage, setCreateMessage] = useState("")
   const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
+  const [createReturnToConsulta, setCreateReturnToConsulta] = useState(false)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
   const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
@@ -195,6 +196,7 @@ export default function FichasWorkspace() {
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
   const [userUpdating, setUserUpdating] = useState(false)
+  const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -223,11 +225,10 @@ export default function FichasWorkspace() {
         const response = await getFichas({ cpf: cpfNormalizado })
         if (cancelled) return
 
-        const nextSequence = String(response.fichas.length + 1).padStart(2, "0")
-        setCreateIdentifierPreview(`${nomeBase} ${nextSequence}`)
+        setCreateIdentifierPreview(nomeBase)
       } catch {
         if (!cancelled) {
-          setCreateIdentifierPreview(`${nomeBase} 01`)
+          setCreateIdentifierPreview(nomeBase)
         }
       }
     }
@@ -452,6 +453,21 @@ export default function FichasWorkspace() {
           ? "Ficha salva com sucesso."
           : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
       )
+      if (createReturnToConsulta && selectedFicha) {
+        const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
+        const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
+        const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
+        const selectedCpf = normalizeCpfCnpj(selectedFicha.cpfCnpj)
+        const selectedName = getClienteBaseName(selectedFicha.nomeCliente).toLowerCase()
+        const nextContratos = refreshed.fichas.filter((ficha) => {
+          const sameCpf = selectedCpf && normalizeCpfCnpj(ficha.cpfCnpj) === selectedCpf
+          const sameName = selectedName && getClienteBaseName(ficha.nomeCliente).toLowerCase() === selectedName
+          return sameCpf || sameName
+        })
+
+        setConsultaItems(refreshed.fichas)
+        setSelectedContratos(nextContratos.length > 0 ? nextContratos : [response.ficha])
+      }
       setCreateValues({
         ...emptyFichaValues,
         nomeConsultor: getDefaultConsultorOption(consultor.nome),
@@ -519,6 +535,15 @@ export default function FichasWorkspace() {
       resetConsulta()
     }
 
+    if (nextTab === "cadastrar") {
+      setCreateReturnToConsulta(false)
+      setCreateMessage("")
+      setCreateValues({
+        ...emptyFichaValues,
+        nomeConsultor: consultor ? getDefaultConsultorOption(consultor.nome) : "",
+      })
+    }
+
     setActiveTab(nextTab)
   }
 
@@ -560,7 +585,11 @@ export default function FichasWorkspace() {
 
   const handleAddNovoContrato = () => {
     setCreateMessage("")
+    setCreateReturnToConsulta(true)
     setActiveTab("cadastrar")
+    window.setTimeout(() => {
+      cadastroTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 0)
 
     if (!selectedFicha) {
       setCreateValues((current) => ({
@@ -586,6 +615,15 @@ export default function FichasWorkspace() {
       origem: selectedFicha.origem,
       sne: selectedFicha.sne,
     })
+  }
+
+  const handleVoltarCadastroParaConsulta = () => {
+    setCreateMessage("")
+    setCreateReturnToConsulta(false)
+    setActiveTab("consultar")
+    window.setTimeout(() => {
+      consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 0)
   }
 
   const handleUpdate = async () => {
@@ -888,7 +926,7 @@ export default function FichasWorkspace() {
             <TabsTrigger value="consultar">Consulta de Ficha</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cadastrar" className="space-y-4">
+          <TabsContent value="cadastrar" className="space-y-4" ref={cadastroTopRef}>
             {createMessage && <p className="text-sm text-primary font-medium">{createMessage}</p>}
             <FichaForm
               values={createValues}
@@ -899,6 +937,7 @@ export default function FichasWorkspace() {
               loadingLabel="Salvando..."
               requiredFields={["nomeCliente", "cpfCnpj"]}
               identifierPreview={createIdentifierPreview}
+              onBack={createReturnToConsulta ? handleVoltarCadastroParaConsulta : undefined}
             />
           </TabsContent>
 
@@ -1005,11 +1044,11 @@ export default function FichasWorkspace() {
                 <CardContent className="space-y-4">
                   <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-lg font-semibold text-foreground">Contratos</h2>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
                     <Button type="button" onClick={handleAddNovoContrato}>
                       <Plus className="size-4" />
-                      Adicionar Novo Contrato
+                      Adicionar
                     </Button>
                   </div>
 
@@ -1026,7 +1065,7 @@ export default function FichasWorkspace() {
                           <div className="flex w-full flex-col gap-1 pr-2 sm:flex-row sm:items-center sm:justify-between">
                             <span className="font-semibold text-primary">{getFichaLabel(contrato.nomeCliente)}</span>
                             <span className="text-sm font-medium text-muted-foreground">
-                              Data do contrato: {formatDisplayDate(contrato.dataContrato)}
+                              Data da ficha: {formatDisplayDate(contrato.dataContrato)}
                             </span>
                           </div>
                         </AccordionTrigger>
@@ -1036,7 +1075,7 @@ export default function FichasWorkspace() {
                               <FichaReadView values={editValues} />
                               <div className="flex flex-col gap-4 sm:flex-row">
                                 {canEditSelectedFicha ? (
-                                  <Button onClick={() => setViewMode("edit")}>Editar Contrato</Button>
+                                  <Button onClick={() => setViewMode("edit")}>Editar Ficha</Button>
                                 ) : (
                                   <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
                                 )}

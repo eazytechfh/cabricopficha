@@ -16,6 +16,7 @@ type MultaWebhookItem = {
   cpfProprietario: string
   renavam: string
   prazo: string
+  processoVinculado: string
 }
 
 type FichaWebhookPayloadBase = {
@@ -84,6 +85,7 @@ function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
   const cpfsProprietario = splitSerializedEntries(ficha.cpfProprietario)
   const renavams = splitSerializedEntries(ficha.renavam)
   const prazos = splitSerializedEntries(ficha.prazoMulta)
+  const processosVinculados = splitSerializedEntries(ficha.vistoJuridicoMulta)
 
   const maxLength = Math.max(
     instancias.length,
@@ -95,6 +97,7 @@ function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
     cpfsProprietario.length,
     renavams.length,
     prazos.length,
+    processosVinculados.length,
     1
   )
 
@@ -108,6 +111,7 @@ function getMultasLista(ficha: FichaRecord): MultaWebhookItem[] {
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazo: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -156,6 +160,7 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         cpfProprietario: "",
         renavam: "",
         prazo: "",
+        processoVinculado: "",
       },
       multasLista,
       observacoes: ficha.observacoes,

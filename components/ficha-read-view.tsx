@@ -22,7 +22,8 @@ function hasAnyText(values: string[]) {
 
 function formatDate(value: string) {
   if (!value) return "-"
-  if (value === "VENCIDA") return "VENCIDA"
+  if (value === "VENCIDA") return "Vencida"
+  if (value === "Vencida" || value === "Revisão de Ato") return value
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -84,6 +85,7 @@ function getMultaBlocks(values: FichaFormValues) {
   const cpfsProprietario = splitSerializedEntries(values.cpfProprietario)
   const renavams = splitSerializedEntries(values.renavam)
   const prazos = splitSerializedEntries(values.prazoMulta)
+  const processosVinculados = splitSerializedEntries(values.vistoJuridicoMulta)
 
   const maxLength = Math.max(
     instancias.length,
@@ -95,6 +97,7 @@ function getMultaBlocks(values: FichaFormValues) {
     cpfsProprietario.length,
     renavams.length,
     prazos.length,
+    processosVinculados.length,
     1
   )
 
@@ -108,6 +111,7 @@ function getMultaBlocks(values: FichaFormValues) {
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -117,13 +121,23 @@ function getMultaLines(block: {
   autoRenainf: string
   tipoMulta: string
   prazoMulta: string
+  processoVinculado: string
 }) {
   const instancias = splitLines(block.instanciaMulta)
   const autosDetran = splitLines(block.autoDetran)
   const autosRenainf = splitLines(block.autoRenainf)
   const tipos = splitLines(block.tipoMulta)
   const prazos = splitLines(block.prazoMulta)
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
+  const processosVinculados = splitLines(block.processoVinculado)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    prazos.length,
+    processosVinculados.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -131,6 +145,7 @@ function getMultaLines(block: {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -206,7 +221,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <CardContent className="space-y-4">
             {multaBlocks.map((block, index) => {
               const multaLines = getMultaLines(block).filter((line) =>
-                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
+                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta, line.processoVinculado])
               )
 
               return (
@@ -220,11 +235,12 @@ export function FichaReadView({ values }: FichaReadViewProps) {
                   </div>
 
                   {multaLines.map((line, lineIndex) => (
-                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
+                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-6">
                       <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
                       <ValueCell label="Detran" value={line.autoDetran} />
                       <ValueCell label="Renainf" value={line.autoRenainf} />
                       <ValueCell label="Tipo" value={line.tipoMulta} />
+                      <ValueCell label="Processo" value={line.processoVinculado === "sim" ? "Faz parte" : "Nao faz parte"} />
                       <ValueCell label="Prazo" value={formatDate(line.prazoMulta)} />
                     </div>
                   ))}

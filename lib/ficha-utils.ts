@@ -35,6 +35,8 @@ export function formatCurrency(value: number) {
 
 export function formatDate(value: string) {
   if (!value) return ""
+  if (value === "VENCIDA") return "Vencida"
+  if (value === "Vencida" || value === "Revisão de Ato") return value
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -61,6 +63,18 @@ export function normalizeInstanciaValue(value: string) {
   return value
 }
 
+function normalizeInstanciaSelections(value: string) {
+  return (value || "")
+    .split("\n")
+    .map((line) =>
+      line
+        .split(",")
+        .map((item) => normalizeInstanciaValue(item))
+        .join(", ")
+    )
+    .join("\n")
+}
+
 export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
   const banco = values.banco === "outros" ? values.bancoOutro.trim() : values.banco
 
@@ -68,14 +82,14 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
     ...values,
     banco,
     bancoOutro: values.banco === "outros" ? values.bancoOutro : "",
-    instanciaProcesso: normalizeInstanciaValue(values.instanciaProcesso),
+    instanciaProcesso: normalizeInstanciaSelections(values.instanciaProcesso),
     instanciaMulta: values.instanciaMulta
       .split(MULTI_ENTRY_SEPARATOR)
-      .map((item) => normalizeInstanciaValue(item))
+      .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
     vistoJuridico: "",
     assinaturaVistoJuridico: "",
-    vistoJuridicoMulta: "",
+    vistoJuridicoMulta: values.vistoJuridicoMulta,
   }
 }
 
@@ -96,10 +110,10 @@ export function toRecordValues(record: FichaRecord): FichaFormValues {
 
   return {
     ...record,
-    instanciaProcesso: normalizeInstanciaValue(record.instanciaProcesso),
+    instanciaProcesso: normalizeInstanciaSelections(record.instanciaProcesso),
     instanciaMulta: record.instanciaMulta
       .split(MULTI_ENTRY_SEPARATOR)
-      .map((item) => normalizeInstanciaValue(item))
+      .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
     banco: usesPresetBank ? banco : banco ? "outros" : "",
     bancoOutro: usesPresetBank ? "" : banco,

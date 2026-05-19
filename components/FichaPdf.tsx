@@ -36,6 +36,7 @@ export type FichaPdfData = {
   cpfProprietario: string
   renavam: string
   prazoMulta: string
+  vistoJuridicoMulta: string
   observacoes: string
 }
 
@@ -72,7 +73,8 @@ function fallback(value: string) {
 
 function formatDate(value: string) {
   if (!value) return "-"
-  if (value === "VENCIDA") return "VENCIDA"
+  if (value === "VENCIDA") return "Vencida"
+  if (value === "Vencida" || value === "Revisão de Ato") return value
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -155,6 +157,7 @@ function getMultaBlocks(data: FichaPdfData) {
   const cpfsProprietario = splitSerializedEntries(data.cpfProprietario)
   const renavams = splitSerializedEntries(data.renavam)
   const prazos = splitSerializedEntries(data.prazoMulta)
+  const processosVinculados = splitSerializedEntries(data.vistoJuridicoMulta)
   const maxLength = Math.max(
     instancias.length,
     autosDetran.length,
@@ -165,6 +168,7 @@ function getMultaBlocks(data: FichaPdfData) {
     cpfsProprietario.length,
     renavams.length,
     prazos.length,
+    processosVinculados.length,
     1
   )
 
@@ -178,6 +182,7 @@ function getMultaBlocks(data: FichaPdfData) {
     cpfProprietario: cpfsProprietario[index] || "",
     renavam: renavams[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -187,13 +192,23 @@ function getMultaLines(block: {
   autoRenainf: string
   tipoMulta: string
   prazoMulta: string
+  processoVinculado: string
 }) {
   const instancias = splitLines(block.instanciaMulta)
   const autosDetran = splitLines(block.autoDetran)
   const autosRenainf = splitLines(block.autoRenainf)
   const tipos = splitLines(block.tipoMulta)
   const prazos = splitLines(block.prazoMulta)
-  const maxLength = Math.max(instancias.length, autosDetran.length, autosRenainf.length, tipos.length, prazos.length, 1)
+  const processosVinculados = splitLines(block.processoVinculado)
+  const maxLength = Math.max(
+    instancias.length,
+    autosDetran.length,
+    autosRenainf.length,
+    tipos.length,
+    prazos.length,
+    processosVinculados.length,
+    1
+  )
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaMulta: instancias[index] || "",
@@ -201,6 +216,7 @@ function getMultaLines(block: {
     autoRenainf: autosRenainf[index] || "",
     tipoMulta: tipos[index] || "",
     prazoMulta: prazos[index] || "",
+    processoVinculado: processosVinculados[index] || "",
   }))
 }
 
@@ -409,7 +425,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1fr 1fr 1fr 1fr 0.8fr 0.9fr", [field("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
+                    {gridRow("1fr 0.9fr 0.9fr 0.9fr 0.9fr 0.75fr 0.8fr", [field("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), field("Processo", line.processoVinculado === "sim" ? "Sim" : "Nao"), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
                   </div>
                 ))}
               </div>

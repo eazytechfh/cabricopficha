@@ -11,6 +11,7 @@ const fichasTableName = "fichas_venda"
 const excelBaseDir = process.env.VERCEL ? path.join(tmpdir(), "cabricopficha") : path.join(process.cwd(), "storage")
 const excelPath = path.join(excelBaseDir, "fichas.xlsx")
 const VENCIDA_SENTINEL_DATE = "1900-01-01"
+const REVISAO_ATO_SENTINEL_DATE = "1900-01-02"
 
 function ensureSupabaseConfig() {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -31,15 +32,20 @@ function headers() {
 
 function toDatabaseDate(value: string) {
   const normalizedValue = (value || "").trim()
-  if (normalizedValue === "VENCIDA") {
+  if (normalizedValue === "Vencida" || normalizedValue === "VENCIDA") {
     return VENCIDA_SENTINEL_DATE
+  }
+  if (normalizedValue === "Revisão de Ato" || normalizedValue === "Revisao de Ato") {
+    return REVISAO_ATO_SENTINEL_DATE
   }
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
 }
 
 function fromDatabaseDate(value: unknown) {
   const normalizedValue = String(value ?? "")
-  return normalizedValue === VENCIDA_SENTINEL_DATE ? "VENCIDA" : normalizedValue
+  if (normalizedValue === VENCIDA_SENTINEL_DATE) return "Vencida"
+  if (normalizedValue === REVISAO_ATO_SENTINEL_DATE) return "Revisão de Ato"
+  return normalizedValue
 }
 
 function stripIdentifierSuffix(value: string) {
