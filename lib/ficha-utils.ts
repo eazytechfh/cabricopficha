@@ -87,8 +87,8 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
       .split(MULTI_ENTRY_SEPARATOR)
       .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
-    vistoJuridico: "",
-    assinaturaVistoJuridico: "",
+    vistoJuridico: values.vistoJuridico,
+    assinaturaVistoJuridico: values.prazoProcesso,
     vistoJuridicoMulta: values.vistoJuridicoMulta,
   }
 }

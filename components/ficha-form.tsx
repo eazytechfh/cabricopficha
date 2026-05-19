@@ -43,6 +43,7 @@ type ProcessoLine = {
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
+  multasProcesso: string
   prazoProcesso: string
 }
 
@@ -138,14 +139,16 @@ function getProcessoLines(values: FichaFormValues): ProcessoLine[] {
   const instancias = splitLineValues(values.instanciaProcesso)
   const tipos = splitLineValues(values.tipoProcesso)
   const numeros = splitLineValues(values.numeroProcesso)
+  const multas = splitLineValues(values.vistoJuridico)
   const prazos = splitLineValues(values.prazoProcesso)
 
-  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaProcesso: instancias[index] || "",
     tipoProcesso: tipos[index] || "",
     numeroProcesso: numeros[index] || "",
+    multasProcesso: multas[index] || "",
     prazoProcesso: prazos[index] || "",
   }))
 }
@@ -656,6 +659,7 @@ export function FichaForm({
       instanciaProcesso: lines.map((line) => line.instanciaProcesso).join("\n"),
       tipoProcesso: lines.map((line) => line.tipoProcesso).join("\n"),
       numeroProcesso: lines.map((line) => line.numeroProcesso).join("\n"),
+      vistoJuridico: lines.map((line) => line.multasProcesso).join("\n"),
       prazoProcesso: lines.map((line) => line.prazoProcesso).join("\n"),
     })
   }
@@ -680,6 +684,7 @@ export function FichaForm({
         instanciaProcesso: "",
         tipoProcesso: "",
         numeroProcesso: "",
+        multasProcesso: "",
         prazoProcesso: "",
       },
     ])
@@ -1120,7 +1125,7 @@ export function FichaForm({
             {processoLines.map((line, lineIndex) => (
               <div
                 key={`processo-line-${lineIndex}`}
-                className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_220px_minmax(0,1fr)_250px_auto]"
+                className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_210px_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
               >
                       <div className="space-y-2">
                         <Label htmlFor={`instanciaProcesso-${lineIndex}`}>Instancia do Processo</Label>
@@ -1161,6 +1166,17 @@ export function FichaForm({
                     onChange={(event) => updateProcessoLineField(lineIndex, "numeroProcesso", event.target.value)}
                     disabled={fieldDisabled}
                     className="uppercase"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`multasProcesso-${lineIndex}`}>Multas do Processo</Label>
+                  <Input
+                    id={`multasProcesso-${lineIndex}`}
+                    value={line.multasProcesso}
+                    onChange={(event) => updateProcessoLineField(lineIndex, "multasProcesso", event.target.value)}
+                    disabled={fieldDisabled}
+                    placeholder="Ex: I53552418, I53552419"
                   />
                 </div>
 

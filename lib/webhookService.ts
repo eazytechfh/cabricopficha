@@ -48,6 +48,7 @@ type FichaWebhookPayloadBase = {
       instancia: string
       tipo: string
       numero: string
+      multasProcesso: string
       prazo: string
       assinaturaVistoJuridico: string
     }
@@ -147,8 +148,9 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         instancia: ficha.instanciaProcesso,
         tipo: ficha.tipoProcesso,
         numero: ficha.numeroProcesso,
+        multasProcesso: ficha.vistoJuridico,
         prazo: ficha.prazoProcesso,
-        assinaturaVistoJuridico: ficha.assinaturaVistoJuridico,
+        assinaturaVistoJuridico: "",
       },
       multas: multasLista[0] || {
         instancia: "",

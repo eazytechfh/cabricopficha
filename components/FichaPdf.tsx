@@ -26,6 +26,7 @@ export type FichaPdfData = {
   tipoProcesso: string
   numeroProcesso: string
   prazoProcesso: string
+  vistoJuridico: string
   assinaturaVistoJuridico: string
   instanciaMulta: string
   autoDetran: string
@@ -136,13 +137,15 @@ function getProcessoLines(data: FichaPdfData) {
   const instancias = splitLines(data.instanciaProcesso)
   const tipos = splitLines(data.tipoProcesso)
   const numeros = splitLines(data.numeroProcesso)
+  const multas = splitLines(data.vistoJuridico)
   const prazos = splitLines(data.prazoProcesso)
-  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaProcesso: instancias[index] || "",
     tipoProcesso: tipos[index] || "",
     numeroProcesso: numeros[index] || "",
+    multasProcesso: multas[index] || "",
     prazoProcesso: prazos[index] || "",
   }))
 }
@@ -396,7 +399,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("0.95fr 1.1fr 0.95fr 0.8fr 0.9fr", [field("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("0.9fr 1fr 0.85fr 1fr 0.75fr 0.8fr", [field("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", line.multasProcesso), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>

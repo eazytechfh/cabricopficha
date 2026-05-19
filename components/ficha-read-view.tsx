@@ -64,13 +64,15 @@ function getProcessoLines(values: FichaFormValues) {
   const instancias = splitLines(values.instanciaProcesso)
   const tipos = splitLines(values.tipoProcesso)
   const numeros = splitLines(values.numeroProcesso)
+  const multas = splitLines(values.vistoJuridico)
   const prazos = splitLines(values.prazoProcesso)
-  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, prazos.length, 1)
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
     instanciaProcesso: instancias[index] || "",
     tipoProcesso: tipos[index] || "",
     numeroProcesso: numeros[index] || "",
+    multasProcesso: multas[index] || "",
     prazoProcesso: prazos[index] || "",
   }))
 }
@@ -165,7 +167,7 @@ function formatMoneyValue(value: string) {
 
 export function FichaReadView({ values }: FichaReadViewProps) {
   const processoLines = getProcessoLines(values).filter((line) =>
-    hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.prazoProcesso])
+    hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
   )
   const multaBlocks = getMultaBlocks(values).filter((block) =>
     hasAnyText([
@@ -202,10 +204,11 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             {processoLines.map((line, index) => (
-              <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-4">
+              <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-5">
                 <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
                 <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
                 <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
+                <ValueCell label="Multas do Processo" value={line.multasProcesso} />
                 <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
             ))}

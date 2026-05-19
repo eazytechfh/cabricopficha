@@ -48,6 +48,10 @@ function fromDatabaseDate(value: unknown) {
   return normalizedValue
 }
 
+function firstLine(value: string) {
+  return (value || "").split("\n")[0] || ""
+}
+
 function stripIdentifierSuffix(value: string) {
   return (value || "").trim().replace(/\s+\d{2}$/, "")
 }
@@ -107,9 +111,9 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     instancia_processo: normalizedData.instanciaProcesso || null,
     tipo_processo: normalizedData.tipoProcesso || null,
     numero_processo: normalizedData.numeroProcesso || null,
-    prazo_processo: toDatabaseDate(normalizedData.prazoProcesso),
+    prazo_processo: toDatabaseDate(firstLine(normalizedData.prazoProcesso)),
     visto_juridico: normalizedData.vistoJuridico || null,
-    assinatura_visto_juridico: normalizedData.assinaturaVistoJuridico || null,
+    assinatura_visto_juridico: normalizedData.prazoProcesso || null,
     instancia_multa: normalizedData.instanciaMulta || null,
     auto_detran: normalizedData.autoDetran || null,
     auto_renainf: normalizedData.autoRenainf || null,
@@ -176,7 +180,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     instanciaProcesso: String(row.instancia_processo ?? ""),
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
-    prazoProcesso: fromDatabaseDate(row.prazo_processo),
+    prazoProcesso: String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo),
     vistoJuridico: String(row.visto_juridico ?? ""),
     assinaturaVistoJuridico: String(row.assinatura_visto_juridico ?? ""),
     instanciaMulta: String(row.instancia_multa ?? ""),
