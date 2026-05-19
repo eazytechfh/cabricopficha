@@ -1308,7 +1308,9 @@ export function FichaForm({
                       className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_170px_250px_auto]"
                     >
                       <div className="space-y-2">
-                        <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`}>Instancia da Multa</Label>
+                        <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Instancia da Multa
+                        </Label>
                         <MultiSelectInstancia
                           id={`instanciaMulta-${index}-${lineIndex}`}
                           value={line.instanciaMulta}
@@ -1319,7 +1321,9 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`autoDetran-${index}-${lineIndex}`}>Auto DETRAN</Label>
+                        <Label htmlFor={`autoDetran-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Auto DETRAN
+                        </Label>
                         <Input
                           id={`autoDetran-${index}-${lineIndex}`}
                           value={line.autoDetran}
@@ -1329,7 +1333,9 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`autoRenainf-${index}-${lineIndex}`}>Auto RENAINF</Label>
+                        <Label htmlFor={`autoRenainf-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Auto RENAINF
+                        </Label>
                         <Input
                           id={`autoRenainf-${index}-${lineIndex}`}
                           value={line.autoRenainf}
@@ -1339,7 +1345,9 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`tipoMulta-${index}-${lineIndex}`}>Tipo de Multa</Label>
+                        <Label htmlFor={`tipoMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Tipo de Multa
+                        </Label>
                         <Input
                           id={`tipoMulta-${index}-${lineIndex}`}
                           value={line.tipoMulta}
@@ -1349,7 +1357,9 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`processoVinculado-${index}-${lineIndex}`}>Processo</Label>
+                        <Label htmlFor={`processoVinculado-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Processo
+                        </Label>
                         <label
                           htmlFor={`processoVinculado-${index}-${lineIndex}`}
                           className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
@@ -1367,7 +1377,9 @@ export function FichaForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`prazoMulta-${index}-${lineIndex}`}>Prazo</Label>
+                        <Label htmlFor={`prazoMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
+                          Prazo
+                        </Label>
                         <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
                           <Select
                             value={getPrazoMode(line.prazoMulta)}
