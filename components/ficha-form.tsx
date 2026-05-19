@@ -1352,7 +1352,7 @@ export function FichaForm({
                         <Label htmlFor={`processoVinculado-${index}-${lineIndex}`}>Processo</Label>
                         <label
                           htmlFor={`processoVinculado-${index}-${lineIndex}`}
-                          className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                         >
                           <Checkbox
                             id={`processoVinculado-${index}-${lineIndex}`}
