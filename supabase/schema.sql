@@ -27,6 +27,7 @@ create table if not exists public.fichas_venda (
   prazo_processo date,
   visto_juridico text,
   assinatura_visto_juridico text,
+  multas_processo text,
   instancia_multa text,
   auto_detran text,
   auto_renainf text,
@@ -37,6 +38,7 @@ create table if not exists public.fichas_venda (
   renavam text,
   prazo_multa date,
   visto_juridico_multa text,
+  processo_vinculado_multa text,
   observacoes text,
   data_envio timestamptz,
   created_at timestamptz not null default now(),
@@ -50,7 +52,9 @@ on public.fichas_venda (cpf_normalizado);
 
 alter table public.fichas_venda
 add column if not exists placa_proprietario text,
-add column if not exists cpf_proprietario text;
+add column if not exists cpf_proprietario text,
+add column if not exists multas_processo text,
+add column if not exists processo_vinculado_multa text;
 
 alter table public.fichas_venda enable row level security;
 

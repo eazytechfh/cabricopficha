@@ -114,6 +114,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     prazo_processo: toDatabaseDate(firstLine(normalizedData.prazoProcesso)),
     visto_juridico: normalizedData.vistoJuridico || null,
     assinatura_visto_juridico: normalizedData.prazoProcesso || null,
+    multas_processo: normalizedData.vistoJuridico || null,
     instancia_multa: normalizedData.instanciaMulta || null,
     auto_detran: normalizedData.autoDetran || null,
     auto_renainf: normalizedData.autoRenainf || null,
@@ -124,6 +125,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     renavam: normalizedData.renavam || null,
     prazo_multa: toDatabaseDate(normalizedData.prazoMulta),
     visto_juridico_multa: normalizedData.vistoJuridicoMulta || null,
+    processo_vinculado_multa: normalizedData.vistoJuridicoMulta || null,
     observacoes: normalizedData.observacoes || null,
     updated_at: now,
     updated_by_consultor_id: consultor.id,
@@ -151,6 +153,45 @@ function canRetryWithoutColumn(column: string) {
 
 async function parseSupabasePayload(response: Response) {
   return (await response.json()) as Record<string, unknown> | Array<Record<string, unknown>>
+}
+
+async function sendFichaMutation(url: string, method: "POST" | "PATCH", payload: Record<string, unknown>) {
+  let response = await fetch(url, {
+    method,
+    headers: {
+      ...headers(),
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  })
+
+  let responsePayload = await parseSupabasePayload(response)
+  let retries = 0
+
+  while (!response.ok && !Array.isArray(responsePayload) && retries < 5) {
+    const missingColumn = getMissingSchemaColumn(responsePayload)
+
+    if (!missingColumn || !(missingColumn in payload) || !canRetryWithoutColumn(missingColumn)) {
+      break
+    }
+
+    delete payload[missingColumn]
+    retries += 1
+
+    response = await fetch(url, {
+      method,
+      headers: {
+        ...headers(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    })
+    responsePayload = await parseSupabasePayload(response)
+  }
+
+  return { response, responsePayload }
 }
 
 function fromRow(row: Record<string, unknown>): FichaRecord {
@@ -181,7 +222,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
     prazoProcesso: String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo),
-    vistoJuridico: String(row.visto_juridico ?? ""),
+    vistoJuridico: String(row.multas_processo ?? row.visto_juridico ?? ""),
     assinaturaVistoJuridico: String(row.assinatura_visto_juridico ?? ""),
     instanciaMulta: String(row.instancia_multa ?? ""),
     autoDetran: String(row.auto_detran ?? ""),
@@ -192,7 +233,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     cpfProprietario: String(row.cpf_proprietario ?? ""),
     renavam: String(row.renavam ?? ""),
     prazoMulta: fromDatabaseDate(row.prazo_multa),
-    vistoJuridicoMulta: String(row.visto_juridico_multa ?? ""),
+    vistoJuridicoMulta: String(row.processo_vinculado_multa ?? row.visto_juridico_multa ?? ""),
     observacoes: String(row.observacoes ?? ""),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? ""),
@@ -347,34 +388,7 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
   }
   const payload: Record<string, unknown> = toPayload(identifiedData, consultor, "create")
 
-  let response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
-    method: "POST",
-    headers: {
-      ...headers(),
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  })
-
-  let responsePayload = await parseSupabasePayload(response)
-  if (!response.ok && !Array.isArray(responsePayload)) {
-    const missingColumn = getMissingSchemaColumn(responsePayload)
-
-    if (missingColumn && missingColumn in payload && canRetryWithoutColumn(missingColumn)) {
-      delete payload[missingColumn]
-      response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}`, {
-        method: "POST",
-        headers: {
-          ...headers(),
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store",
-      })
-      responsePayload = await parseSupabasePayload(response)
-    }
-  }
+  const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}`, "POST", payload)
 
   if (!response.ok || !Array.isArray(responsePayload)) {
     throw new Error(
@@ -388,34 +402,7 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
   const payload: Record<string, unknown> = toPayload(data, consultor, "update")
 
-  let response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
-    method: "PATCH",
-    headers: {
-      ...headers(),
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  })
-
-  let responsePayload = await parseSupabasePayload(response)
-  if (!response.ok && !Array.isArray(responsePayload)) {
-    const missingColumn = getMissingSchemaColumn(responsePayload)
-
-    if (missingColumn && missingColumn in payload && canRetryWithoutColumn(missingColumn)) {
-      delete payload[missingColumn]
-      response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, {
-        method: "PATCH",
-        headers: {
-          ...headers(),
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store",
-      })
-      responsePayload = await parseSupabasePayload(response)
-    }
-  }
+  const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, "PATCH", payload)
 
   if (!response.ok || !Array.isArray(responsePayload)) {
     throw new Error(
