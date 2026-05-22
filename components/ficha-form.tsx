@@ -322,7 +322,10 @@ type FichaFormProps = {
   backLabel?: string
   requiredFields?: Array<keyof FichaFormValues>
   identifierPreview?: string
+  visibleSections?: FichaFormSection[]
 }
+
+type FichaFormSection = "contract" | "client" | "payment" | "processes" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -368,6 +371,7 @@ export function FichaForm({
   backLabel = "Voltar",
   requiredFields = [],
   identifierPreview,
+  visibleSections,
 }: FichaFormProps) {
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
@@ -529,6 +533,7 @@ export function FichaForm({
         </Button>
       </CardAction>
     ) : null
+  const shouldShowSection = (section: FichaFormSection) => !visibleSections || visibleSections.includes(section)
   const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
@@ -850,7 +855,7 @@ export function FichaForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="order-[10] border-l-4 border-l-primary shadow-md">
+      <Card className={`order-[10] border-l-4 border-l-primary shadow-md ${shouldShowSection("contract") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Calendar className="w-5 h-5" />
@@ -883,7 +888,7 @@ export function FichaForm({
           </CardContent>
         </Card>
 
-      <Card className="order-[20] border-l-4 border-l-primary shadow-md">
+      <Card className={`order-[20] border-l-4 border-l-primary shadow-md ${shouldShowSection("client") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <User className="w-5 h-5" />
@@ -1115,7 +1120,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="order-[30] border-l-4 border-l-secondary shadow-md">
+      <Card className={`order-[30] border-l-4 border-l-secondary shadow-md ${shouldShowSection("payment") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <CreditCard className="w-5 h-5" />
@@ -1171,7 +1176,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="order-[50] border-l-4 border-l-primary shadow-md">
+      <Card className={`order-[50] border-l-4 border-l-primary shadow-md ${shouldShowSection("processes") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileText className="w-5 h-5" />
@@ -1305,7 +1310,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="order-[40] border-l-4 border-l-secondary shadow-md">
+      <Card className={`order-[40] border-l-4 border-l-secondary shadow-md ${shouldShowSection("fines") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
@@ -1506,7 +1511,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className="order-[60] border-l-4 border-l-muted shadow-md">
+      <Card className={`order-[60] border-l-4 border-l-muted shadow-md ${shouldShowSection("notes") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-primary">Observações Adicionais</CardTitle>
         </CardHeader>

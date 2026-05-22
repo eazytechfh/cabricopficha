@@ -28,7 +28,7 @@ import {
   type FichaRecord,
 } from "@/lib/ficha-types"
 
-type ViewMode = "list" | "view" | "edit"
+type ViewMode = "list" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 
@@ -1042,7 +1042,7 @@ export default function FichasWorkspace() {
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
                 <CardContent className="space-y-4">
-                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("edit")} />
+                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} />
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
@@ -1099,10 +1099,10 @@ export default function FichasWorkspace() {
               </Card>
             )}
 
-            {selectedFicha && viewMode === "edit" && (
+            {selectedFicha && (viewMode === "edit" || viewMode === "editClient") && (
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>Edicao da Ficha</CardTitle>
+                  <CardTitle>{viewMode === "editClient" ? "Edicao dos Dados do Cliente" : "Edicao da Ficha"}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!canEditSelectedFicha ? (
@@ -1118,6 +1118,7 @@ export default function FichasWorkspace() {
                         loading={editLoading}
                         loadingLabel="Atualizando..."
                         showInlineSubmit
+                        visibleSections={viewMode === "editClient" ? ["client"] : undefined}
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>
