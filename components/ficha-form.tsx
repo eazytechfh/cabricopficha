@@ -141,6 +141,18 @@ function parseTelefoneValues(value: string) {
     .filter(Boolean)
 }
 
+function parseCnhParts(value: string) {
+  const cnhAtual = (value || "").trim()
+  const cnhMatch = cnhAtual.match(/^(.*?)(?:\s+\/\s+([A-Za-z]{1,2}))?$/)
+  const numero = (cnhMatch?.[1] || cnhAtual).trim().replace(/(?:\s+\/\s+[A-Za-z]?)+$/g, "").trim()
+  const uf = cnhMatch?.[2]?.trim().toUpperCase()
+
+  return {
+    numero,
+    uf: uf || (numero ? "" : "RJ"),
+  }
+}
+
 function getProcessoLines(values: FichaFormValues): ProcessoLine[] {
   const instancias = splitLineValues(values.instanciaProcesso)
   const tipos = splitLineValues(values.tipoProcesso)
@@ -384,10 +396,7 @@ export function FichaForm({
   }, [values.endereco])
 
   useEffect(() => {
-    const cnhAtual = values.cnh || ""
-    const cnhMatch = cnhAtual.match(/^(.*?)(?:\s*[\/-]\s*([A-Za-z]{2}))?$/)
-    const numero = cnhMatch?.[1]?.trim() || ""
-    const uf = cnhMatch?.[2]?.trim().toUpperCase() || "RJ"
+    const { numero, uf } = parseCnhParts(values.cnh)
 
     setCnhNumero(numero)
     setCnhUf(uf)
