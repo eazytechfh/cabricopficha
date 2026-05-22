@@ -224,7 +224,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <CardContent className="space-y-4">
             {multaBlocks.map((block, index) => {
               const multaLines = getMultaLines(block).filter((line) =>
-                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta, line.processoVinculado])
+                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
               )
 
               return (
@@ -238,12 +238,11 @@ export function FichaReadView({ values }: FichaReadViewProps) {
                   </div>
 
                   {multaLines.map((line, lineIndex) => (
-                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-6">
+                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
                       <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
                       <ValueCell label="Detran" value={line.autoDetran} />
                       <ValueCell label="Renainf" value={line.autoRenainf} />
                       <ValueCell label="Tipo" value={line.tipoMulta} />
-                      <ValueCell label="Processo" value={line.processoVinculado === "sim" ? "Faz parte" : "Nao faz parte"} />
                       <ValueCell label="Prazo" value={formatDate(line.prazoMulta)} />
                     </div>
                   ))}

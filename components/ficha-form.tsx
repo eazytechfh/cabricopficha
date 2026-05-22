@@ -1377,7 +1377,7 @@ export function FichaForm({
                   {multaDetailLines.map((line, lineIndex) => (
                     <div
                       key={`multa-detail-${index}-${lineIndex}`}
-                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_170px_250px_auto]"
+                      className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-background p-3 xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
                     >
                       <div className="space-y-2">
                         <Label htmlFor={`instanciaMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
@@ -1426,26 +1426,6 @@ export function FichaForm({
                           onChange={(event) => updateMultaDetailLineField(index, lineIndex, "tipoMulta", event.target.value)}
                           disabled={fieldDisabled}
                         />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`processoVinculado-${index}-${lineIndex}`} className="flex min-h-8 items-end">
-                          Processo
-                        </Label>
-                        <label
-                          htmlFor={`processoVinculado-${index}-${lineIndex}`}
-                          className="flex h-10 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
-                        >
-                          <Checkbox
-                            id={`processoVinculado-${index}-${lineIndex}`}
-                            checked={line.processoVinculado === "sim"}
-                            onCheckedChange={(checked) =>
-                              updateMultaDetailLineField(index, lineIndex, "processoVinculado", checked === true ? "sim" : "")
-                            }
-                            disabled={fieldDisabled}
-                          />
-                          <span>Faz parte</span>
-                        </label>
                       </div>
 
                       <div className="space-y-2">
