@@ -1082,6 +1082,12 @@ export default function FichasWorkspace() {
                                 <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                                   🖨️ FICHA
                                 </Button>
+                                <Button type="button" variant="outline">
+                                  🖨️ CONTRATO
+                                </Button>
+                                <Button type="button" variant="outline">
+                                  🖨️ PROCURAÇÃO
+                                </Button>
                               </div>
                             </div>
                           ) : null}
