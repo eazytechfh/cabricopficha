@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
@@ -508,6 +508,20 @@ export function FichaForm({
   ) : (
     submitLabel
   )
+  const renderSectionSubmit = () =>
+    showActions && showInlineSubmit && onSubmit ? (
+      <CardAction>
+        <Button
+          type="button"
+          size="sm"
+          className="whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary/90"
+          onClick={() => void onSubmit()}
+          disabled={loading || readOnly}
+        >
+          {submitContent}
+        </Button>
+      </CardAction>
+    ) : null
   const telefonesLista = parseTelefoneValues(values.telefones)
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
@@ -1088,18 +1102,6 @@ export function FichaForm({
               </Select>
             </div>
 
-            {showActions && showInlineSubmit ? (
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground md:w-auto"
-                  onClick={() => void onSubmit?.()}
-                  disabled={loading || readOnly}
-                >
-                  {submitContent}
-                </Button>
-              </div>
-            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -1110,6 +1112,7 @@ export function FichaForm({
             <CreditCard className="w-5 h-5" />
             Dados do Pagamento
           </CardTitle>
+          {renderSectionSubmit()}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1165,6 +1168,7 @@ export function FichaForm({
             <FileText className="w-5 h-5" />
             Processos
           </CardTitle>
+          {renderSectionSubmit()}
         </CardHeader>
         <CardContent className="space-y-3 pt-2">
           <div className="space-y-3">
@@ -1298,6 +1302,7 @@ export function FichaForm({
             <AlertCircle className="w-5 h-5" />
             Multas
           </CardTitle>
+          {renderSectionSubmit()}
         </CardHeader>
         <CardContent className="space-y-3 pt-2">
           {multaBlocks.map((block, index) => {
