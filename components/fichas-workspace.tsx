@@ -1075,12 +1075,12 @@ export default function FichasWorkspace() {
                               <FichaReadView values={editValues} />
                               <div className="flex flex-col gap-4 sm:flex-row">
                                 {canEditSelectedFicha ? (
-                                  <Button onClick={() => setViewMode("edit")}>Editar Ficha</Button>
+                                  <Button onClick={() => setViewMode("edit")}>✏️ FICHA</Button>
                                 ) : (
                                   <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
                                 )}
                                 <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
-                                  Gerar PDF novamente
+                                  🖨️ FICHA
                                 </Button>
                               </div>
                             </div>
