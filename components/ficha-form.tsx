@@ -1189,7 +1189,7 @@ export function FichaForm({
             {processoLines.map((line, lineIndex) => (
               <div
                 key={`processo-line-${lineIndex}`}
-                className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[180px_210px_minmax(0,1fr)_minmax(0,1fr)_250px_auto]"
+                className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-slate-50/60 p-3 xl:grid-cols-[190px_150px_120px_120px_250px_auto]"
               >
                       <div className="space-y-2">
                         <Label htmlFor={`instanciaProcesso-${lineIndex}`} className="flex min-h-8 items-end">
