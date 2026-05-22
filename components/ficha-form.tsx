@@ -889,6 +889,7 @@ export function FichaForm({
             <User className="w-5 h-5" />
             Dados do Cliente
           </CardTitle>
+          {renderSectionSubmit()}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

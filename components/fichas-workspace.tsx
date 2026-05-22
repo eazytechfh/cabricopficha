@@ -1114,7 +1114,7 @@ export default function FichasWorkspace() {
                         values={editValues}
                         onChange={setEditValues}
                         onSubmit={handleUpdate}
-                        submitLabel="Atualizar Ficha"
+                        submitLabel="Salvar 💾"
                         loading={editLoading}
                         loadingLabel="Atualizando..."
                         showInlineSubmit
