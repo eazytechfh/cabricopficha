@@ -21,6 +21,28 @@ export function splitSerializedEntries(value: string) {
   return value.split(MULTI_ENTRY_SEPARATOR)
 }
 
+export function formatMultaProcessoLabel(value: string) {
+  const trimmedValue = (value || "").trim()
+  const match = trimmedValue.match(/^(Multa\s+\d+)\s+-\s+Placa\s+\S+(?:\s+-\s*(.+))?$/i)
+
+  if (!match) return trimmedValue
+
+  return match[2]?.trim() ? `${match[1]} - ${match[2].trim()}` : match[1]
+}
+
+export function normalizeMultasProcessoLabels(value: string, multiline = false) {
+  return (value || "")
+    .split("\n")
+    .map((line) =>
+      line
+        .split(",")
+        .map((item) => formatMultaProcessoLabel(item))
+        .filter(Boolean)
+        .join(multiline ? "\n" : ", ")
+    )
+    .join("\n")
+}
+
 export function parseCurrency(value: string) {
   const normalized = Number.parseFloat((value || "").replace(",", "."))
   return Number.isFinite(normalized) ? normalized : 0
@@ -87,7 +109,7 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
       .split(MULTI_ENTRY_SEPARATOR)
       .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
-    vistoJuridico: values.vistoJuridico,
+    vistoJuridico: normalizeMultasProcessoLabels(values.vistoJuridico),
     assinaturaVistoJuridico: values.prazoProcesso,
     vistoJuridicoMulta: values.vistoJuridicoMulta,
   }
@@ -115,6 +137,7 @@ export function toRecordValues(record: FichaRecord): FichaFormValues {
       .split(MULTI_ENTRY_SEPARATOR)
       .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
+    vistoJuridico: normalizeMultasProcessoLabels(record.vistoJuridico),
     banco: usesPresetBank ? banco : banco ? "outros" : "",
     bancoOutro: usesPresetBank ? "" : banco,
   }

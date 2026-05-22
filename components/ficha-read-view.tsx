@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { formatCurrency, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 
 type FichaReadViewProps = {
   values: FichaFormValues
@@ -64,7 +64,7 @@ function getProcessoLines(values: FichaFormValues) {
   const instancias = splitLines(values.instanciaProcesso)
   const tipos = splitLines(values.tipoProcesso)
   const numeros = splitLines(values.numeroProcesso)
-  const multas = splitLines(values.vistoJuridico)
+  const multas = splitLines(normalizeMultasProcessoLabels(values.vistoJuridico))
   const prazos = splitLines(values.prazoProcesso)
   const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
 
@@ -208,7 +208,7 @@ export function FichaReadView({ values }: FichaReadViewProps) {
                 <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
                 <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
                 <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
-                <ValueCell label="Multas do Processo" value={line.multasProcesso} />
+                <ValueCell label="Multas do Processo" value={normalizeMultasProcessoLabels(line.multasProcesso, true)} />
                 <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
             ))}

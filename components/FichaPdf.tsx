@@ -1,5 +1,5 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
-import { splitSerializedEntries } from "@/lib/ficha-utils"
+import { normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
 
 export type FichaPdfData = {
   dataContrato: string
@@ -137,7 +137,7 @@ function getProcessoLines(data: FichaPdfData) {
   const instancias = splitLines(data.instanciaProcesso)
   const tipos = splitLines(data.tipoProcesso)
   const numeros = splitLines(data.numeroProcesso)
-  const multas = splitLines(data.vistoJuridico)
+  const multas = splitLines(normalizeMultasProcessoLabels(data.vistoJuridico))
   const prazos = splitLines(data.prazoProcesso)
   const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
 
@@ -410,7 +410,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("1.15fr 1fr 0.95fr 1fr 0.72fr 0.72fr", [nowrapField("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", line.multasProcesso), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("1.15fr 1fr 0.95fr 1fr 0.72fr 0.72fr", [nowrapField("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), field("Data", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>

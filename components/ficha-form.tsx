@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { MULTI_ENTRY_SEPARATOR, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, X } from "lucide-react"
 
 type MultaBlock = {
@@ -145,7 +145,7 @@ function getProcessoLines(values: FichaFormValues): ProcessoLine[] {
   const instancias = splitLineValues(values.instanciaProcesso)
   const tipos = splitLineValues(values.tipoProcesso)
   const numeros = splitLineValues(values.numeroProcesso)
-  const multas = splitLineValues(values.vistoJuridico)
+  const multas = splitLineValues(normalizeMultasProcessoLabels(values.vistoJuridico))
   const prazos = splitLineValues(values.prazoProcesso)
 
   const maxLength = Math.max(instancias.length, tipos.length, numeros.length, multas.length, prazos.length, 1)
@@ -247,7 +247,6 @@ function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
 
   return blocks.flatMap((block, blockIndex) => {
     const lines = getMultaDetailLines(block)
-    const placa = block.placa?.trim().toUpperCase() || `${blockIndex + 1}`
 
     return lines.map((line, lineIndex) => {
       count += 1
@@ -255,7 +254,7 @@ function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
       const suffix = auto ? ` - ${auto}` : ""
 
       return {
-        label: `Multa ${count} - Placa ${placa}${suffix}`,
+        label: `Multa ${count}${suffix}`,
         blockIndex,
         lineIndex,
       }
@@ -696,7 +695,7 @@ export function FichaForm({
   }
 
   const setProcessoLines = (lines: ProcessoLine[]) => {
-    const selectedMultas = new Set(lines.flatMap((line) => getSelectedOptions(line.multasProcesso)))
+    const selectedMultas = new Set(lines.flatMap((line) => getSelectedOptions(normalizeMultasProcessoLabels(line.multasProcesso))))
     const nextBlocks = multaBlocks.map((block, blockIndex) => {
       const currentLines = getMultaDetailLines(block)
       const nextLines = currentLines.map((line, lineIndex) => {
@@ -729,7 +728,8 @@ export function FichaForm({
     field: keyof ProcessoLine,
     value: string
   ) => {
-    const normalizedValue = field === "numeroProcesso" ? value.toUpperCase() : value
+    const normalizedValue =
+      field === "numeroProcesso" ? value.toUpperCase() : field === "multasProcesso" ? normalizeMultasProcessoLabels(value) : value
     const nextLines = processoLines.map((line, currentLineIndex) =>
       currentLineIndex === lineIndex ? { ...line, [field]: normalizedValue } : line
     )
@@ -1231,7 +1231,7 @@ export function FichaForm({
                   </Label>
                   <MultiSelectInstancia
                     id={`multasProcesso-${lineIndex}`}
-                    value={line.multasProcesso}
+                    value={normalizeMultasProcessoLabels(line.multasProcesso)}
                     options={multaProcessoOptions.map((option) => option.label)}
                     onChange={(value) => updateProcessoLineField(lineIndex, "multasProcesso", value)}
                     disabled={fieldDisabled}
