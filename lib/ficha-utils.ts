@@ -23,11 +23,13 @@ export function splitSerializedEntries(value: string) {
 
 export function formatMultaProcessoLabel(value: string) {
   const trimmedValue = (value || "").trim()
-  const match = trimmedValue.match(/^(Multa\s+\d+)\s+-\s+Placa\s+\S+(?:\s+-\s*(.+))?$/i)
+  const placaMatch = trimmedValue.match(/^Multa\s+\d+\s+-\s+Placa\s+\S+(?:\s+-\s*(.+))?$/i)
+  const multaMatch = trimmedValue.match(/^Multa\s+\d+\s+-\s*(.+)$/i)
 
-  if (!match) return trimmedValue
+  if (placaMatch) return placaMatch[1]?.trim() || trimmedValue
+  if (multaMatch) return multaMatch[1]?.trim() || trimmedValue
 
-  return match[2]?.trim() ? `${match[1]} - ${match[2].trim()}` : match[1]
+  return trimmedValue
 }
 
 export function normalizeMultasProcessoLabels(value: string, multiline = false) {

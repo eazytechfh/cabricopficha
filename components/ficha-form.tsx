@@ -251,10 +251,9 @@ function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
     return lines.map((line, lineIndex) => {
       count += 1
       const auto = line.autoDetran?.trim() || line.autoRenainf?.trim()
-      const suffix = auto ? ` - ${auto}` : ""
 
       return {
-        label: `Multa ${count}${suffix}`,
+        label: auto || `Multa ${count}`,
         blockIndex,
         lineIndex,
       }
