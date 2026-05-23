@@ -112,7 +112,7 @@ function ClienteReadCard({ values, onEdit }: { values: FichaFormValues; onEdit: 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
         <ClienteValue label="Nacionalidade" value={values.nacionalidade} />
         <ClienteValue label="Estado Civil" value={values.estadoCivil} />
-        <ClienteValue label="Profissao" value={values.profissao} />
+        <ClienteValue label="Profissão" value={values.profissao} />
         <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
       </div>
 

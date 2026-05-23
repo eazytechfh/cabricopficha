@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import { validarCPF } from "@/lib/cpf-utils"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
@@ -1064,8 +1064,22 @@ export function FichaForm({
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {renderInput("nacionalidade", "Nacionalidade")}
-            {renderInput("estadoCivil", "Estado Civil")}
-            {renderInput("profissao", "Profissao")}
+            <div className="space-y-2">
+              <Label htmlFor="estadoCivil">Estado Civil</Label>
+              <Select value={values.estadoCivil || undefined} onValueChange={(value) => setField("estadoCivil", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="estadoCivil">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ESTADO_CIVIL_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {renderInput("profissao", "Profissão")}
             <div className="space-y-2">
               <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
               <Select
