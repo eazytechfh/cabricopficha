@@ -114,6 +114,7 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
     vistoJuridico: normalizeMultasProcessoLabels(values.vistoJuridico),
     assinaturaVistoJuridico: values.prazoProcesso,
     vistoJuridicoMulta: values.vistoJuridicoMulta,
+    observacaoValorRestante: parseCurrency(values.valorRestante) > 0 ? values.observacaoValorRestante : "",
   }
 }
 
@@ -125,6 +126,7 @@ export function toPdfData(values: FichaFormValues) {
     valorTotal: parseCurrency(normalizedValues.valorTotal),
     valorEntrada: parseCurrency(normalizedValues.valorEntrada),
     valorRestante: parseCurrency(normalizedValues.valorRestante),
+    observacaoValorRestante: parseCurrency(normalizedValues.valorRestante) > 0 ? normalizedValues.observacaoValorRestante : "",
   }
 }
 

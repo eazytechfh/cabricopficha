@@ -4,6 +4,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const tableName = process.env.SUPABASE_TABLE_NAME || 'fichas_venda'
 
+function parseCurrency(value: string) {
+  const normalized = Number.parseFloat(String(value || '').replace(',', '.'))
+  return Number.isFinite(normalized) ? normalized : 0
+}
+
 export async function POST(request: Request) {
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json(
@@ -14,7 +19,7 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
-    const payload = {
+    const payload: Record<string, unknown> = {
       data_contrato: data.dataContrato || null,
       prazo_servico: data.prazoServico || null,
       nome_cliente: data.nomeCliente || null,
@@ -51,6 +56,10 @@ export async function POST(request: Request) {
       visto_juridico_multa: data.vistoJuridicoMulta || null,
       observacoes: data.observacoes || null,
       data_envio: data.dataEnvio || new Date().toISOString(),
+    }
+
+    if (parseCurrency(data.valorRestante) > 0) {
+      payload.observacao_valor_restante = data.observacaoValorRestante || null
     }
 
     const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {

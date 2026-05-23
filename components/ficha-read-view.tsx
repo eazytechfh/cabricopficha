@@ -194,6 +194,11 @@ export function FichaReadView({ values }: FichaReadViewProps) {
           <ValueCell label="Valor Total" value={formatMoneyValue(values.valorTotal)} />
           <ValueCell label="Valor de Entrada" value={formatMoneyValue(values.valorEntrada)} />
           <ValueCell label="Valor Restante" value={formatMoneyValue(values.valorRestante)} />
+          {parseCurrency(values.valorRestante) > 0 && hasText(values.observacaoValorRestante) ? (
+            <div className="md:col-span-2 xl:col-span-5">
+              <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

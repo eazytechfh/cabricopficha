@@ -347,6 +347,10 @@ function updateValue(
     } else {
       next.valorRestante = ""
     }
+
+    if (!next.valorRestante || parseCurrency(next.valorRestante) <= 0) {
+      next.observacaoValorRestante = ""
+    }
   }
 
   if (field === "banco" && value !== "outros" && values.banco !== value) {
@@ -538,6 +542,7 @@ export function FichaForm({
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
   const multaProcessoOptions = getMultaProcessoOptions(multaBlocks)
+  const shouldShowValorRestanteObservacao = values.valorRestante.trim() !== "" && parseCurrency(values.valorRestante) > 0
 
   useEffect(() => {
     if (readOnly) return
@@ -1173,6 +1178,20 @@ export function FichaForm({
             {renderCurrencyInput("valorEntrada", "Valor de Entrada")}
             {renderCurrencyInput("valorRestante", "Valor Restante", { readOnly: true })}
           </div>
+          {shouldShowValorRestanteObservacao ? (
+            <div className="space-y-2">
+              <Label htmlFor="observacaoValorRestante">Observacao do Valor Restante</Label>
+              <Textarea
+                id="observacaoValorRestante"
+                name="observacaoValorRestante"
+                value={values.observacaoValorRestante}
+                onChange={(event) => setField("observacaoValorRestante", event.target.value)}
+                disabled={fieldDisabled}
+                className="min-h-[88px]"
+                placeholder="Explique como o valor restante sera tratado no contrato..."
+              />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

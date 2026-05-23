@@ -43,6 +43,7 @@ type FichaWebhookPayloadBase = {
       valorTotal: string
       valorEntrada: string
       valorRestante: string
+      observacaoValorRestante: string
     }
     processos: {
       instancia: string
@@ -143,6 +144,7 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         valorTotal: ficha.valorTotal,
         valorEntrada: ficha.valorEntrada,
         valorRestante: ficha.valorRestante,
+        observacaoValorRestante: ficha.observacaoValorRestante,
       },
       processos: {
         instancia: ficha.instanciaProcesso,

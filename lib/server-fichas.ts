@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
-import { normalizeCpfCnpj, normalizeFichaValues, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
+import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -108,6 +108,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     valor_total: normalizedData.valorTotal || null,
     valor_entrada: normalizedData.valorEntrada || null,
     valor_restante: normalizedData.valorRestante || null,
+    observacao_valor_restante: parseCurrency(normalizedData.valorRestante) > 0 ? normalizedData.observacaoValorRestante || null : null,
     instancia_processo: normalizedData.instanciaProcesso || null,
     tipo_processo: normalizedData.tipoProcesso || null,
     numero_processo: normalizedData.numeroProcesso || null,
@@ -218,6 +219,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     valorTotal: String(row.valor_total ?? ""),
     valorEntrada: String(row.valor_entrada ?? ""),
     valorRestante: String(row.valor_restante ?? ""),
+    observacaoValorRestante: String(row.observacao_valor_restante ?? ""),
     instanciaProcesso: String(row.instancia_processo ?? ""),
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
@@ -451,6 +453,7 @@ function fichaToExcelRow(ficha: FichaRecord) {
     valorTotal: ficha.valorTotal,
     valorEntrada: ficha.valorEntrada,
     valorRestante: ficha.valorRestante,
+    observacaoValorRestante: ficha.observacaoValorRestante,
     tipoProcesso: ficha.tipoProcesso,
     numeroProcesso: ficha.numeroProcesso,
     instanciaProcesso: ficha.instanciaProcesso,

@@ -21,6 +21,7 @@ create table if not exists public.fichas_venda (
   valor_total numeric(12, 2),
   valor_entrada numeric(12, 2),
   valor_restante numeric(12, 2),
+  observacao_valor_restante text,
   instancia_processo text,
   tipo_processo text,
   numero_processo text,
@@ -54,7 +55,8 @@ alter table public.fichas_venda
 add column if not exists placa_proprietario text,
 add column if not exists cpf_proprietario text,
 add column if not exists multas_processo text,
-add column if not exists processo_vinculado_multa text;
+add column if not exists processo_vinculado_multa text,
+add column if not exists observacao_valor_restante text;
 
 alter table public.fichas_venda enable row level security;
 
