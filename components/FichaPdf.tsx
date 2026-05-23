@@ -13,6 +13,9 @@ export type FichaPdfData = {
   cnh: string
   dataNascimento: string
   dataPrimeiraCnh: string
+  nacionalidade: string
+  estadoCivil: string
+  profissao: string
   email: string
   nomeConsultor: string
   origem: string
@@ -382,6 +385,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
             {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
+            {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)])}
             {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
           </>
         ))}

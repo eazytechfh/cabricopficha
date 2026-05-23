@@ -31,6 +31,9 @@ export type FichaFormValues = {
   cnh: string
   dataNascimento: string
   dataPrimeiraCnh: string
+  nacionalidade: string
+  estadoCivil: string
+  profissao: string
   email: string
   nomeConsultor: string
   origem: string
@@ -97,6 +100,9 @@ export const emptyFichaValues: FichaFormValues = {
   cnh: "",
   dataNascimento: "",
   dataPrimeiraCnh: "",
+  nacionalidade: "Brasileira",
+  estadoCivil: "",
+  profissao: "",
   email: "",
   nomeConsultor: "",
   origem: "",

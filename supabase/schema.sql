@@ -12,6 +12,9 @@ create table if not exists public.fichas_venda (
   cnh text,
   data_nascimento date,
   data_primeira_cnh date,
+  nacionalidade text,
+  estado_civil text,
+  profissao text,
   email text,
   nome_consultor text,
   origem text,
@@ -56,7 +59,10 @@ add column if not exists placa_proprietario text,
 add column if not exists cpf_proprietario text,
 add column if not exists multas_processo text,
 add column if not exists processo_vinculado_multa text,
-add column if not exists observacao_valor_restante text;
+add column if not exists observacao_valor_restante text,
+add column if not exists nacionalidade text,
+add column if not exists estado_civil text,
+add column if not exists profissao text;
 
 alter table public.fichas_venda enable row level security;
 

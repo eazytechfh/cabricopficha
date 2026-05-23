@@ -34,6 +34,9 @@ type FichaWebhookPayloadBase = {
     cnh: string
     nascimento: string
     data1Cnh: string
+    nacionalidade: string
+    estadoCivil: string
+    profissao: string
     consultor: string
     origem: string
     sne: string
@@ -135,6 +138,9 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
       cnh: ficha.cnh,
       nascimento: ficha.dataNascimento,
       data1Cnh: ficha.dataPrimeiraCnh,
+      nacionalidade: ficha.nacionalidade,
+      estadoCivil: ficha.estadoCivil,
+      profissao: ficha.profissao,
       consultor: ficha.nomeConsultor,
       origem: ficha.origem,
       sne: ficha.sne,

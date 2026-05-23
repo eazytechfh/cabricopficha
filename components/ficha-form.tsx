@@ -1062,13 +1062,10 @@ export function FichaForm({
             {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
             {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
           </div>
-          <div
-            className={
-              showInlineSubmit
-                ? "grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_1fr_auto]"
-                : "grid grid-cols-1 md:grid-cols-3 gap-4"
-            }
-          >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            {renderInput("nacionalidade", "Nacionalidade")}
+            {renderInput("estadoCivil", "Estado Civil")}
+            {renderInput("profissao", "Profissao")}
             <div className="space-y-2">
               <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
               <Select
@@ -1088,7 +1085,9 @@ export function FichaForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="origem">Origem</Label>
               <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
@@ -1120,7 +1119,6 @@ export function FichaForm({
                 </SelectContent>
               </Select>
             </div>
-
           </div>
         </CardContent>
       </Card>

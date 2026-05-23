@@ -109,8 +109,14 @@ function ClienteReadCard({ values, onEdit }: { values: FichaFormValues; onEdit: 
         <ClienteValue label="Data da 1a CNH" value={formatDisplayDate(values.dataPrimeiraCnh)} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <ClienteValue label="Nacionalidade" value={values.nacionalidade} />
+        <ClienteValue label="Estado Civil" value={values.estadoCivil} />
+        <ClienteValue label="Profissao" value={values.profissao} />
         <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <ClienteValue label="Origem" value={values.origem} />
         <ClienteValue label="SNE" value={values.sne} />
       </div>
@@ -610,6 +616,9 @@ export default function FichasWorkspace() {
       cnh: selectedFicha.cnh,
       dataNascimento: selectedFicha.dataNascimento,
       dataPrimeiraCnh: selectedFicha.dataPrimeiraCnh,
+      nacionalidade: selectedFicha.nacionalidade,
+      estadoCivil: selectedFicha.estadoCivil,
+      profissao: selectedFicha.profissao,
       email: selectedFicha.email,
       nomeConsultor: selectedFicha.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
       origem: selectedFicha.origem,
