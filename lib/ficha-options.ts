@@ -42,7 +42,7 @@ export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
 export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO", "OUTROS"] as const
 
-export const ESTADO_CIVIL_OPTIONS = ["casado", "solteiro", "união estável", "divorciado", "viúvo"] as const
+export const ESTADO_CIVIL_OPTIONS = ["CASADO", "SOLTEIRO", "UNIÃO ESTÁVEL", "DIVORCIADO", "VIÚVO"] as const
 
 export function getDefaultConsultorOption(nome?: string | null) {
   return CONSULTOR_OPTIONS.find((option) => option === nome) ?? ""
