@@ -295,6 +295,24 @@ function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: Mu
   return ""
 }
 
+function isPrazoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+  const date = new Date(`${value}T00:00:00`)
+  return !Number.isNaN(date.getTime())
+}
+
+function getPrazoServicoDates(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
+  const processoPrazos = processoLines.map((line) => line.prazoProcesso?.trim() || "")
+  const multaPrazos = multaBlocks.flatMap((block) => getMultaDetailLines(block).map((line) => line.prazoMulta?.trim() || ""))
+
+  return [...processoPrazos, ...multaPrazos].filter(isPrazoDate)
+}
+
+function getNearestPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
+  return getPrazoServicoDates(processoLines, multaBlocks).sort((a, b) => a.localeCompare(b))[0] || ""
+}
+
 function getPrazoMode(value: string) {
   if (value === "Vencida" || value === "VENCIDA") return "Vencida"
   if (value === "Revisão de Ato") return "Revisão de Ato"
@@ -547,9 +565,10 @@ export function FichaForm({
   useEffect(() => {
     if (readOnly) return
 
-    const suggestedPrazo = getSuggestedPrazoServico(processoLines, multaBlocks)
+    const suggestedPrazo = getNearestPrazoServico(processoLines, multaBlocks)
     const currentPrazo = values.prazoServico?.trim() || ""
     const lastAutoPrazo = lastAutoPrazoServicoRef.current
+    const sourcePrazos = getPrazoServicoDates(processoLines, multaBlocks)
 
     if (!suggestedPrazo) {
       if (currentPrazo === lastAutoPrazo && currentPrazo !== "") {
@@ -559,7 +578,7 @@ export function FichaForm({
       return
     }
 
-    if (!currentPrazo || currentPrazo === lastAutoPrazo) {
+    if (!currentPrazo || currentPrazo === lastAutoPrazo || sourcePrazos.includes(currentPrazo)) {
       if (currentPrazo !== suggestedPrazo) {
         lastAutoPrazoServicoRef.current = suggestedPrazo
         onChange(updateValue(values, "prazoServico", suggestedPrazo))
