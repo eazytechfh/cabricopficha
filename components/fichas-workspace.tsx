@@ -1138,9 +1138,7 @@ export default function FichasWorkspace() {
                               <div className="flex flex-col gap-4 sm:flex-row">
                                 {canEditSelectedFicha ? (
                                   <Button onClick={() => setViewMode("edit")}>✏️ FICHA</Button>
-                                ) : (
-                                  <p className="text-sm text-red-600">Voce nao tem permissao para editar esta ficha.</p>
-                                )}
+                                ) : null}
                                 <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                                   🖨️ FICHA
                                 </Button>
