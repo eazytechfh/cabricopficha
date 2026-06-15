@@ -9,12 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
+import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
+import { DOCUMENT_TEMPLATE_LABELS, type DocumentTemplateKind } from "@/lib/document-templates"
+import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { getFichaById, getFichas } from "@/lib/fichas-api"
@@ -202,6 +207,10 @@ export default function FichasWorkspace() {
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
   const [userUpdating, setUserUpdating] = useState(false)
+  const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
+  const [templateContent, setTemplateContent] = useState("")
+  const [templateLoading, setTemplateLoading] = useState(false)
+  const [templateMessage, setTemplateMessage] = useState("")
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
 
@@ -280,6 +289,50 @@ export default function FichasWorkspace() {
   }, [consultaItems])
 
   const isAdmin = hasAdminAccess(consultor)
+
+  const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
+    setEditMessage("")
+
+    try {
+      await downloadFilledDocumentPdf(kind, editValues)
+    } catch (error) {
+      setEditMessage(error instanceof Error ? error.message : "Erro ao gerar documento.")
+    }
+  }
+
+  const handleOpenTemplateEditor = async (kind: DocumentTemplateKind) => {
+    if (!consultor || !isAdmin) return
+
+    setTemplateEditorKind(kind)
+    setTemplateLoading(true)
+    setTemplateMessage("")
+
+    try {
+      const template = await getDocumentTemplate(kind)
+      setTemplateContent(template.content)
+    } catch (error) {
+      setTemplateMessage(error instanceof Error ? error.message : "Erro ao carregar modelo.")
+    } finally {
+      setTemplateLoading(false)
+    }
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!consultor || !templateEditorKind) return
+
+    setTemplateLoading(true)
+    setTemplateMessage("")
+
+    try {
+      const template = await updateDocumentTemplate(templateEditorKind, templateContent, consultor)
+      setTemplateContent(template.content)
+      setTemplateMessage("Modelo salvo com sucesso.")
+    } catch (error) {
+      setTemplateMessage(error instanceof Error ? error.message : "Erro ao salvar modelo.")
+    } finally {
+      setTemplateLoading(false)
+    }
+  }
 
   const handleLogin = async () => {
     setAuthLoading(true)
@@ -1091,12 +1144,22 @@ export default function FichasWorkspace() {
                                 <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                                   🖨️ FICHA
                                 </Button>
-                                <Button type="button" variant="outline">
+                                <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
                                   🖨️ CONTRATO
                                 </Button>
-                                <Button type="button" variant="outline">
+                                {isAdmin ? (
+                                  <Button type="button" variant="outline" onClick={() => void handleOpenTemplateEditor("contract")}>
+                                    Editar contrato
+                                  </Button>
+                                ) : null}
+                                <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
                                   🖨️ PROCURAÇÃO
                                 </Button>
+                                {isAdmin ? (
+                                  <Button type="button" variant="outline" onClick={() => void handleOpenTemplateEditor("procuration")}>
+                                    Editar procuração
+                                  </Button>
+                                ) : null}
                               </div>
                             </div>
                           ) : null}
@@ -1137,6 +1200,35 @@ export default function FichasWorkspace() {
             )}
           </TabsContent>
         </Tabs>
+        <Dialog open={Boolean(templateEditorKind)} onOpenChange={(open) => !open && setTemplateEditorKind(null)}>
+          <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>
+                Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
+              </p>
+              <Textarea
+                value={templateContent}
+                onChange={(event) => setTemplateContent(event.target.value)}
+                disabled={templateLoading}
+                className="min-h-[420px] font-mono text-sm"
+              />
+              {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTemplateEditorKind(null)} disabled={templateLoading}>
+                Fechar
+              </Button>
+              <Button type="button" onClick={() => void handleSaveTemplate()} disabled={templateLoading}>
+                {templateLoading ? "Salvando..." : "Salvar modelo"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   )
