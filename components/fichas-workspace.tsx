@@ -1273,7 +1273,7 @@ export default function FichasWorkspace() {
                                 actions={
                                   <>
                                 {canEditSelectedFicha ? (
-                                  <Button onClick={() => setViewMode("edit")}>✏️ FICHA</Button>
+                                  <Button onClick={() => setViewMode("edit")}>✏️</Button>
                                 ) : null}
                                 <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                                   🖨️ FICHA
