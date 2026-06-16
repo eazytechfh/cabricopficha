@@ -835,7 +835,7 @@ export default function FichasWorkspace() {
                         <span>
                           <span className="block font-semibold">Modelos de Documentos</span>
                           <span className="block text-sm font-normal text-muted-foreground">
-                            Contrato e procuracao
+                            Contrato e procuração
                           </span>
                         </span>
                       </Button>
@@ -868,9 +868,9 @@ export default function FichasWorkspace() {
                         >
                           <FileText className="h-5 w-5 text-primary" />
                           <span>
-                            <span className="block font-semibold">Modelo de Procuracao</span>
+                            <span className="block font-semibold">Modelo de Procuração</span>
                             <span className="block text-sm font-normal text-muted-foreground">
-                              Editar texto base da procuracao
+                              Editar texto base da procuração
                             </span>
                           </span>
                         </Button>
