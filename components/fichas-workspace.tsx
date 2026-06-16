@@ -812,16 +812,37 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleOpenFichaPicker = (contratos: FichaListItem[]) => {
+  const handleOpenFichaPicker = async (contratos: FichaListItem[]) => {
     setConsultaError("")
     setEditMessage("")
     setSelectedContratos(contratos)
-    setSelectedFicha(null)
-    setEditValues(emptyFichaValues)
-    setViewMode("picker")
-    window.setTimeout(() => {
-      consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 0)
+
+    const fichaBaseId = contratos[0]?.id
+
+    if (!fichaBaseId) {
+      setSelectedFicha(null)
+      setEditValues(emptyFichaValues)
+      setViewMode("picker")
+      return
+    }
+
+    setConsultaLoading(true)
+
+    try {
+      const response = await getFichaById(fichaBaseId)
+      setSelectedFicha(response.ficha)
+      setEditValues(toRecordValues(response.ficha))
+      setViewMode("picker")
+      window.setTimeout(() => {
+        consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 0)
+    } catch (error) {
+      setSelectedFicha(null)
+      setEditValues(emptyFichaValues)
+      setConsultaError(error instanceof Error ? error.message : "Erro ao abrir ficha.")
+    } finally {
+      setConsultaLoading(false)
+    }
   }
 
   const handleAddNovoContrato = () => {
@@ -1418,7 +1439,7 @@ export default function FichasWorkspace() {
                       ) : null}
                     </div>
 
-                    {selectedFicha ? (
+                    {viewMode === "view" && selectedFicha ? (
                       <FichaReadView
                         values={editValues}
                         actions={
