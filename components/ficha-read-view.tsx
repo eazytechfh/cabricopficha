@@ -3,9 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import type { ReactNode } from "react"
 
 type FichaReadViewProps = {
   values: FichaFormValues
+  actions?: ReactNode
 }
 
 function fallback(value: string) {
@@ -165,7 +167,7 @@ function formatMoneyValue(value: string) {
   return formatCurrency(parseCurrency(value))
 }
 
-export function FichaReadView({ values }: FichaReadViewProps) {
+export function FichaReadView({ values, actions }: FichaReadViewProps) {
   const processoLines = getProcessoLines(values).filter((line) =>
     hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
   )
@@ -184,6 +186,8 @@ export function FichaReadView({ values }: FichaReadViewProps) {
 
   return (
     <div className="space-y-6">
+      {actions ? <div className="flex flex-wrap gap-4">{actions}</div> : null}
+
       <Card className="border-l-4 border-l-secondary shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-primary">Dados do Pagamento</CardTitle>

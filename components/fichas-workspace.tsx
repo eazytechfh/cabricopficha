@@ -1268,8 +1268,10 @@ export default function FichasWorkspace() {
                         <AccordionContent>
                           {selectedFicha.id === contrato.id ? (
                             <div className="space-y-4">
-                              <FichaReadView values={editValues} />
-                              <div className="flex flex-col gap-4 sm:flex-row">
+                              <FichaReadView
+                                values={editValues}
+                                actions={
+                                  <>
                                 {canEditSelectedFicha ? (
                                   <Button onClick={() => setViewMode("edit")}>✏️ FICHA</Button>
                                 ) : null}
@@ -1282,7 +1284,9 @@ export default function FichasWorkspace() {
                                 <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
                                   🖨️ PROCURAÇÃO
                                 </Button>
-                              </div>
+                                  </>
+                                }
+                              />
                             </div>
                           ) : null}
                         </AccordionContent>
