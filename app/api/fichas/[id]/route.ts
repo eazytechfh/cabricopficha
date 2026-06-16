@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
-import { canEditFicha } from "@/lib/ficha-utils"
+import { canEditFicha, normalizeFichaValues, toRecordValues } from "@/lib/ficha-utils"
 import { createActivityLog } from "@/lib/server-activity-logs"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
@@ -54,17 +54,33 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
 }
 
 function normalizeCompareValue(value: string) {
-  return String(value || "").trim()
+  return String(value || "").trim().replace(/\r\n/g, "\n")
 }
 
-function summarizeFichaChanges(current: FichaFormValues, next: FichaFormValues) {
-  const changedFields = (Object.keys(FIELD_LABELS) as Array<keyof FichaFormValues>).filter(
-    (key) => normalizeCompareValue(current[key]) !== normalizeCompareValue(next[key])
-  )
+function buildFichaChanges(current: FichaFormValues, next: FichaFormValues) {
+  return (Object.keys(FIELD_LABELS) as Array<keyof FichaFormValues>)
+    .map((key) => {
+      const before = normalizeCompareValue(current[key])
+      const after = normalizeCompareValue(next[key])
+      if (before === after) return null
 
-  if (!changedFields.length) return "Salvou a ficha sem alterar campos."
+      return {
+        field: FIELD_LABELS[key],
+        before: before || "-",
+        after: after || "-",
+      }
+    })
+    .filter(Boolean) as Array<{
+    field: string
+    before: string
+    after: string
+  }>
+}
 
-  return `Atualizou: ${changedFields.map((key) => FIELD_LABELS[key]).join(", ")}.`
+function summarizeFichaChanges(changes: Array<{ field: string }>) {
+  if (!changes.length) return "Salvou a ficha sem alterar campos."
+
+  return `Atualizou: ${changes.map((change) => change.field).join(", ")}.`
 }
 
 export async function GET(_: Request, context: RouteContext) {
@@ -95,15 +111,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Voce nao tem permissao para editar esta ficha." }, { status: 403 })
     }
 
+    const currentValues = normalizeFichaValues(toRecordValues(current))
+    const nextValues = normalizeFichaValues(data)
+    const changes = buildFichaChanges(currentValues, nextValues)
     const ficha = await updateFicha(id, data, consultor)
     await createActivityLog({
       entityType: "ficha",
       entityId: ficha.id,
       entityLabel: current.nomeCliente || `Ficha ${ficha.id}`,
       action: "update",
-      summary: summarizeFichaChanges(current, data),
+      summary: summarizeFichaChanges(changes),
       actorId: consultor.id,
       actorName: consultor.nome,
+      details: changes,
     })
 
     let excelSaved = true

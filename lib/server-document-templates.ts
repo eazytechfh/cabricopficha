@@ -55,6 +55,7 @@ export async function getServerDocumentTemplate(kind: DocumentTemplateKind) {
 
 export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, content: string, consultor: ConsultorSession) {
   ensureConfig()
+  const previous = await getServerDocumentTemplate(kind)
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?key=eq.${kind}`, {
     method: "PATCH",
@@ -85,6 +86,13 @@ export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, c
       summary: `Atualizou o conteudo do modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}.`,
       actorId: consultor.id,
       actorName: consultor.nome,
+      details: [
+        {
+          field: "Conteudo do modelo",
+          before: previous.content || "-",
+          after: template.content || "-",
+        },
+      ],
     })
     return template
   }
@@ -113,6 +121,13 @@ export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, c
     summary: `Atualizou o conteudo do modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}.`,
     actorId: consultor.id,
     actorName: consultor.nome,
+    details: [
+      {
+        field: "Conteudo do modelo",
+        before: previous.content || "-",
+        after: template.content || "-",
+      },
+    ],
   })
   return template
 }

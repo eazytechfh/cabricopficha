@@ -7,6 +7,7 @@ create table if not exists public.activity_logs (
   summary text not null,
   actor_id text not null,
   actor_name text not null,
+  details jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -179,9 +179,9 @@ function LogSummary({ log }: { log: ActivityLogRecord | null }) {
 
   return (
     <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
-      <p className="font-medium text-foreground">
-        Ultima atualizacao por {log.actorName || "-"} em {formatAccessDate(log.createdAt)}
-      </p>
+      <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
+      <p className="mt-1 text-foreground">{formatAccessDate(log.createdAt)}</p>
+      <p className="mt-1 text-foreground">Por: {log.actorName || "-"}</p>
       <p className="mt-1 text-muted-foreground">{log.summary || "-"}</p>
     </div>
   )
@@ -241,6 +241,7 @@ export default function FichasWorkspace() {
   const [timelineLogs, setTimelineLogs] = useState<ActivityLogRecord[]>([])
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState("")
+  const [selectedTimelineLog, setSelectedTimelineLog] = useState<ActivityLogRecord | null>(null)
   const templateEditorRef = useRef<HTMLDivElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
@@ -1477,7 +1478,12 @@ export default function FichasWorkspace() {
                 <div key={log.id} className="rounded-lg border border-border bg-background px-4 py-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
-                    <p className="text-sm text-muted-foreground">{formatAccessDate(log.createdAt)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">{formatAccessDate(log.createdAt)}</p>
+                      <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineLog(log)}>
+                        <Eye className="size-4" />
+                      </Button>
+                    </div>
                   </div>
                   <p className="mt-1 text-sm text-foreground">Por: {log.actorName || "-"}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{log.summary || "-"}</p>
@@ -1486,6 +1492,40 @@ export default function FichasWorkspace() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTimelineOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={Boolean(selectedTimelineLog)} onOpenChange={(open) => !open && setSelectedTimelineLog(null)}>
+          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Detalhes da atualizacao</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+              {selectedTimelineLog ? (
+                <>
+                  <LogSummary log={selectedTimelineLog} />
+                  {(selectedTimelineLog.details || []).map((detail, index) => (
+                    <div key={`${selectedTimelineLog.id}-${index}`} className="rounded-lg border border-border bg-background p-4">
+                      <p className="font-medium text-foreground">{detail.field}</p>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/20 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
+                          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setSelectedTimelineLog(null)}>
                 Fechar
               </Button>
             </DialogFooter>

@@ -14,6 +14,11 @@ type ActivityLogApiRecord = {
   actor_id?: string
   actor_name?: string
   created_at?: string
+  details?: Array<{
+    field?: string
+    before?: string
+    after?: string
+  }> | null
 }
 
 function headers(extraHeaders?: HeadersInit) {
@@ -42,6 +47,13 @@ function mapLog(record: ActivityLogApiRecord): ActivityLogRecord {
     actorId: String(record.actor_id ?? ""),
     actorName: String(record.actor_name ?? ""),
     createdAt: String(record.created_at ?? ""),
+    details: Array.isArray(record.details)
+      ? record.details.map((item) => ({
+          field: String(item.field ?? ""),
+          before: String(item.before ?? ""),
+          after: String(item.after ?? ""),
+        }))
+      : [],
   }
 }
 
@@ -67,6 +79,7 @@ export async function createActivityLog(input: Omit<ActivityLogRecord, "id" | "c
       summary: input.summary,
       actor_id: input.actorId,
       actor_name: input.actorName,
+      details: input.details ?? [],
     }),
     cache: "no-store",
   })
@@ -87,7 +100,7 @@ export async function getLatestActivityLog(entityType: ActivityLogRecord["entity
   const params = new URLSearchParams({
     entity_type: `eq.${entityType}`,
     entity_id: `eq.${entityId}`,
-    select: "id,entity_type,entity_id,entity_label,action,summary,actor_id,actor_name,created_at",
+    select: "id,entity_type,entity_id,entity_label,action,summary,actor_id,actor_name,created_at,details",
     order: "created_at.desc",
     limit: "1",
   })
@@ -111,7 +124,7 @@ export async function listActivityLogs(limit = 100) {
   ensureConfig()
 
   const params = new URLSearchParams({
-    select: "id,entity_type,entity_id,entity_label,action,summary,actor_id,actor_name,created_at",
+    select: "id,entity_type,entity_id,entity_label,action,summary,actor_id,actor_name,created_at,details",
     order: "created_at.desc",
     limit: String(limit),
   })

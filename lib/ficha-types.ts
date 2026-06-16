@@ -29,6 +29,11 @@ export type ActivityLogRecord = {
   actorId: string
   actorName: string
   createdAt: string
+  details?: Array<{
+    field: string
+    before: string
+    after: string
+  }>
 }
 
 export type FichaFormValues = {
