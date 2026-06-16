@@ -783,7 +783,7 @@ export default function FichasWorkspace() {
     setActiveTab(nextTab)
   }
 
-  const openFicha = async (id: string, mode: ViewMode, contratos: FichaListItem[] = []) => {
+  const openFicha = async (id: string, mode: ViewMode, contratos: FichaListItem[] = [], scrollToTop = true) => {
     setConsultaLoading(true)
     setConsultaError("")
     setEditMessage("")
@@ -794,9 +794,11 @@ export default function FichasWorkspace() {
       setSelectedContratos(contratos)
       setEditValues(toRecordValues(response.ficha))
       setViewMode(mode)
-      window.setTimeout(() => {
-        consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      }, 0)
+      if (scrollToTop) {
+        window.setTimeout(() => {
+          consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }, 0)
+      }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao abrir ficha.")
     } finally {
@@ -808,7 +810,7 @@ export default function FichasWorkspace() {
     if (!id) return
 
     if (viewMode !== "view" || selectedFicha?.id !== id) {
-      await openFicha(id, "view", selectedContratos)
+      await openFicha(id, "view", selectedContratos, false)
     }
   }
 
