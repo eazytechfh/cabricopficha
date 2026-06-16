@@ -38,6 +38,11 @@ type ViewMode = "list" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
+type TimelineGroup = {
+  key: string
+  entityLabel: string
+  logs: ActivityLogRecord[]
+}
 
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   if (level === "admin") return "Admin"
@@ -241,7 +246,7 @@ export default function FichasWorkspace() {
   const [timelineLogs, setTimelineLogs] = useState<ActivityLogRecord[]>([])
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [timelineError, setTimelineError] = useState("")
-  const [selectedTimelineLog, setSelectedTimelineLog] = useState<ActivityLogRecord | null>(null)
+  const [selectedTimelineGroup, setSelectedTimelineGroup] = useState<TimelineGroup | null>(null)
   const templateEditorRef = useRef<HTMLDivElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
@@ -429,6 +434,28 @@ export default function FichasWorkspace() {
     if (templateEditorRef.current.innerHTML === templateContent) return
     templateEditorRef.current.innerHTML = templateContent
   }, [templateContent, templateEditorKind])
+
+  const timelineGroups = useMemo(() => {
+    const groups = new Map<string, TimelineGroup>()
+
+    timelineLogs.forEach((log) => {
+      const key = `${log.entityType}:${log.entityId}`
+      const existing = groups.get(key)
+
+      if (existing) {
+        existing.logs.push(log)
+        return
+      }
+
+      groups.set(key, {
+        key,
+        entityLabel: log.entityLabel || "-",
+        logs: [log],
+      })
+    })
+
+    return Array.from(groups.values())
+  }, [timelineLogs])
 
   const handleLogin = async () => {
     setAuthLoading(true)
@@ -1471,24 +1498,28 @@ export default function FichasWorkspace() {
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {timelineError ? <p className="text-sm text-red-600">{timelineError}</p> : null}
               {timelineLoading ? <p className="text-sm text-muted-foreground">Carregando timeline...</p> : null}
-              {!timelineLoading && timelineLogs.length === 0 ? (
+              {!timelineLoading && timelineGroups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum log encontrado.</p>
               ) : null}
-              {timelineLogs.map((log) => (
-                <div key={log.id} className="rounded-lg border border-border bg-background px-4 py-3">
+              {timelineGroups.map((group) => {
+                const latestLog = group.logs[0]
+                return (
+                <div key={group.key} className="rounded-lg border border-border bg-background px-4 py-3">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
+                    <p className="font-medium text-foreground">{group.entityLabel}</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">{formatAccessDate(log.createdAt)}</p>
-                      <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineLog(log)}>
+                      <p className="text-sm text-muted-foreground">{formatAccessDate(latestLog?.createdAt || "")}</p>
+                      <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineGroup(group)}>
                         <Eye className="size-4" />
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-1 text-sm text-foreground">Por: {log.actorName || "-"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{log.summary || "-"}</p>
+                  <p className="mt-1 text-sm text-foreground">Por: {latestLog?.actorName || "-"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {group.logs.length > 1 ? `${group.logs.length} atualizacoes registradas.` : latestLog?.summary || "-"}
+                  </p>
                 </div>
-              ))}
+              )})}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTimelineOpen(false)}>
@@ -1497,35 +1528,44 @@ export default function FichasWorkspace() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog open={Boolean(selectedTimelineLog)} onOpenChange={(open) => !open && setSelectedTimelineLog(null)}>
+        <Dialog open={Boolean(selectedTimelineGroup)} onOpenChange={(open) => !open && setSelectedTimelineGroup(null)}>
           <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>Detalhes da atualizacao</DialogTitle>
             </DialogHeader>
             <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-              {selectedTimelineLog ? (
+              {selectedTimelineGroup ? (
                 <>
-                  <LogSummary log={selectedTimelineLog} />
-                  {(selectedTimelineLog.details || []).map((detail, index) => (
-                    <div key={`${selectedTimelineLog.id}-${index}`} className="rounded-lg border border-border bg-background p-4">
-                      <p className="font-medium text-foreground">{detail.field}</p>
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <div className="rounded-md border border-border bg-muted/20 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
-                          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
-                        </div>
-                        <div className="rounded-md border border-border bg-muted/20 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
-                          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
-                        </div>
+                  {selectedTimelineGroup.logs.map((log) => (
+                    <div key={log.id} className="space-y-3 rounded-lg border border-border bg-background p-4">
+                      <div>
+                        <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
+                        <p className="mt-1 text-sm text-foreground">{formatAccessDate(log.createdAt)}</p>
+                        <p className="mt-1 text-sm text-foreground">Por: {log.actorName || "-"}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{log.summary || "-"}</p>
                       </div>
+                      {(log.details || []).map((detail, index) => (
+                        <div key={`${log.id}-${index}`} className="space-y-2 rounded-md border border-border bg-muted/10 p-3">
+                          <p className="font-medium text-foreground">{detail.field || "-"}</p>
+                          <div className="grid gap-3 md:grid-cols-2">
+                          <div className="rounded-md border border-border bg-muted/20 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
+                          </div>
+                          <div className="rounded-md border border-border bg-muted/20 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
+                          </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </>
               ) : null}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSelectedTimelineLog(null)}>
+              <Button type="button" variant="outline" onClick={() => setSelectedTimelineGroup(null)}>
                 Fechar
               </Button>
             </DialogFooter>
