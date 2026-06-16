@@ -1308,13 +1308,13 @@ export default function FichasWorkspace() {
           </TabsContent>
         </Tabs>
         <Dialog open={Boolean(templateEditorKind)} onOpenChange={(open) => !open && setTemplateEditorKind(null)}>
-          <DialogContent className="sm:max-w-4xl">
+          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>
                 Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
@@ -1322,7 +1322,7 @@ export default function FichasWorkspace() {
                 value={templateContent}
                 onChange={(event) => setTemplateContent(event.target.value)}
                 disabled={templateLoading}
-                className="min-h-[420px] font-mono text-sm"
+                className="h-[60vh] min-h-[420px] resize-none overflow-y-auto font-mono text-sm"
               />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
