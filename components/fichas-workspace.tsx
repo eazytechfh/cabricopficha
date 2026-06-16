@@ -33,7 +33,7 @@ import {
   type FichaRecord,
 } from "@/lib/ficha-types"
 
-type ViewMode = "list" | "view" | "edit" | "editClient"
+type ViewMode = "list" | "picker" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
@@ -746,6 +746,7 @@ export default function FichasWorkspace() {
   const handleVoltarConsulta = () => {
     setConsultaError("")
     setEditMessage("")
+    setSelectedContratos([])
     setSelectedFicha(null)
     setViewMode("list")
   }
@@ -809,6 +810,18 @@ export default function FichasWorkspace() {
     if (selectedFicha?.id !== id) {
       await openFicha(id, "view", selectedContratos)
     }
+  }
+
+  const handleOpenFichaPicker = (contratos: FichaListItem[]) => {
+    setConsultaError("")
+    setEditMessage("")
+    setSelectedContratos(contratos)
+    setSelectedFicha(null)
+    setEditValues(emptyFichaValues)
+    setViewMode("picker")
+    window.setTimeout(() => {
+      consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 0)
   }
 
   const handleAddNovoContrato = () => {
@@ -1351,7 +1364,7 @@ export default function FichasWorkspace() {
                           </div>
                           <div className="flex items-start md:col-span-2 xl:col-span-1">
                             {fichaPrincipal ? (
-                              <Button variant="outline" onClick={() => void openFicha(fichaPrincipal.id, "view", cliente.contratos)}>
+                              <Button variant="outline" onClick={() => handleOpenFichaPicker(cliente.contratos)}>
                                 Visualizar
                               </Button>
                             ) : null}
@@ -1364,14 +1377,16 @@ export default function FichasWorkspace() {
               </Card>
             )}
 
-            {selectedFicha && viewMode === "view" && (
+            {(viewMode === "picker" || (selectedFicha && viewMode === "view")) && (
               <Card className="shadow-md">
                 <CardContent className="space-y-4">
-                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
+                  {selectedFicha ? (
+                    <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
+                  ) : null}
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
-                    {canEditSelectedFicha ? (
+                    {selectedFicha && canEditSelectedFicha ? (
                       <Button type="button" onClick={handleAddNovoContrato}>
                         <Plus className="size-4" />
                         Adicionar
@@ -1383,12 +1398,12 @@ export default function FichasWorkspace() {
                     <div className="grid gap-3 md:grid-cols-[260px_1fr] md:items-end">
                       <div className="space-y-2">
                         <Label htmlFor="listaFichas">Lista de Fichas</Label>
-                        <Select value={selectedFicha.id} onValueChange={(value) => void handleContratoSelectionChange(value)}>
+                        <Select value={selectedFicha?.id ?? ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
                           <SelectTrigger id="listaFichas">
-                            <SelectValue placeholder="Selecione a ficha" />
+                            <SelectValue placeholder="Selecionar ficha" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(selectedContratos.length > 0 ? selectedContratos : [selectedFicha]).map((contrato) => (
+                            {selectedContratos.map((contrato) => (
                               <SelectItem key={contrato.id} value={contrato.id}>
                                 {getFichaLabel(contrato.nomeCliente)}
                               </SelectItem>
@@ -1396,29 +1411,37 @@ export default function FichasWorkspace() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="text-sm font-medium text-muted-foreground md:text-right">
-                        Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
-                      </div>
+                      {selectedFicha ? (
+                        <div className="text-sm font-medium text-muted-foreground md:text-right">
+                          Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
+                        </div>
+                      ) : null}
                     </div>
 
-                    <FichaReadView
-                      values={editValues}
-                      actions={
-                        <>
-                          {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
-                          <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
-                            🖨️ FICHA
-                          </Button>
-                          <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
-                            🖨️ CONTRATO
-                          </Button>
-                          <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
-                            🖨️ PROCURAÇÃO
-                          </Button>
-                        </>
-                      }
-                      details={<LogSummary log={latestFichaLog} showEntityLabel={false} />}
-                    />
+                    {selectedFicha ? (
+                      <FichaReadView
+                        values={editValues}
+                        actions={
+                          <>
+                            {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
+                            <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
+                              🖨️ FICHA
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
+                              🖨️ CONTRATO
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
+                              🖨️ PROCURAÇÃO
+                            </Button>
+                          </>
+                        }
+                        details={<LogSummary log={latestFichaLog} showEntityLabel={false} />}
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                        Selecionar ficha
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
