@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, Pencil, Plus, Settings, Trash2, UserPlus } from "lucide-react"
+import { ArrowLeft, FileText, Pencil, Plus, Settings, Trash2, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,6 +36,7 @@ import {
 type ViewMode = "list" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
+type SettingsSection = "menu" | "users" | "documents"
 
 function getFichaLabel(nomeCliente: string) {
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
@@ -192,6 +193,7 @@ export default function FichasWorkspace() {
   const [editMessage, setEditMessage] = useState("")
 
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("menu")
   const [usersLoading, setUsersLoading] = useState(false)
   const [usersError, setUsersError] = useState("")
   const [usersMessage, setUsersMessage] = useState("")
@@ -384,12 +386,24 @@ export default function FichasWorkspace() {
     setSettingsOpen(open)
 
     if (!open) {
+      setSettingsSection("menu")
       setUsersError("")
       setUsersMessage("")
+      setTemplateMessage("")
       return
     }
+  }
 
+  const handleOpenUsersSettings = async () => {
+    setSettingsSection("users")
     await loadAccessUsers()
+  }
+
+  const handleBackSettings = () => {
+    setSettingsSection("menu")
+    setUsersError("")
+    setUsersMessage("")
+    setTemplateMessage("")
   }
 
   const handleCreateUser = async () => {
@@ -768,15 +782,104 @@ export default function FichasWorkspace() {
                     <div className="max-h-[88vh] w-full max-w-[1200px] overflow-x-hidden overflow-y-auto rounded-lg border bg-background shadow-lg">
                       <div className="flex items-start justify-between gap-4 px-6 pt-6">
                         <div className="space-y-2">
-                          <h2 className="text-lg font-semibold leading-none">Usuarios</h2>
-                          <p className="text-sm text-muted-foreground">Gerencie os acessos de administradores e consultores.</p>
+                          <h2 className="text-lg font-semibold leading-none">
+                            {settingsSection === "users"
+                              ? "Usuarios"
+                              : settingsSection === "documents"
+                                ? "Modelos de Documentos"
+                                : "Configuracoes"}
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            {settingsSection === "users"
+                              ? "Gerencie os acessos de administradores e consultores."
+                              : settingsSection === "documents"
+                                ? "Escolha qual modelo deseja editar."
+                                : "Selecione uma area administrativa."}
+                          </p>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => void handleOpenSettings(false)}>
-                          Fechar
-                        </Button>
+                        <div className="flex gap-2">
+                          {settingsSection !== "menu" ? (
+                            <Button variant="outline" size="sm" onClick={handleBackSettings}>
+                              Voltar
+                            </Button>
+                          ) : null}
+                          <Button variant="outline" size="sm" onClick={() => void handleOpenSettings(false)}>
+                            Fechar
+                          </Button>
+                        </div>
                       </div>
 
-                  <div className="space-y-5 px-6 pb-6">
+                  {settingsSection === "menu" ? (
+                    <div className="grid gap-4 px-6 pb-6 pt-5 md:grid-cols-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-auto justify-start gap-3 p-5 text-left"
+                        onClick={() => void handleOpenUsersSettings()}
+                      >
+                        <UserPlus className="h-5 w-5 text-primary" />
+                        <span>
+                          <span className="block font-semibold">Usuarios</span>
+                          <span className="block text-sm font-normal text-muted-foreground">
+                            Administradores e consultores
+                          </span>
+                        </span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-auto justify-start gap-3 p-5 text-left"
+                        onClick={() => setSettingsSection("documents")}
+                      >
+                        <FileText className="h-5 w-5 text-primary" />
+                        <span>
+                          <span className="block font-semibold">Modelos de Documentos</span>
+                          <span className="block text-sm font-normal text-muted-foreground">
+                            Contrato e procuracao
+                          </span>
+                        </span>
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {settingsSection === "documents" ? (
+                    <div className="space-y-4 px-6 pb-6 pt-5">
+                      {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto justify-start gap-3 p-5 text-left"
+                          onClick={() => void handleOpenTemplateEditor("contract")}
+                        >
+                          <FileText className="h-5 w-5 text-primary" />
+                          <span>
+                            <span className="block font-semibold">Modelo de Contrato</span>
+                            <span className="block text-sm font-normal text-muted-foreground">
+                              Editar texto base do contrato
+                            </span>
+                          </span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto justify-start gap-3 p-5 text-left"
+                          onClick={() => void handleOpenTemplateEditor("procuration")}
+                        >
+                          <FileText className="h-5 w-5 text-primary" />
+                          <span>
+                            <span className="block font-semibold">Modelo de Procuracao</span>
+                            <span className="block text-sm font-normal text-muted-foreground">
+                              Editar texto base da procuracao
+                            </span>
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {settingsSection === "users" ? (
+                  <div className="space-y-5 px-6 pb-6 pt-5">
                     <Card className="border border-border/70 shadow-sm">
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
@@ -968,6 +1071,7 @@ export default function FichasWorkspace() {
                       </CardContent>
                     </Card>
                   </div>
+                  ) : null}
                     </div>
                   </div>
                 )}
@@ -1145,19 +1249,9 @@ export default function FichasWorkspace() {
                                 <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
                                   🖨️ CONTRATO
                                 </Button>
-                                {isAdmin ? (
-                                  <Button type="button" variant="outline" onClick={() => void handleOpenTemplateEditor("contract")}>
-                                    Editar contrato
-                                  </Button>
-                                ) : null}
                                 <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
                                   🖨️ PROCURAÇÃO
                                 </Button>
-                                {isAdmin ? (
-                                  <Button type="button" variant="outline" onClick={() => void handleOpenTemplateEditor("procuration")}>
-                                    Editar procuração
-                                  </Button>
-                                ) : null}
                               </div>
                             </div>
                           ) : null}
