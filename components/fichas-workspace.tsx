@@ -1419,7 +1419,7 @@ export default function FichasWorkspace() {
                     <div className="grid gap-3 md:grid-cols-[260px_1fr] md:items-end">
                       <div className="space-y-2">
                         <Label htmlFor="listaFichas">Lista de Fichas</Label>
-                        <Select value={selectedFicha?.id ?? ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
+                        <Select value={viewMode === "view" ? selectedFicha?.id ?? "" : ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
                           <SelectTrigger id="listaFichas">
                             <SelectValue placeholder="Selecionar ficha" />
                           </SelectTrigger>
@@ -1432,7 +1432,7 @@ export default function FichasWorkspace() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {selectedFicha ? (
+                      {viewMode === "view" && selectedFicha ? (
                         <div className="text-sm font-medium text-muted-foreground md:text-right">
                           Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
                         </div>
