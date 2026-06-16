@@ -809,7 +809,7 @@ export default function FichasWorkspace() {
                               ? "Gerencie os acessos de administradores, comerciais e andamento."
                               : settingsSection === "documents"
                                 ? "Escolha qual modelo deseja editar."
-                                : "Selecione uma area administrativa."}
+                                : ""}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -835,9 +835,6 @@ export default function FichasWorkspace() {
                         <UserPlus className="h-5 w-5 text-primary" />
                         <span>
                           <span className="block font-semibold">Usuarios</span>
-                          <span className="block text-sm font-normal text-muted-foreground">
-                            Administradores, comerciais e andamento
-                          </span>
                         </span>
                       </Button>
                       <Button
@@ -849,9 +846,6 @@ export default function FichasWorkspace() {
                         <FileText className="h-5 w-5 text-primary" />
                         <span>
                           <span className="block font-semibold">Modelos de Documentos</span>
-                          <span className="block text-sm font-normal text-muted-foreground">
-                            Contrato e procuração
-                          </span>
                         </span>
                       </Button>
                     </div>
