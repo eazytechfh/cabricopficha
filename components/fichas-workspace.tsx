@@ -44,6 +44,29 @@ type TimelineGroup = {
   logs: ActivityLogRecord[]
 }
 
+const DOCUMENT_TEMPLATE_VARIABLES = [
+  "{{nomeCliente}}",
+  "{{nacionalidade}}",
+  "{{estadoCivil}}",
+  "{{profissao}}",
+  "{{cnh}}",
+  "{{cpfCnpj}}",
+  "{{endereco}}",
+  "{{telefone}}",
+  "{{email}}",
+  "{{valorTotal}}",
+  "{{valorEntrada}}",
+  "{{valorRestante}}",
+  "{{observacaoValorRestante}}",
+  "{{formaPagamento}}",
+  "{{banco}}",
+  "{{processosResumo}}",
+  "{{multasResumo}}",
+  "{{placas}}",
+  "{{dataHoje}}",
+  "{{consultor}}",
+]
+
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   if (level === "admin") return "Admin"
   if (level === "andamento") return "Andamento"
@@ -426,6 +449,15 @@ export default function FichasWorkspace() {
 
     editor.focus()
     document.execCommand(command)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleInsertTemplateVariable = (variable: string) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    editor.focus()
+    document.execCommand("insertText", false, variable)
     setTemplateContent(editor.innerHTML)
   }
 
@@ -1463,6 +1495,24 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
                   <AlignCenter className="size-4" />
                 </Button>
+              </div>
+              <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variaveis disponiveis</p>
+                <div className="flex flex-wrap gap-2">
+                  {DOCUMENT_TEMPLATE_VARIABLES.map((variable) => (
+                    <Button
+                      key={variable}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleInsertTemplateVariable(variable)}
+                      disabled={templateLoading}
+                      className="font-mono text-xs"
+                    >
+                      {variable}
+                    </Button>
+                  ))}
+                </div>
               </div>
               <div
                 key={templateEditorKind ?? "template-editor"}
