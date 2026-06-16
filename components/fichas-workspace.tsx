@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileText, Italic, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -238,7 +237,6 @@ export default function FichasWorkspace() {
   const [selectedFicha, setSelectedFicha] = useState<FichaRecord | null>(null)
   const [editValues, setEditValues] = useState<FichaFormValues>(emptyFichaValues)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
-  const [expandedContratoId, setExpandedContratoId] = useState("")
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
 
@@ -798,7 +796,6 @@ export default function FichasWorkspace() {
       setSelectedContratos(contratos)
       setEditValues(toRecordValues(response.ficha))
       setViewMode(mode)
-      setExpandedContratoId("")
       window.setTimeout(() => {
         consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       }, 0)
@@ -809,17 +806,11 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleContratoAccordionChange = async (id: string) => {
-    if (!id) {
-      setExpandedContratoId("")
-      return
-    }
-
-    setExpandedContratoId(id)
+  const handleContratoSelectionChange = async (id: string) => {
+    if (!id) return
 
     if (selectedFicha?.id !== id) {
       await openFicha(id, "view", selectedContratos)
-      setExpandedContratoId(id)
     }
   }
 
@@ -1391,52 +1382,47 @@ export default function FichasWorkspace() {
                     ) : null}
                   </div>
 
-                  <Accordion
-                    type="single"
-                    collapsible
-                    value={expandedContratoId}
-                    onValueChange={(value) => void handleContratoAccordionChange(value)}
-                    className="space-y-3"
-                  >
-                    {(selectedContratos.length > 0 ? selectedContratos : [selectedFicha]).map((contrato) => (
-                      <AccordionItem key={contrato.id} value={contrato.id} className="rounded-lg border border-border px-4">
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex w-full flex-col gap-1 pr-2 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="font-semibold text-primary">{getFichaLabel(contrato.nomeCliente)}</span>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Data da ficha: {formatDisplayDate(contrato.dataContrato)}
-                            </span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          {selectedFicha.id === contrato.id ? (
-                            <div className="space-y-4">
-                              <FichaReadView
-                                values={editValues}
-                                actions={
-                                  <>
-                                    {canEditSelectedFicha ? (
-                                      <Button onClick={() => setViewMode("edit")}>✏️</Button>
-                                    ) : null}
-                                    <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
-                                      🖨️ FICHA
-                                    </Button>
-                                    <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
-                                      🖨️ CONTRATO
-                                    </Button>
-                                    <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
-                                      🖨️ PROCURAÇÃO
-                                    </Button>
-                                  </>
-                                }
-                                details={<LogSummary log={latestFichaLog} showEntityLabel={false} />}
-                              />
-                            </div>
-                          ) : null}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                  <div className="space-y-4 rounded-lg border border-border p-4">
+                    <div className="grid gap-3 md:grid-cols-[260px_1fr] md:items-end">
+                      <div className="space-y-2">
+                        <Label htmlFor="listaFichas">Lista de Fichas</Label>
+                        <Select value={selectedFicha.id} onValueChange={(value) => void handleContratoSelectionChange(value)}>
+                          <SelectTrigger id="listaFichas">
+                            <SelectValue placeholder="Selecione a ficha" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(selectedContratos.length > 0 ? selectedContratos : [selectedFicha]).map((contrato) => (
+                              <SelectItem key={contrato.id} value={contrato.id}>
+                                {getFichaLabel(contrato.nomeCliente)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="text-sm font-medium text-muted-foreground md:text-right">
+                        Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
+                      </div>
+                    </div>
+
+                    <FichaReadView
+                      values={editValues}
+                      actions={
+                        <>
+                          {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
+                          <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
+                            🖨️ FICHA
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
+                            🖨️ CONTRATO
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
+                            🖨️ PROCURAÇÃO
+                          </Button>
+                        </>
+                      }
+                      details={<LogSummary log={latestFichaLog} showEntityLabel={false} />}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
