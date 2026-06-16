@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileText, Italic, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -263,6 +263,7 @@ export default function FichasWorkspace() {
   const [templateContent, setTemplateContent] = useState("")
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
+  const [templateVariablesOpen, setTemplateVariablesOpen] = useState(false)
   const [latestFichaLog, setLatestFichaLog] = useState<ActivityLogRecord | null>(null)
   const [latestTemplateLog, setLatestTemplateLog] = useState<ActivityLogRecord | null>(null)
   const [timelineOpen, setTimelineOpen] = useState(false)
@@ -413,6 +414,7 @@ export default function FichasWorkspace() {
     setTemplateEditorKind(kind)
     setTemplateLoading(true)
     setTemplateMessage("")
+    setTemplateVariablesOpen(false)
 
     try {
       const template = await getDocumentTemplate(kind)
@@ -1468,7 +1470,15 @@ export default function FichasWorkspace() {
             )}
           </TabsContent>
         </Tabs>
-        <Dialog open={Boolean(templateEditorKind)} onOpenChange={(open) => !open && setTemplateEditorKind(null)}>
+        <Dialog
+          open={Boolean(templateEditorKind)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTemplateEditorKind(null)
+              setTemplateVariablesOpen(false)
+            }
+          }}
+        >
           <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>
@@ -1495,25 +1505,36 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
                   <AlignCenter className="size-4" />
                 </Button>
+                <Button
+                  type="button"
+                  variant={templateVariablesOpen ? "secondary" : "outline"}
+                  size="icon-sm"
+                  onClick={() => setTemplateVariablesOpen((current) => !current)}
+                  disabled={templateLoading}
+                >
+                  <Tag className="size-4" />
+                </Button>
               </div>
-              <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variaveis disponiveis</p>
-                <div className="flex flex-wrap gap-2">
-                  {DOCUMENT_TEMPLATE_VARIABLES.map((variable) => (
-                    <Button
-                      key={variable}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleInsertTemplateVariable(variable)}
-                      disabled={templateLoading}
-                      className="font-mono text-xs"
-                    >
-                      {variable}
-                    </Button>
-                  ))}
+              {templateVariablesOpen ? (
+                <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Variaveis disponiveis</p>
+                  <div className="flex flex-wrap gap-2">
+                    {DOCUMENT_TEMPLATE_VARIABLES.map((variable) => (
+                      <Button
+                        key={variable}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInsertTemplateVariable(variable)}
+                        disabled={templateLoading}
+                        className="font-mono text-xs"
+                      >
+                        {variable}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
               <div
                 key={templateEditorKind ?? "template-editor"}
                 ref={templateEditorRef}
