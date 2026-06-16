@@ -19,6 +19,18 @@ export type AccessCodeRecord = {
   updatedAt: string
 }
 
+export type ActivityLogRecord = {
+  id: string
+  entityType: "ficha" | "document_template"
+  entityId: string
+  entityLabel: string
+  action: string
+  summary: string
+  actorId: string
+  actorName: string
+  createdAt: string
+}
+
 export type FichaFormValues = {
   dataContrato: string
   prazoServico: string

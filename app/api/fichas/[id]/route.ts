@@ -1,10 +1,70 @@
 import { NextResponse } from "next/server"
 import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha } from "@/lib/ficha-utils"
+import { createActivityLog } from "@/lib/server-activity-logs"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 type RouteContext = {
   params: Promise<{ id: string }>
+}
+
+const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
+  dataContrato: "Data do Contrato",
+  prazoServico: "Prazo",
+  nomeCliente: "Nome Completo",
+  terceiros: "Terceiros",
+  telefones: "Telefone(s)",
+  endereco: "Endereco",
+  cep: "CEP",
+  cpfCnpj: "CPF/CNPJ",
+  cnh: "CNH",
+  dataNascimento: "Data de Nascimento",
+  dataPrimeiraCnh: "Data da 1a CNH",
+  nacionalidade: "Nacionalidade",
+  estadoCivil: "Estado Civil",
+  profissao: "Profissao",
+  email: "E-mail",
+  nomeConsultor: "Nome do Consultor",
+  origem: "Origem",
+  sne: "SNE",
+  formaPagamento: "Forma de Pagamento",
+  banco: "Banco",
+  bancoOutro: "Outro Banco",
+  valorTotal: "Valor Total",
+  valorEntrada: "Valor de Entrada",
+  valorRestante: "Valor Restante",
+  observacaoValorRestante: "Observacao do Valor Restante",
+  instanciaProcesso: "Instancia do Processo",
+  tipoProcesso: "Tipo do Processo",
+  numeroProcesso: "No do Processo",
+  prazoProcesso: "Prazo do Processo",
+  vistoJuridico: "Multas do Processo",
+  assinaturaVistoJuridico: "Assinatura Visto Juridico",
+  instanciaMulta: "Instancia da Multa",
+  autoDetran: "Auto Detran",
+  autoRenainf: "Auto Renainf",
+  tipoMulta: "Tipo de Multa",
+  placa: "Placa",
+  placaProprietario: "Placa Proprietario",
+  cpfProprietario: "CPF do Proprietario",
+  renavam: "Renavam",
+  prazoMulta: "Prazo da Multa",
+  vistoJuridicoMulta: "Processo Vinculado da Multa",
+  observacoes: "Observacoes",
+}
+
+function normalizeCompareValue(value: string) {
+  return String(value || "").trim()
+}
+
+function summarizeFichaChanges(current: FichaFormValues, next: FichaFormValues) {
+  const changedFields = (Object.keys(FIELD_LABELS) as Array<keyof FichaFormValues>).filter(
+    (key) => normalizeCompareValue(current[key]) !== normalizeCompareValue(next[key])
+  )
+
+  if (!changedFields.length) return "Salvou a ficha sem alterar campos."
+
+  return `Atualizou: ${changedFields.map((key) => FIELD_LABELS[key]).join(", ")}.`
 }
 
 export async function GET(_: Request, context: RouteContext) {
@@ -36,6 +96,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const ficha = await updateFicha(id, data, consultor)
+    await createActivityLog({
+      entityType: "ficha",
+      entityId: ficha.id,
+      entityLabel: current.nomeCliente || `Ficha ${ficha.id}`,
+      action: "update",
+      summary: summarizeFichaChanges(current, data),
+      actorId: consultor.id,
+      actorName: consultor.nome,
+    })
 
     let excelSaved = true
     let excelError: string | undefined

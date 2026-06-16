@@ -8,6 +8,7 @@ import type { ReactNode } from "react"
 type FichaReadViewProps = {
   values: FichaFormValues
   actions?: ReactNode
+  details?: ReactNode
 }
 
 function fallback(value: string) {
@@ -167,7 +168,7 @@ function formatMoneyValue(value: string) {
   return formatCurrency(parseCurrency(value))
 }
 
-export function FichaReadView({ values, actions }: FichaReadViewProps) {
+export function FichaReadView({ values, actions, details }: FichaReadViewProps) {
   const processoLines = getProcessoLines(values).filter((line) =>
     hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
   )
@@ -187,6 +188,7 @@ export function FichaReadView({ values, actions }: FichaReadViewProps) {
   return (
     <div className="space-y-6">
       {actions ? <div className="flex flex-wrap gap-4">{actions}</div> : null}
+      {details}
 
       <Card className="border-l-4 border-l-secondary shadow-sm">
         <CardHeader className="pb-3">

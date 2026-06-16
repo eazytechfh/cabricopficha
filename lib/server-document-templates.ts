@@ -1,4 +1,6 @@
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, type DocumentTemplateKind, type DocumentTemplateRecord } from "@/lib/document-templates"
+import { createActivityLog } from "@/lib/server-activity-logs"
+import type { ConsultorSession } from "@/lib/ficha-types"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -51,7 +53,7 @@ export async function getServerDocumentTemplate(kind: DocumentTemplateKind) {
   return payload[0] ? mapTemplate(payload[0], kind) : defaultTemplate(kind)
 }
 
-export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, content: string) {
+export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, content: string, consultor: ConsultorSession) {
   ensureConfig()
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?key=eq.${kind}`, {
@@ -73,7 +75,19 @@ export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, c
   }
 
   const payload = (await response.json()) as Array<Record<string, unknown>>
-  if (payload[0]) return mapTemplate(payload[0], kind)
+  if (payload[0]) {
+    const template = mapTemplate(payload[0], kind)
+    await createActivityLog({
+      entityType: "document_template",
+      entityId: kind,
+      entityLabel: `Modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}`,
+      action: "update",
+      summary: `Atualizou o conteudo do modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}.`,
+      actorId: consultor.id,
+      actorName: consultor.nome,
+    })
+    return template
+  }
 
   const createResponse = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
     method: "POST",
@@ -90,5 +104,15 @@ export async function updateServerDocumentTemplate(kind: DocumentTemplateKind, c
   }
 
   const created = (await createResponse.json()) as Array<Record<string, unknown>>
-  return created[0] ? mapTemplate(created[0], kind) : defaultTemplate(kind)
+  const template = created[0] ? mapTemplate(created[0], kind) : defaultTemplate(kind)
+  await createActivityLog({
+    entityType: "document_template",
+    entityId: kind,
+    entityLabel: `Modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}`,
+    action: "update",
+    summary: `Atualizou o conteudo do modelo de ${DOCUMENT_TEMPLATE_LABELS[kind]}.`,
+    actorId: consultor.id,
+    actorName: consultor.nome,
+  })
+  return template
 }

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "O modelo nao pode ficar vazio." }, { status: 400 })
       }
 
-      const template = await updateServerDocumentTemplate(kind, content)
+      const template = await updateServerDocumentTemplate(kind, content, payload.consultor as ConsultorSession)
       return NextResponse.json({ template })
     }
 

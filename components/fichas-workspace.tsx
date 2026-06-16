@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,7 @@ import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DOCUMENT_TEMPLATE_LABELS, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
+import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { getFichaById, getFichas } from "@/lib/fichas-api"
@@ -26,6 +27,7 @@ import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-util
 import {
   emptyFichaValues,
   type AccessCodeRecord,
+  type ActivityLogRecord,
   type ConsultorSession,
   type FichaFormValues,
   type FichaListItem,
@@ -172,6 +174,19 @@ function formatAccessDate(value: string) {
   return `${day}/${month}/${year} as ${hours}:${minutes}`
 }
 
+function LogSummary({ log }: { log: ActivityLogRecord | null }) {
+  if (!log) return <p className="text-sm text-muted-foreground">Nenhum log disponivel.</p>
+
+  return (
+    <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+      <p className="font-medium text-foreground">
+        Ultima atualizacao por {log.actorName || "-"} em {formatAccessDate(log.createdAt)}
+      </p>
+      <p className="mt-1 text-muted-foreground">{log.summary || "-"}</p>
+    </div>
+  )
+}
+
 export default function FichasWorkspace() {
   const [consultor, setConsultor] = useState<ConsultorSession | null>(null)
   const [codigoAcesso, setCodigoAcesso] = useState("")
@@ -220,6 +235,12 @@ export default function FichasWorkspace() {
   const [templateContent, setTemplateContent] = useState("")
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
+  const [latestFichaLog, setLatestFichaLog] = useState<ActivityLogRecord | null>(null)
+  const [latestTemplateLog, setLatestTemplateLog] = useState<ActivityLogRecord | null>(null)
+  const [timelineOpen, setTimelineOpen] = useState(false)
+  const [timelineLogs, setTimelineLogs] = useState<ActivityLogRecord[]>([])
+  const [timelineLoading, setTimelineLoading] = useState(false)
+  const [timelineError, setTimelineError] = useState("")
   const templateEditorRef = useRef<HTMLDivElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
@@ -307,6 +328,46 @@ export default function FichasWorkspace() {
     }
   }, [activeTab, isAndamento])
 
+  useEffect(() => {
+    if (!selectedFicha?.id) {
+      setLatestFichaLog(null)
+      return
+    }
+
+    let cancelled = false
+    void getLatestLog("ficha", selectedFicha.id)
+      .then((log) => {
+        if (!cancelled) setLatestFichaLog(log)
+      })
+      .catch(() => {
+        if (!cancelled) setLatestFichaLog(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedFicha?.id])
+
+  useEffect(() => {
+    if (!templateEditorKind) {
+      setLatestTemplateLog(null)
+      return
+    }
+
+    let cancelled = false
+    void getLatestLog("document_template", templateEditorKind)
+      .then((log) => {
+        if (!cancelled) setLatestTemplateLog(log)
+      })
+      .catch(() => {
+        if (!cancelled) setLatestTemplateLog(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [templateEditorKind])
+
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
 
@@ -344,6 +405,8 @@ export default function FichasWorkspace() {
       const template = await updateDocumentTemplate(templateEditorKind, templateContent, consultor)
       setTemplateContent(normalizeDocumentTemplateContent(template.content))
       setTemplateMessage("Modelo salvo com sucesso.")
+      const latest = await getLatestLog("document_template", templateEditorKind)
+      setLatestTemplateLog(latest)
     } catch (error) {
       setTemplateMessage(error instanceof Error ? error.message : "Erro ao salvar modelo.")
     } finally {
@@ -381,6 +444,24 @@ export default function FichasWorkspace() {
       setAuthError(error instanceof Error ? error.message : "Codigo de acesso invalido.")
     } finally {
       setAuthLoading(false)
+    }
+  }
+
+  const handleOpenTimeline = async (open: boolean) => {
+    setTimelineOpen(open)
+    if (!open || !consultor) return
+
+    setTimelineLoading(true)
+    setTimelineError("")
+
+    try {
+      const logs = await getTimelineLogs(consultor)
+      setTimelineLogs(logs)
+    } catch (error) {
+      setTimelineError(error instanceof Error ? error.message : "Erro ao carregar timeline.")
+      setTimelineLogs([])
+    } finally {
+      setTimelineLoading(false)
     }
   }
 
@@ -742,6 +823,8 @@ export default function FichasWorkspace() {
       const response = await updateFicha(selectedFicha.id, editValues, consultor)
       setSelectedFicha(response.ficha)
       setEditValues(toRecordValues(response.ficha))
+      const latest = await getLatestLog("ficha", response.ficha.id)
+      setLatestFichaLog(latest)
       setEditMessage(
         response.webhookSent
           ? "Ficha atualizada com sucesso."
@@ -803,6 +886,10 @@ export default function FichasWorkspace() {
           <div className="flex items-center gap-3">
             {isAdmin && (
               <>
+                <Button variant="secondary" onClick={() => void handleOpenTimeline(true)}>
+                  <Clock3 className="h-4 w-4" />
+                  Timeline
+                </Button>
                 <Button variant="secondary" size="icon" aria-label="Configuracoes" onClick={() => void handleOpenSettings(true)}>
                   <Settings className="h-5 w-5" />
                 </Button>
@@ -1272,20 +1359,21 @@ export default function FichasWorkspace() {
                                 values={editValues}
                                 actions={
                                   <>
-                                {canEditSelectedFicha ? (
-                                  <Button onClick={() => setViewMode("edit")}>✏️</Button>
-                                ) : null}
-                                <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
-                                  🖨️ FICHA
-                                </Button>
-                                <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
-                                  🖨️ CONTRATO
-                                </Button>
-                                <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
-                                  🖨️ PROCURAÇÃO
-                                </Button>
+                                    {canEditSelectedFicha ? (
+                                      <Button onClick={() => setViewMode("edit")}>✏️</Button>
+                                    ) : null}
+                                    <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
+                                      🖨️ FICHA
+                                    </Button>
+                                    <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
+                                      🖨️ CONTRATO
+                                    </Button>
+                                    <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
+                                      🖨️ PROCURAÇÃO
+                                    </Button>
                                   </>
                                 }
+                                details={<LogSummary log={latestFichaLog} />}
                               />
                             </div>
                           ) : null}
@@ -1361,6 +1449,7 @@ export default function FichasWorkspace() {
                 onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
                 className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
               />
+              <LogSummary log={latestTemplateLog} />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
             <DialogFooter>
@@ -1369,6 +1458,35 @@ export default function FichasWorkspace() {
               </Button>
               <Button type="button" onClick={() => void handleSaveTemplate()} disabled={templateLoading}>
                 {templateLoading ? "Salvando..." : "Salvar modelo"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={timelineOpen} onOpenChange={(open) => void handleOpenTimeline(open)}>
+          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Timeline</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {timelineError ? <p className="text-sm text-red-600">{timelineError}</p> : null}
+              {timelineLoading ? <p className="text-sm text-muted-foreground">Carregando timeline...</p> : null}
+              {!timelineLoading && timelineLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum log encontrado.</p>
+              ) : null}
+              {timelineLogs.map((log) => (
+                <div key={log.id} className="rounded-lg border border-border bg-background px-4 py-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
+                    <p className="text-sm text-muted-foreground">{formatAccessDate(log.createdAt)}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-foreground">Por: {log.actorName || "-"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{log.summary || "-"}</p>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setTimelineOpen(false)}>
+                Fechar
               </Button>
             </DialogFooter>
           </DialogContent>
