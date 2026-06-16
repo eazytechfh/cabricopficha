@@ -807,7 +807,7 @@ export default function FichasWorkspace() {
   const handleContratoSelectionChange = async (id: string) => {
     if (!id) return
 
-    if (selectedFicha?.id !== id) {
+    if (viewMode !== "view" || selectedFicha?.id !== id) {
       await openFicha(id, "view", selectedContratos)
     }
   }
