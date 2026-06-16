@@ -429,12 +429,6 @@ export default function FichasWorkspace() {
     setTemplateContent(editor.innerHTML)
   }
 
-  useEffect(() => {
-    if (!templateEditorRef.current) return
-    if (templateEditorRef.current.innerHTML === templateContent) return
-    templateEditorRef.current.innerHTML = templateContent
-  }, [templateContent, templateEditorKind])
-
   const timelineGroups = useMemo(() => {
     const groups = new Map<string, TimelineGroup>()
 
@@ -1471,11 +1465,13 @@ export default function FichasWorkspace() {
                 </Button>
               </div>
               <div
+                key={templateEditorKind ?? "template-editor"}
                 ref={templateEditorRef}
                 contentEditable={!templateLoading}
                 suppressContentEditableWarning
                 onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
                 className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
+                dangerouslySetInnerHTML={{ __html: templateContent }}
               />
               <LogSummary log={latestTemplateLog} />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
