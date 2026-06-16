@@ -1,4 +1,4 @@
-export type AccessLevel = "admin" | "consultor"
+export type AccessLevel = "admin" | "consultor" | "andamento"
 
 export type Consultor = {
   id: string

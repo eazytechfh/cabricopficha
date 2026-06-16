@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import { assertAdminAccess, createAccessCode, getAccessCodes } from "@/lib/server-access"
 import type { AccessCodeRecord, ConsultorSession } from "@/lib/ficha-types"
 
+function normalizeAccessLevel(value: AccessCodeRecord["nivelAcesso"] | undefined): AccessCodeRecord["nivelAcesso"] {
+  if (value === "admin" || value === "andamento") return value
+  return "consultor"
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as {
@@ -24,7 +29,7 @@ export async function POST(request: Request) {
     if (payload.action === "create") {
       const nomeResponsavel = String(payload.input?.nomeResponsavel || "").trim()
       const codigoAcesso = String(payload.input?.codigoAcesso || "").trim()
-      const nivelAcesso = payload.input?.nivelAcesso === "admin" ? "admin" : "consultor"
+      const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
 
       if (!nomeResponsavel || !codigoAcesso) {
         return NextResponse.json(

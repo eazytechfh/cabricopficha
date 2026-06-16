@@ -2,6 +2,11 @@ import { NextResponse } from "next/server"
 import { assertAdminAccess, deleteAccessCode, updateAccessCode } from "@/lib/server-access"
 import type { AccessCodeRecord, ConsultorSession } from "@/lib/ficha-types"
 
+function normalizeAccessLevel(value: AccessCodeRecord["nivelAcesso"] | undefined): AccessCodeRecord["nivelAcesso"] {
+  if (value === "admin" || value === "andamento") return value
+  return "consultor"
+}
+
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -26,7 +31,7 @@ export async function PATCH(
 
     const nomeResponsavel = String(payload.input?.nomeResponsavel || "").trim()
     const codigoAcesso = String(payload.input?.codigoAcesso || "").trim()
-    const nivelAcesso = payload.input?.nivelAcesso === "admin" ? "admin" : "consultor"
+    const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
     const ativo = Boolean(payload.input?.ativo ?? true)
 
     if (!nomeResponsavel || !codigoAcesso) {

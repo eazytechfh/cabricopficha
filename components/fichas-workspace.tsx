@@ -38,6 +38,12 @@ type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
 
+function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
+  if (level === "admin") return "Admin"
+  if (level === "andamento") return "Andamento"
+  return "Comercial"
+}
+
 function getFichaLabel(nomeCliente: string) {
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
   if (match) {
@@ -82,7 +88,7 @@ function ClienteValue({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ClienteReadCard({ values, onEdit }: { values: FichaFormValues; onEdit: () => void }) {
+function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues; onEdit: () => void; canEdit: boolean }) {
   return (
     <div className="relative rounded-lg border border-border border-l-4 border-l-primary bg-background p-4 pb-16 shadow-sm">
       <div className="mb-6 flex items-center gap-2">
@@ -127,10 +133,12 @@ function ClienteReadCard({ values, onEdit }: { values: FichaFormValues; onEdit: 
         <ClienteValue label="SNE" value={values.sne} />
       </div>
 
-      <Button type="button" variant="outline" size="sm" onClick={onEdit} className="absolute bottom-4 right-4">
-        <Plus className="size-4" />
-        Editar
-      </Button>
+      {canEdit ? (
+        <Button type="button" variant="outline" size="sm" onClick={onEdit} className="absolute bottom-4 right-4">
+          <Plus className="size-4" />
+          Editar
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -291,6 +299,13 @@ export default function FichasWorkspace() {
   }, [consultaItems])
 
   const isAdmin = hasAdminAccess(consultor)
+  const isAndamento = consultor?.nivelAcesso === "andamento"
+
+  useEffect(() => {
+    if (isAndamento && activeTab !== "consultar") {
+      setActiveTab("consultar")
+    }
+  }, [activeTab, isAndamento])
 
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
@@ -766,7 +781,7 @@ export default function FichasWorkspace() {
             <img src="/logo.png" alt="CABRICOP" className="h-12 md:h-16 w-auto" />
             <div>
               <p className="font-semibold">{consultor.nome}</p>
-              <p className="text-sm opacity-80">Nivel: {consultor.nivelAcesso}</p>
+              <p className="text-sm opacity-80">Nivel: {getAccessLevelLabel(consultor.nivelAcesso)}</p>
             </div>
           </div>
 
@@ -791,7 +806,7 @@ export default function FichasWorkspace() {
                           </h2>
                           <p className="text-sm text-muted-foreground">
                             {settingsSection === "users"
-                              ? "Gerencie os acessos de administradores e consultores."
+                              ? "Gerencie os acessos de administradores, comerciais e andamento."
                               : settingsSection === "documents"
                                 ? "Escolha qual modelo deseja editar."
                                 : "Selecione uma area administrativa."}
@@ -821,7 +836,7 @@ export default function FichasWorkspace() {
                         <span>
                           <span className="block font-semibold">Usuarios</span>
                           <span className="block text-sm font-normal text-muted-foreground">
-                            Administradores e consultores
+                            Administradores, comerciais e andamento
                           </span>
                         </span>
                       </Button>
@@ -919,7 +934,8 @@ export default function FichasWorkspace() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="consultor">Consultor</SelectItem>
+                              <SelectItem value="consultor">Comercial</SelectItem>
+                              <SelectItem value="andamento">Andamento</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
                           </Select>
@@ -977,7 +993,8 @@ export default function FichasWorkspace() {
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="consultor">Consultor</SelectItem>
+                                          <SelectItem value="consultor">Comercial</SelectItem>
+                                          <SelectItem value="andamento">Andamento</SelectItem>
                                           <SelectItem value="admin">Admin</SelectItem>
                                         </SelectContent>
                                       </Select>
@@ -1022,7 +1039,7 @@ export default function FichasWorkspace() {
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
-                                      <p className="mt-1 capitalize">{user.nivelAcesso}</p>
+                                      <p className="mt-1">{getAccessLevelLabel(user.nivelAcesso)}</p>
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
@@ -1086,26 +1103,28 @@ export default function FichasWorkspace() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="cadastrar">Cadastrar Ficha</TabsTrigger>
+        <Tabs value={isAndamento ? "consultar" : activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className={`grid w-full ${isAndamento ? "grid-cols-1" : "grid-cols-2"}`}>
+            {!isAndamento ? <TabsTrigger value="cadastrar">Cadastrar Ficha</TabsTrigger> : null}
             <TabsTrigger value="consultar">Consulta de Ficha</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cadastrar" className="space-y-4" ref={cadastroTopRef}>
-            {createMessage && <p className="text-sm text-primary font-medium">{createMessage}</p>}
-            <FichaForm
-              values={createValues}
-              onChange={setCreateValues}
-              onSubmit={handleCreate}
-              submitLabel="Salvar Ficha de Venda"
-              loading={createLoading}
-              loadingLabel="Salvando..."
-              requiredFields={["nomeCliente", "cpfCnpj"]}
-              identifierPreview={createIdentifierPreview}
-              onBack={createReturnToConsulta ? handleVoltarCadastroParaConsulta : undefined}
-            />
-          </TabsContent>
+          {!isAndamento ? (
+            <TabsContent value="cadastrar" className="space-y-4" ref={cadastroTopRef}>
+              {createMessage && <p className="text-sm text-primary font-medium">{createMessage}</p>}
+              <FichaForm
+                values={createValues}
+                onChange={setCreateValues}
+                onSubmit={handleCreate}
+                submitLabel="Salvar Ficha de Venda"
+                loading={createLoading}
+                loadingLabel="Salvando..."
+                requiredFields={["nomeCliente", "cpfCnpj"]}
+                identifierPreview={createIdentifierPreview}
+                onBack={createReturnToConsulta ? handleVoltarCadastroParaConsulta : undefined}
+              />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="consultar" className="space-y-6">
             <Card ref={consultaTopRef} className="border-l-4 border-l-primary shadow-md">
@@ -1208,14 +1227,16 @@ export default function FichasWorkspace() {
             {selectedFicha && viewMode === "view" && (
               <Card className="shadow-md">
                 <CardContent className="space-y-4">
-                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} />
+                  <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
-                    <Button type="button" onClick={handleAddNovoContrato}>
-                      <Plus className="size-4" />
-                      Adicionar
-                    </Button>
+                    {canEditSelectedFicha ? (
+                      <Button type="button" onClick={handleAddNovoContrato}>
+                        <Plus className="size-4" />
+                        Adicionar
+                      </Button>
+                    ) : null}
                   </div>
 
                   <Accordion

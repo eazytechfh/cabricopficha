@@ -149,9 +149,10 @@ export function toRecordValues(record: FichaRecord): FichaFormValues {
 
 export function canEditFicha(
   currentConsultorId: string,
-  currentLevel: "admin" | "consultor",
+  currentLevel: "admin" | "consultor" | "andamento",
   ficha: Pick<FichaRecord, "createdByConsultorId" | "updatedByConsultorId">
 ) {
   if (currentLevel === "admin") return true
+  if (currentLevel === "andamento") return false
   return ficha.createdByConsultorId === currentConsultorId || ficha.updatedByConsultorId === currentConsultorId
 }
