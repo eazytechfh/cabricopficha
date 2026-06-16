@@ -723,7 +723,6 @@ export default function FichasWorkspace() {
     setEditMessage("")
     setViewMode("list")
     setSelectedFicha(null)
-    setExpandedContratoId("")
 
     try {
       const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
@@ -748,7 +747,6 @@ export default function FichasWorkspace() {
     setConsultaError("")
     setEditMessage("")
     setSelectedFicha(null)
-    setExpandedContratoId("")
     setViewMode("list")
   }
 
@@ -762,7 +760,6 @@ export default function FichasWorkspace() {
     setSelectedFicha(null)
     setEditValues(emptyFichaValues)
     setViewMode("list")
-    setExpandedContratoId("")
     setEditMessage("")
   }
 
