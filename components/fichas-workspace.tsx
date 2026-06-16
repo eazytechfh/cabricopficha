@@ -179,13 +179,13 @@ function formatAccessDate(value: string) {
   return `${day}/${month}/${year} as ${hours}:${minutes}`
 }
 
-function LogSummary({ log }: { log: ActivityLogRecord | null }) {
+function LogSummary({ log, showEntityLabel = true }: { log: ActivityLogRecord | null; showEntityLabel?: boolean }) {
   if (!log) return <p className="text-sm text-muted-foreground">Nenhum log disponivel.</p>
 
   return (
     <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
-      <p className="font-medium text-foreground">{log.entityLabel || "-"}</p>
-      <p className="mt-1 text-foreground">{formatAccessDate(log.createdAt)}</p>
+      {showEntityLabel ? <p className="font-medium text-foreground">{log.entityLabel || "-"}</p> : null}
+      <p className={showEntityLabel ? "mt-1 text-foreground" : "text-foreground"}>{formatAccessDate(log.createdAt)}</p>
       <p className="mt-1 text-foreground">Por: {log.actorName || "-"}</p>
       <p className="mt-1 text-muted-foreground">{log.summary || "-"}</p>
     </div>
@@ -1401,7 +1401,7 @@ export default function FichasWorkspace() {
                                     </Button>
                                   </>
                                 }
-                                details={<LogSummary log={latestFichaLog} />}
+                                details={<LogSummary log={latestFichaLog} showEntityLabel={false} />}
                               />
                             </div>
                           ) : null}
