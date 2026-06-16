@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, FileText, Pencil, Plus, Settings, Trash2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, FileText, Italic, Pencil, Plus, Settings, Trash2, Underline, UserPlus } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
@@ -18,7 +17,7 @@ import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
-import { DOCUMENT_TEMPLATE_LABELS, type DocumentTemplateKind } from "@/lib/document-templates"
+import { DOCUMENT_TEMPLATE_LABELS, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
@@ -221,6 +220,7 @@ export default function FichasWorkspace() {
   const [templateContent, setTemplateContent] = useState("")
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
+  const templateEditorRef = useRef<HTMLDivElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
 
@@ -326,7 +326,7 @@ export default function FichasWorkspace() {
 
     try {
       const template = await getDocumentTemplate(kind)
-      setTemplateContent(template.content)
+      setTemplateContent(normalizeDocumentTemplateContent(template.content))
     } catch (error) {
       setTemplateMessage(error instanceof Error ? error.message : "Erro ao carregar modelo.")
     } finally {
@@ -342,7 +342,7 @@ export default function FichasWorkspace() {
 
     try {
       const template = await updateDocumentTemplate(templateEditorKind, templateContent, consultor)
-      setTemplateContent(template.content)
+      setTemplateContent(normalizeDocumentTemplateContent(template.content))
       setTemplateMessage("Modelo salvo com sucesso.")
     } catch (error) {
       setTemplateMessage(error instanceof Error ? error.message : "Erro ao salvar modelo.")
@@ -350,6 +350,21 @@ export default function FichasWorkspace() {
       setTemplateLoading(false)
     }
   }
+
+  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter") => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    editor.focus()
+    document.execCommand(command)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  useEffect(() => {
+    if (!templateEditorRef.current) return
+    if (templateEditorRef.current.innerHTML === templateContent) return
+    templateEditorRef.current.innerHTML = templateContent
+  }, [templateContent, templateEditorKind])
 
   const handleLogin = async () => {
     setAuthLoading(true)
@@ -1318,11 +1333,29 @@ export default function FichasWorkspace() {
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
-              <Textarea
-                value={templateContent}
-                onChange={(event) => setTemplateContent(event.target.value)}
-                disabled={templateLoading}
-                className="h-[60vh] min-h-[420px] resize-none overflow-y-auto font-mono text-sm"
+              <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2">
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
+                  <Bold className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("italic")} disabled={templateLoading}>
+                  <Italic className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("underline")} disabled={templateLoading}>
+                  <Underline className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyLeft")} disabled={templateLoading}>
+                  <AlignLeft className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
+                  <AlignCenter className="size-4" />
+                </Button>
+              </div>
+              <div
+                ref={templateEditorRef}
+                contentEditable={!templateLoading}
+                suppressContentEditableWarning
+                onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
+                className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
               />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>

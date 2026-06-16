@@ -68,6 +68,25 @@ OUTORGANTE
 {{nomeCliente}}`,
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
+function looksLikeHtml(value: string) {
+  return /<\/?[a-z][\s\S]*>/i.test(value)
+}
+
+export function normalizeDocumentTemplateContent(template: string) {
+  if (!template) return ""
+  if (looksLikeHtml(template)) return template
+  return escapeHtml(template).replaceAll("\n", "<br />")
+}
+
 function splitLines(value: string) {
   if (!value) return [""]
   return value.split("\n")
@@ -167,7 +186,7 @@ export function fillDocumentTemplate(template: string, values: FichaFormValues) 
 
   return Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),
-    template
+    normalizeDocumentTemplateContent(template)
   )
 }
 
