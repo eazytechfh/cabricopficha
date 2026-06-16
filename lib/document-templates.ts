@@ -153,12 +153,13 @@ function buildMultasResumo(values: FichaFormValues) {
 }
 
 function buildPlaceholderValues(values: FichaFormValues) {
+  const nomeCliente = (values.nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
   const placas = getMultaLines(values)
     .map((line) => line.placa.trim().toUpperCase())
     .filter(Boolean)
 
   return {
-    nomeCliente: values.nomeCliente || "-",
+    nomeCliente: nomeCliente || values.nomeCliente || "-",
     nacionalidade: values.nacionalidade || "Brasileira",
     estadoCivil: values.estadoCivil || "-",
     profissao: values.profissao || "-",
