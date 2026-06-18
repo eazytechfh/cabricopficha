@@ -14,8 +14,10 @@ export async function POST(request: Request) {
       consultor?: ConsultorSession
       input?: {
         nomeResponsavel?: string
-        codigoAcesso?: string
+        email?: string
+        telefone?: string
         nivelAcesso?: AccessCodeRecord["nivelAcesso"]
+        appOrigin?: string
       }
     }
 
@@ -28,20 +30,24 @@ export async function POST(request: Request) {
 
     if (payload.action === "create") {
       const nomeResponsavel = String(payload.input?.nomeResponsavel || "").trim()
-      const codigoAcesso = String(payload.input?.codigoAcesso || "").trim()
+      const email = String(payload.input?.email || "").trim().toLowerCase()
+      const telefone = String(payload.input?.telefone || "").trim()
+      const appOrigin = String(payload.input?.appOrigin || "").trim()
       const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
 
-      if (!nomeResponsavel || !codigoAcesso) {
+      if (!nomeResponsavel || !email || !telefone) {
         return NextResponse.json(
-          { error: "Nome do responsavel e codigo de acesso sao obrigatorios." },
+          { error: "Nome do responsavel, e-mail e telefone sao obrigatorios." },
           { status: 400 }
         )
       }
 
       const user = await createAccessCode({
         nomeResponsavel,
-        codigoAcesso,
+        email,
+        telefone,
         nivelAcesso,
+        appOrigin,
       })
 
       return NextResponse.json({ user }, { status: 201 })

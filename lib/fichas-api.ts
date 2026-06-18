@@ -10,11 +10,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload
 }
 
-export async function loginWithAccessCode(codigoAcesso: string) {
+export async function loginWithPassword(email: string, password: string) {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ codigoAcesso }),
+    body: JSON.stringify({ email, password }),
   })
 
   return parseResponse<{ consultor: ConsultorSession }>(response)

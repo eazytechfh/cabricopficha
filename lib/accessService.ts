@@ -5,23 +5,43 @@ import type { ConsultorSession } from "@/lib/ficha-types"
 const SESSION_KEY = "cabricop_consultor_session"
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json()
+  const payload = await response.json().catch(() => null)
   if (!response.ok) {
-    throw new Error(payload.error || "Erro ao validar acesso.")
+    throw new Error(payload?.error || "Erro ao validar acesso.")
   }
-  return payload
+  return payload as T
 }
 
-export async function loginWithAccessCode(codigo: string) {
+export async function loginWithPassword(email: string, password: string) {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ codigoAcesso: codigo }),
+    body: JSON.stringify({ email, password }),
   })
 
   const payload = await parseResponse<{ consultor: ConsultorSession }>(response)
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(payload.consultor))
   return payload.consultor
+}
+
+export async function requestPasswordRecovery(email: string) {
+  const response = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+
+  return parseResponse<{ success: boolean; message: string }>(response)
+}
+
+export async function resetPassword(accessToken: string, password: string) {
+  const response = await fetch("/api/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accessToken, password }),
+  })
+
+  return parseResponse<{ success: boolean; message: string }>(response)
 }
 
 export function getCurrentAccess() {

@@ -3,8 +3,10 @@ export type AccessLevel = "admin" | "consultor" | "andamento"
 export type Consultor = {
   id: string
   nome: string
-  codigoAcesso: string
+  email: string
+  telefone: string
   nivelAcesso: AccessLevel
+  ativo?: boolean
 }
 
 export type ConsultorSession = Consultor
@@ -12,9 +14,12 @@ export type ConsultorSession = Consultor
 export type AccessCodeRecord = {
   id: string
   nomeResponsavel: string
-  codigoAcesso: string
+  email: string
+  telefone: string
   nivelAcesso: AccessLevel
   ativo: boolean
+  mustChangePassword?: boolean
+  lastLoginAt?: string
   createdAt: string
   updatedAt: string
 }

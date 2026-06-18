@@ -16,7 +16,8 @@ export async function PATCH(
       consultor?: ConsultorSession
       input?: {
         nomeResponsavel?: string
-        codigoAcesso?: string
+        email?: string
+        telefone?: string
         nivelAcesso?: AccessCodeRecord["nivelAcesso"]
         ativo?: boolean
       }
@@ -30,13 +31,14 @@ export async function PATCH(
     }
 
     const nomeResponsavel = String(payload.input?.nomeResponsavel || "").trim()
-    const codigoAcesso = String(payload.input?.codigoAcesso || "").trim()
+    const email = String(payload.input?.email || "").trim().toLowerCase()
+    const telefone = String(payload.input?.telefone || "").trim()
     const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
     const ativo = Boolean(payload.input?.ativo ?? true)
 
-    if (!nomeResponsavel || !codigoAcesso) {
+    if (!nomeResponsavel || !email || !telefone) {
       return NextResponse.json(
-        { error: "Nome do responsavel e codigo de acesso sao obrigatorios." },
+        { error: "Nome do responsavel, e-mail e telefone sao obrigatorios." },
         { status: 400 }
       )
     }
@@ -50,7 +52,8 @@ export async function PATCH(
 
     const user = await updateAccessCode(id, {
       nomeResponsavel,
-      codigoAcesso,
+      email,
+      telefone,
       nivelAcesso,
       ativo,
     })

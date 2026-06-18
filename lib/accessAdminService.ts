@@ -33,8 +33,10 @@ export async function createAccessUser(
   consultor: ConsultorSession,
   input: {
     nomeResponsavel: string
-    codigoAcesso: string
+    email: string
+    telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
+    appOrigin?: string
   }
 ) {
   const response = await fetch("/api/access-codes", {
@@ -65,7 +67,8 @@ export async function updateAccessUser(
   id: string,
   input: {
     nomeResponsavel: string
-    codigoAcesso: string
+    email: string
+    telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
     ativo: boolean
   }

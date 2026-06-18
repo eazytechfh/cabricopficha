@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
-import { getCurrentAccess, hasAdminAccess, loginWithAccessCode, logout } from "@/lib/accessService"
+import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, requestPasswordRecovery, resetPassword } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
@@ -216,7 +216,17 @@ function LogSummary({ log, showEntityLabel = true }: { log: ActivityLogRecord | 
 
 export default function FichasWorkspace() {
   const [consultor, setConsultor] = useState<ConsultorSession | null>(null)
-  const [codigoAcesso, setCodigoAcesso] = useState("")
+  const [emailAcesso, setEmailAcesso] = useState("")
+  const [senhaAcesso, setSenhaAcesso] = useState("")
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [forgotMessage, setForgotMessage] = useState("")
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [resetToken, setResetToken] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [resetMessage, setResetMessage] = useState("")
+  const [resetLoading, setResetLoading] = useState(false)
   const [authError, setAuthError] = useState("")
   const [authLoading, setAuthLoading] = useState(false)
 
@@ -247,13 +257,15 @@ export default function FichasWorkspace() {
   const [usersMessage, setUsersMessage] = useState("")
   const [users, setUsers] = useState<AccessCodeRecord[]>([])
   const [newUserName, setNewUserName] = useState("")
-  const [newUserCode, setNewUserCode] = useState("")
+  const [newUserEmail, setNewUserEmail] = useState("")
+  const [newUserPhone, setNewUserPhone] = useState("")
   const [newUserLevel, setNewUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [userSaving, setUserSaving] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState("")
   const [editingUserId, setEditingUserId] = useState("")
   const [editUserName, setEditUserName] = useState("")
-  const [editUserCode, setEditUserCode] = useState("")
+  const [editUserEmail, setEditUserEmail] = useState("")
+  const [editUserPhone, setEditUserPhone] = useState("")
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
   const [userUpdating, setUserUpdating] = useState(false)
@@ -281,6 +293,21 @@ export default function FichasWorkspace() {
 
     setConsultor(access)
     setCreateValues((current) => ({ ...current, nomeConsultor: current.nomeConsultor || defaultConsultor }))
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+    const accessToken = hashParams.get("access_token")
+    const type = hashParams.get("type")
+
+    if (type === "recovery" && accessToken) {
+      setResetToken(accessToken)
+      setForgotPasswordOpen(false)
+      setAuthError("")
+      window.history.replaceState(null, "", window.location.pathname)
+    }
   }, [])
 
   useEffect(() => {
@@ -488,16 +515,67 @@ export default function FichasWorkspace() {
     setAuthError("")
 
     try {
-      const access = await loginWithAccessCode(codigoAcesso)
+      const access = await loginWithPassword(emailAcesso, senhaAcesso)
       const defaultConsultor = getDefaultConsultorOption(access.nome)
 
       setConsultor(access)
       setCreateValues((current) => ({ ...current, nomeConsultor: defaultConsultor }))
-      setCodigoAcesso("")
+      setEmailAcesso("")
+      setSenhaAcesso("")
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Codigo de acesso invalido.")
+      setAuthError(error instanceof Error ? error.message : "E-mail ou senha invalidos.")
     } finally {
       setAuthLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      setAuthError("Informe o e-mail para recuperar a senha.")
+      return
+    }
+
+    setForgotLoading(true)
+    setAuthError("")
+    setForgotMessage("")
+
+    try {
+      const response = await requestPasswordRecovery(forgotEmail.trim())
+      setForgotMessage(response.message)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Erro ao solicitar recuperacao de senha.")
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetToken) return
+
+    if (!newPassword || !confirmPassword) {
+      setAuthError("Preencha e confirme a nova senha.")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setAuthError("A confirmacao da senha nao confere.")
+      return
+    }
+
+    setResetLoading(true)
+    setAuthError("")
+    setResetMessage("")
+
+    try {
+      const response = await resetPassword(resetToken, newPassword)
+      setResetMessage(response.message)
+      setNewPassword("")
+      setConfirmPassword("")
+      setResetToken("")
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Erro ao redefinir a senha.")
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -574,8 +652,8 @@ export default function FichasWorkspace() {
   const handleCreateUser = async () => {
     if (!consultor) return
 
-    if (!newUserName.trim() || !newUserCode.trim()) {
-      setUsersError("Nome do responsavel e codigo de acesso sao obrigatorios.")
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPhone.trim()) {
+      setUsersError("Nome do responsavel, e-mail e telefone sao obrigatorios.")
       return
     }
 
@@ -586,14 +664,17 @@ export default function FichasWorkspace() {
     try {
       await createAccessUser(consultor, {
         nomeResponsavel: newUserName.trim(),
-        codigoAcesso: newUserCode.trim(),
+        email: newUserEmail.trim(),
+        telefone: newUserPhone.trim(),
         nivelAcesso: newUserLevel,
+        appOrigin: typeof window !== "undefined" ? window.location.origin : "",
       })
 
       setNewUserName("")
-      setNewUserCode("")
+      setNewUserEmail("")
+      setNewUserPhone("")
       setNewUserLevel("consultor")
-      setUsersMessage("Usuario adicionado com sucesso.")
+      setUsersMessage("Usuario adicionado com sucesso. Um link de acesso foi enviado por e-mail.")
       await loadAccessUsers()
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : "Erro ao adicionar usuario.")
@@ -623,7 +704,8 @@ export default function FichasWorkspace() {
   const startEditingUser = (user: AccessCodeRecord) => {
     setEditingUserId(user.id)
     setEditUserName(user.nomeResponsavel)
-    setEditUserCode(user.codigoAcesso)
+    setEditUserEmail(user.email)
+    setEditUserPhone(user.telefone)
     setEditUserLevel(user.nivelAcesso)
     setEditUserStatus(user.ativo ? "ativo" : "inativo")
     setUsersError("")
@@ -633,7 +715,8 @@ export default function FichasWorkspace() {
   const cancelEditingUser = () => {
     setEditingUserId("")
     setEditUserName("")
-    setEditUserCode("")
+    setEditUserEmail("")
+    setEditUserPhone("")
     setEditUserLevel("consultor")
     setEditUserStatus("ativo")
   }
@@ -641,8 +724,8 @@ export default function FichasWorkspace() {
   const handleUpdateUser = async () => {
     if (!consultor || !editingUserId) return
 
-    if (!editUserName.trim() || !editUserCode.trim()) {
-      setUsersError("Nome, codigo, nivel e status precisam estar preenchidos.")
+    if (!editUserName.trim() || !editUserEmail.trim() || !editUserPhone.trim()) {
+      setUsersError("Nome, e-mail, telefone, nivel e status precisam estar preenchidos.")
       return
     }
 
@@ -653,7 +736,8 @@ export default function FichasWorkspace() {
     try {
       await updateAccessUser(consultor, editingUserId, {
         nomeResponsavel: editUserName.trim(),
-        codigoAcesso: editUserCode.trim(),
+        email: editUserEmail.trim(),
+        telefone: editUserPhone.trim(),
         nivelAcesso: editUserLevel,
         ativo: editUserStatus === "ativo",
       })
@@ -931,20 +1015,97 @@ export default function FichasWorkspace() {
             <CardTitle>Tela de Acesso</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="codigoAcesso">Codigo de acesso</Label>
-              <Input
-                id="codigoAcesso"
-                value={codigoAcesso}
-                onChange={(event) => setCodigoAcesso(event.target.value)}
-                placeholder="Digite seu codigo"
-                disabled={authLoading}
-              />
-            </div>
+            {resetToken ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="novaSenha">Nova senha</Label>
+                  <Input
+                    id="novaSenha"
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Digite a nova senha"
+                    disabled={resetLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmarSenha">Confirmar senha</Label>
+                  <Input
+                    id="confirmarSenha"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Confirme a nova senha"
+                    disabled={resetLoading}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="emailAcesso">E-mail</Label>
+                  <Input
+                    id="emailAcesso"
+                    type="email"
+                    value={emailAcesso}
+                    onChange={(event) => setEmailAcesso(event.target.value)}
+                    placeholder="Digite seu e-mail"
+                    disabled={authLoading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="senhaAcesso">Senha</Label>
+                  <Input
+                    id="senhaAcesso"
+                    type="password"
+                    value={senhaAcesso}
+                    onChange={(event) => setSenhaAcesso(event.target.value)}
+                    placeholder="Digite sua senha"
+                    disabled={authLoading}
+                  />
+                </div>
+                {forgotPasswordOpen ? (
+                  <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="forgotEmail">Recuperar senha</Label>
+                      <Input
+                        id="forgotEmail"
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(event) => setForgotEmail(event.target.value)}
+                        placeholder="Digite seu e-mail"
+                        disabled={forgotLoading}
+                      />
+                    </div>
+                    {forgotMessage ? <p className="text-sm text-primary">{forgotMessage}</p> : null}
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => setForgotPasswordOpen(false)} disabled={forgotLoading}>
+                        Fechar
+                      </Button>
+                      <Button type="button" onClick={() => void handleForgotPassword()} disabled={forgotLoading}>
+                        {forgotLoading ? "Enviando..." : "Enviar link"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </>
+            )}
             {authError && <p className="text-sm text-red-600">{authError}</p>}
-            <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
-              {authLoading ? "Validando..." : "Entrar"}
-            </Button>
+            {resetMessage ? <p className="text-sm text-primary">{resetMessage}</p> : null}
+            {resetToken ? (
+              <Button className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
+                {resetLoading ? "Atualizando..." : "Salvar nova senha"}
+              </Button>
+            ) : (
+              <>
+                <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
+                  {authLoading ? "Validando..." : "Entrar"}
+                </Button>
+                <Button type="button" variant="link" className="w-full" onClick={() => setForgotPasswordOpen((current) => !current)}>
+                  Esqueci minha senha
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1078,7 +1239,7 @@ export default function FichasWorkspace() {
                           Adicionar novo usuario
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_220px_auto] xl:items-end">
+                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_220px_auto] xl:items-end">
                         <div className="space-y-2 min-w-0">
                           <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
                           <Input
@@ -1090,12 +1251,23 @@ export default function FichasWorkspace() {
                           />
                         </div>
                         <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioCodigo">Codigo de acesso</Label>
+                          <Label htmlFor="novoUsuarioEmail">E-mail</Label>
                           <Input
-                            id="novoUsuarioCodigo"
-                            value={newUserCode}
-                            onChange={(event) => setNewUserCode(event.target.value)}
-                            placeholder="Digite o codigo"
+                            id="novoUsuarioEmail"
+                            type="email"
+                            value={newUserEmail}
+                            onChange={(event) => setNewUserEmail(event.target.value)}
+                            placeholder="Digite o e-mail"
+                            disabled={userSaving}
+                          />
+                        </div>
+                        <div className="space-y-2 min-w-0">
+                          <Label htmlFor="novoUsuarioTelefone">Telefone</Label>
+                          <Input
+                            id="novoUsuarioTelefone"
+                            value={newUserPhone}
+                            onChange={(event) => setNewUserPhone(event.target.value)}
+                            placeholder="Digite o telefone"
                             disabled={userSaving}
                           />
                         </div>
@@ -1137,7 +1309,7 @@ export default function FichasWorkspace() {
                             {users.map((user) => (
                               <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
                                 {editingUserId === user.id ? (
-                                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_180px_180px]">
+                                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_180px_180px]">
                                     <div className="space-y-2 min-w-0">
                                       <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
                                       <Input
@@ -1149,11 +1321,22 @@ export default function FichasWorkspace() {
                                     </div>
 
                                     <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-codigo-${user.id}`}>Codigo</Label>
+                                      <Label htmlFor={`edit-email-${user.id}`}>E-mail</Label>
                                       <Input
-                                        id={`edit-codigo-${user.id}`}
-                                        value={editUserCode}
-                                        onChange={(event) => setEditUserCode(event.target.value)}
+                                        id={`edit-email-${user.id}`}
+                                        type="email"
+                                        value={editUserEmail}
+                                        onChange={(event) => setEditUserEmail(event.target.value)}
+                                        disabled={userUpdating}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2 min-w-0">
+                                      <Label htmlFor={`edit-telefone-${user.id}`}>Telefone</Label>
+                                      <Input
+                                        id={`edit-telefone-${user.id}`}
+                                        value={editUserPhone}
+                                        onChange={(event) => setEditUserPhone(event.target.value)}
                                         disabled={userUpdating}
                                       />
                                     </div>
@@ -1176,7 +1359,7 @@ export default function FichasWorkspace() {
                                       </Select>
                                     </div>
 
-                                    <div className="space-y-2 min-w-0">
+                                    <div className="space-y-2 min-w-0 xl:col-start-4">
                                       <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
                                       <Select
                                         value={editUserStatus}
@@ -1210,8 +1393,12 @@ export default function FichasWorkspace() {
                                       <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Codigo</p>
-                                      <p className="mt-1 font-mono text-sm break-all">{user.codigoAcesso}</p>
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
+                                      <p className="mt-1 text-sm break-all">{user.email}</p>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
+                                      <p className="mt-1 text-sm break-all">{user.telefone}</p>
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
