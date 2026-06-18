@@ -1407,20 +1407,19 @@ export default function FichasWorkspace() {
                     <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
                   ) : null}
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
-                    {selectedFicha && canEditSelectedFicha ? (
-                      <Button type="button" onClick={handleAddNovoContrato}>
-                        <Plus className="size-4" />
-                        Adicionar
-                      </Button>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-4 rounded-lg border border-border p-4">
-                    <div className="grid gap-3 md:grid-cols-[260px_1fr] md:items-end">
-                      <div className="space-y-2">
-                        <Label htmlFor="listaFichas">Lista de Fichas</Label>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
+                      {selectedFicha && canEditSelectedFicha ? (
+                        <Button type="button" onClick={handleAddNovoContrato}>
+                          <Plus className="size-4" />
+                          Adicionar
+                        </Button>
+                      ) : null}
+                      <div className="min-w-[220px] space-y-2">
+                        <Label htmlFor="listaFichas">
+                          {selectedContratos.length} {selectedContratos.length === 1 ? "Ficha Encontrada" : "Fichas Encontradas"}
+                        </Label>
                         <Select value={viewMode === "view" ? selectedFicha?.id ?? "" : ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
                           <SelectTrigger id="listaFichas">
                             <SelectValue placeholder="Selecionar ficha" />
@@ -1434,13 +1433,15 @@ export default function FichasWorkspace() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {viewMode === "view" && selectedFicha ? (
-                        <div className="text-sm font-medium text-muted-foreground md:text-right">
-                          Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
-                        </div>
-                      ) : null}
                     </div>
+                    {viewMode === "view" && selectedFicha ? (
+                      <div className="text-sm font-medium text-muted-foreground lg:text-right">
+                        Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
+                      </div>
+                    ) : null}
+                  </div>
 
+                  <div className="space-y-4 rounded-lg border border-border p-4">
                     {viewMode === "view" && selectedFicha ? (
                       <FichaReadView
                         values={editValues}
