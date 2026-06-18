@@ -51,7 +51,25 @@ export function getCurrentAccess() {
   if (!raw) return null
 
   try {
-    return JSON.parse(raw) as ConsultorSession
+    const session = JSON.parse(raw) as Partial<ConsultorSession>
+
+    if (
+      !session ||
+      typeof session.id !== "string" ||
+      !session.id ||
+      typeof session.nome !== "string" ||
+      !session.nome ||
+      typeof session.email !== "string" ||
+      !session.email ||
+      typeof session.telefone !== "string" ||
+      !session.telefone ||
+      (session.nivelAcesso !== "admin" && session.nivelAcesso !== "consultor" && session.nivelAcesso !== "andamento")
+    ) {
+      window.localStorage.removeItem(SESSION_KEY)
+      return null
+    }
+
+    return session as ConsultorSession
   } catch {
     window.localStorage.removeItem(SESSION_KEY)
     return null
