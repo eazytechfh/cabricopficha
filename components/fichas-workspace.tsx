@@ -1407,8 +1407,8 @@ export default function FichasWorkspace() {
                     <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
                   ) : null}
 
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                       <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
                       {selectedFicha && canEditSelectedFicha ? (
                         <Button type="button" onClick={handleAddNovoContrato}>
@@ -1416,8 +1416,8 @@ export default function FichasWorkspace() {
                           Adicionar
                         </Button>
                       ) : null}
-                      <div className="min-w-[220px] space-y-2">
-                        <Label htmlFor="listaFichas">
+                      <div className="flex min-w-[240px] flex-col gap-1">
+                        <Label htmlFor="listaFichas" className="leading-none">
                           {selectedContratos.length} {selectedContratos.length === 1 ? "Ficha Encontrada" : "Fichas Encontradas"}
                         </Label>
                         <Select value={viewMode === "view" ? selectedFicha?.id ?? "" : ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
