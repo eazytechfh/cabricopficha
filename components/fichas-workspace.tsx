@@ -247,6 +247,7 @@ export default function FichasWorkspace() {
   const [consultaItems, setConsultaItems] = useState<FichaListItem[]>([])
   const [selectedContratos, setSelectedContratos] = useState<FichaListItem[]>([])
   const [selectedFicha, setSelectedFicha] = useState<FichaRecord | null>(null)
+  const [clientBaseFicha, setClientBaseFicha] = useState<FichaRecord | null>(null)
   const [editValues, setEditValues] = useState<FichaFormValues>(emptyFichaValues)
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [editLoading, setEditLoading] = useState(false)
@@ -347,6 +348,10 @@ export default function FichasWorkspace() {
     if (!consultor || !selectedFicha) return false
     return canEditFicha(consultor.id, consultor.nivelAcesso, selectedFicha)
   }, [consultor, selectedFicha])
+  const clientReadValues = useMemo(
+    () => (clientBaseFicha ? toRecordValues(clientBaseFicha) : editValues),
+    [clientBaseFicha, editValues]
+  )
 
   const consultaClienteGroups = useMemo(() => {
     const groups = new Map<string, ConsultaClienteGroup>()
@@ -404,6 +409,38 @@ export default function FichasWorkspace() {
       cancelled = true
     }
   }, [selectedFicha?.id])
+
+  useEffect(() => {
+    const baseFichaId = selectedContratos[0]?.id
+
+    if (!baseFichaId) {
+      setClientBaseFicha(selectedFicha)
+      return
+    }
+
+    if (selectedFicha?.id === baseFichaId) {
+      setClientBaseFicha(selectedFicha)
+      return
+    }
+
+    let cancelled = false
+
+    void getFichaById(baseFichaId)
+      .then((response) => {
+        if (!cancelled) {
+          setClientBaseFicha(response.ficha)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setClientBaseFicha(selectedFicha)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedContratos, selectedFicha])
 
   useEffect(() => {
     if (!templateEditorKind) {
@@ -919,6 +956,7 @@ export default function FichasWorkspace() {
     try {
       const response = await getFichaById(fichaBaseId)
       setSelectedFicha(response.ficha)
+      setClientBaseFicha(response.ficha)
       setEditValues(toRecordValues(response.ficha))
       setViewMode("picker")
       window.setTimeout(() => {
@@ -941,7 +979,9 @@ export default function FichasWorkspace() {
       cadastroTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     }, 0)
 
-    if (!selectedFicha) {
+    const fichaBase = clientBaseFicha || selectedFicha
+
+    if (!fichaBase) {
       setCreateValues((current) => ({
         ...emptyFichaValues,
         nomeConsultor: current.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
@@ -951,23 +991,33 @@ export default function FichasWorkspace() {
 
     setCreateValues({
       ...emptyFichaValues,
-      nomeCliente: getClienteBaseName(selectedFicha.nomeCliente) || selectedFicha.nomeCliente,
-      terceiros: selectedFicha.terceiros,
-      telefones: selectedFicha.telefones,
-      endereco: selectedFicha.endereco,
-      cep: selectedFicha.cep,
-      cpfCnpj: selectedFicha.cpfCnpj,
-      cnh: selectedFicha.cnh,
-      dataNascimento: selectedFicha.dataNascimento,
-      dataPrimeiraCnh: selectedFicha.dataPrimeiraCnh,
-      nacionalidade: selectedFicha.nacionalidade,
-      estadoCivil: selectedFicha.estadoCivil,
-      profissao: selectedFicha.profissao,
-      email: selectedFicha.email,
-      nomeConsultor: selectedFicha.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
-      origem: selectedFicha.origem,
-      sne: selectedFicha.sne,
+      nomeCliente: getClienteBaseName(fichaBase.nomeCliente) || fichaBase.nomeCliente,
+      terceiros: fichaBase.terceiros,
+      telefones: fichaBase.telefones,
+      endereco: fichaBase.endereco,
+      cep: fichaBase.cep,
+      municipio: fichaBase.municipio,
+      uf: fichaBase.uf,
+      cpfCnpj: fichaBase.cpfCnpj,
+      cnh: fichaBase.cnh,
+      dataNascimento: fichaBase.dataNascimento,
+      dataPrimeiraCnh: fichaBase.dataPrimeiraCnh,
+      nacionalidade: fichaBase.nacionalidade,
+      estadoCivil: fichaBase.estadoCivil,
+      profissao: fichaBase.profissao,
+      email: fichaBase.email,
+      nomeConsultor: fichaBase.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
+      origem: fichaBase.origem,
+      sne: fichaBase.sne,
     })
+  }
+
+  const handleEditClient = () => {
+    const fichaBase = clientBaseFicha || selectedFicha
+    if (!fichaBase) return
+
+    setEditValues(toRecordValues(fichaBase))
+    setViewMode("editClient")
   }
 
   const handleVoltarCadastroParaConsulta = () => {
@@ -986,8 +1036,19 @@ export default function FichasWorkspace() {
     setEditMessage("")
 
     try {
-      const response = await updateFicha(selectedFicha.id, editValues, consultor)
-      setSelectedFicha(response.ficha)
+      const isEditingClientBase = viewMode === "editClient" && Boolean(clientBaseFicha?.id)
+      const targetFichaId = isEditingClientBase ? clientBaseFicha!.id : selectedFicha.id
+      const response = await updateFicha(targetFichaId, editValues, consultor)
+
+      if (isEditingClientBase) {
+        setClientBaseFicha(response.ficha)
+        if (selectedFicha.id === response.ficha.id) {
+          setSelectedFicha(response.ficha)
+        }
+      } else {
+        setSelectedFicha(response.ficha)
+      }
+
       setEditValues(toRecordValues(response.ficha))
       const latest = await getLatestLog("ficha", response.ficha.id)
       setLatestFichaLog(latest)
@@ -1593,7 +1654,7 @@ export default function FichasWorkspace() {
               <Card className="shadow-md">
                 <CardContent className="space-y-4">
                   {selectedFicha ? (
-                    <ClienteReadCard values={editValues} onEdit={() => setViewMode("editClient")} canEdit={canEditSelectedFicha} />
+                    <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
                   ) : null}
 
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
