@@ -1232,6 +1232,18 @@ export function FichaForm({
               />
             </div>
           ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="clausulaAdicional">Clausula Adicional</Label>
+            <Textarea
+              id="clausulaAdicional"
+              name="clausulaAdicional"
+              value={values.clausulaAdicional}
+              onChange={(event) => setField("clausulaAdicional", event.target.value)}
+              disabled={fieldDisabled}
+              className="min-h-[88px]"
+              placeholder="Digite uma clausula adicional para aparecer no contrato..."
+            />
+          </div>
         </CardContent>
       </Card>
 

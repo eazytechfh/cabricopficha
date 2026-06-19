@@ -205,6 +205,11 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
               <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
             </div>
           ) : null}
+          {hasText(values.clausulaAdicional) ? (
+            <div className="md:col-span-2 xl:col-span-5">
+              <ValueCell label="Clausula Adicional" value={values.clausulaAdicional} />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

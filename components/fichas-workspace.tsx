@@ -33,7 +33,7 @@ import {
   type FichaRecord,
 } from "@/lib/ficha-types"
 
-type ViewMode = "list" | "picker" | "view" | "edit" | "editClient"
+type ViewMode = "list" | "picker" | "view" | "edit" | "editClient" | "editClause"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
@@ -57,6 +57,7 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{valorEntrada}}",
   "{{valorRestante}}",
   "{{observacaoValorRestante}}",
+  "{{clausulaAdicional}}",
   "{{formaPagamento}}",
   "{{banco}}",
   "{{processosResumo}}",
@@ -1636,6 +1637,11 @@ export default function FichasWorkspace() {
                         actions={
                           <>
                             {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
+                            {canEditSelectedFicha ? (
+                              <Button type="button" variant="outline" onClick={() => setViewMode("editClause")}>
+                                Cláusula Adicional
+                              </Button>
+                            ) : null}
                             <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                               🖨️ FICHA
                             </Button>
@@ -1659,10 +1665,16 @@ export default function FichasWorkspace() {
               </Card>
             )}
 
-            {selectedFicha && (viewMode === "edit" || viewMode === "editClient") && (
+            {selectedFicha && (viewMode === "edit" || viewMode === "editClient" || viewMode === "editClause") && (
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>{viewMode === "editClient" ? "Edicao dos Dados do Cliente" : "Edicao da Ficha"}</CardTitle>
+                  <CardTitle>
+                    {viewMode === "editClient"
+                      ? "Edicao dos Dados do Cliente"
+                      : viewMode === "editClause"
+                        ? "Edicao da Clausula Adicional"
+                        : "Edicao da Ficha"}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!canEditSelectedFicha ? (
@@ -1678,7 +1690,7 @@ export default function FichasWorkspace() {
                         loading={editLoading}
                         loadingLabel="Atualizando..."
                         showInlineSubmit
-                        visibleSections={viewMode === "editClient" ? ["client"] : undefined}
+                        visibleSections={viewMode === "editClient" ? ["client"] : viewMode === "editClause" ? ["payment"] : undefined}
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>
@@ -1860,3 +1872,4 @@ export default function FichasWorkspace() {
     </div>
   )
 }
+

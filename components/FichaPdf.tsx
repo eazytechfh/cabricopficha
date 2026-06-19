@@ -28,6 +28,7 @@ export type FichaPdfData = {
   valorEntrada: number
   valorRestante: number
   observacaoValorRestante: string
+  clausulaAdicional: string
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
@@ -414,6 +415,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             )}
             {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
               ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
+              : null}
+            {data.clausulaAdicional?.trim()
+              ? gridRow("1fr", [field("Cláusula Adicional", data.clausulaAdicional)], true)
               : null}
           </>
         ))}

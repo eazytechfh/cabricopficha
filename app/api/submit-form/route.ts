@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       valor_total: data.valorTotal || null,
       valor_entrada: data.valorEntrada || null,
       valor_restante: data.valorRestante || null,
+      clausula_adicional: data.clausulaAdicional || null,
       instancia_processo: data.instanciaProcesso || null,
       tipo_processo: data.tipoProcesso || null,
       numero_processo: data.numeroProcesso || null,

@@ -28,6 +28,8 @@ Este instrumento tem como objeto a prestação de serviços de assessoria e elab
 
 {{multasResumo}}
 
+{{clausulaAdicional}}
+
 REFERENTE A PLACA(S): {{placas}}
 
 Cláusula Primeira - Do Pagamento
@@ -176,6 +178,7 @@ function buildPlaceholderValues(values: FichaFormValues) {
     valorEntrada: values.valorEntrada ? formatCurrency(parseCurrency(values.valorEntrada)) : "-",
     valorRestante: values.valorRestante ? formatCurrency(parseCurrency(values.valorRestante)) : "-",
     observacaoValorRestante: values.observacaoValorRestante || "-",
+    clausulaAdicional: values.clausulaAdicional?.trim() ? `Cláusula Adicional\n${values.clausulaAdicional.trim()}` : "",
     formaPagamento: values.formaPagamento || "-",
     banco: values.banco || "-",
     processosResumo: buildProcessosResumo(values),
@@ -189,9 +192,15 @@ function buildPlaceholderValues(values: FichaFormValues) {
 export function fillDocumentTemplate(template: string, values: FichaFormValues) {
   const placeholders = buildPlaceholderValues(values)
 
+  const normalizedTemplate = normalizeDocumentTemplateContent(template)
+  const templateWithClausePlaceholder =
+    placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")
+      ? normalizedTemplate.replace("{{multasResumo}}", "{{multasResumo}}<br /><br />{{clausulaAdicional}}")
+      : normalizedTemplate
+
   return Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),
-    normalizeDocumentTemplateContent(template)
+    templateWithClausePlaceholder
   )
 }
 

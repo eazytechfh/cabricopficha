@@ -69,6 +69,7 @@ export type FichaFormValues = {
   valorEntrada: string
   valorRestante: string
   observacaoValorRestante: string
+  clausulaAdicional: string
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
@@ -140,6 +141,7 @@ export const emptyFichaValues: FichaFormValues = {
   valorEntrada: "",
   valorRestante: "",
   observacaoValorRestante: "",
+  clausulaAdicional: "",
   instanciaProcesso: "",
   tipoProcesso: "",
   numeroProcesso: "",
