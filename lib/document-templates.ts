@@ -157,6 +157,10 @@ function buildPlaceholderValues(values: FichaFormValues) {
   const placas = getMultaLines(values)
     .map((line) => line.placa.trim().toUpperCase())
     .filter(Boolean)
+  const enderecoCompleto = [values.endereco, values.municipio, values.uf]
+    .map((part) => (part || "").trim())
+    .filter(Boolean)
+    .join(" - ")
 
   return {
     nomeCliente: nomeCliente || values.nomeCliente || "-",
@@ -165,7 +169,7 @@ function buildPlaceholderValues(values: FichaFormValues) {
     profissao: values.profissao || "-",
     cnh: values.cnh || "-",
     cpfCnpj: normalizeCpfCnpj(values.cpfCnpj) || values.cpfCnpj || "-",
-    endereco: values.endereco || "-",
+    endereco: enderecoCompleto || values.endereco || "-",
     telefone: values.telefones || "-",
     email: values.email || "-",
     valorTotal: formatCurrency(parseCurrency(values.valorTotal)),

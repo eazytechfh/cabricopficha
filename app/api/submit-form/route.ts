@@ -27,6 +27,8 @@ export async function POST(request: Request) {
       telefones: data.telefones || null,
       endereco: data.endereco || null,
       cep: data.cep || null,
+      municipio: data.municipio || null,
+      uf: data.uf || null,
       cpf_cnpj: data.cpfCnpj || null,
       cnh: data.cnh || null,
       data_nascimento: data.dataNascimento || null,

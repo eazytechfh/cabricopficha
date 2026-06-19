@@ -9,6 +9,8 @@ export type FichaPdfData = {
   telefones: string
   endereco: string
   cep: string
+  municipio: string
+  uf: string
   cpfCnpj: string
   cnh: string
   dataNascimento: string
@@ -128,8 +130,10 @@ function formatBank(value: string) {
   return labels[value] || fallback(value)
 }
 
-function formatAddress(value: string) {
-  return fallback(value).replace(/\bNumero\b/g, "Nº")
+function formatAddress(value: string, municipio?: string, uf?: string) {
+  const parts = [fallback(value).replace(/\bNumero\b/g, "Nº"), fallback(municipio), fallback(uf)]
+    .filter((part, index) => part && part !== "-" ? true : index === 0)
+  return parts.join(" - ")
 }
 
 function splitLines(value: string) {
@@ -381,9 +385,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
             {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
-            {gridRow("1fr", [field("Endereço", formatAddress(data.endereco))])}
-            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj))])}
-            {gridRow("0.9fr 1.1fr", [field("CNH", data.cnh), field("Nascimento", formatDate(data.dataNascimento))])}
+            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.municipio, data.uf))])}
+            {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
+            {gridRow("1fr 1fr", [field("Município", data.municipio), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
             {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)])}
             {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}

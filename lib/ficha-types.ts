@@ -49,6 +49,8 @@ export type FichaFormValues = {
   telefones: string
   endereco: string
   cep: string
+  municipio: string
+  uf: string
   cpfCnpj: string
   cnh: string
   dataNascimento: string
@@ -118,6 +120,8 @@ export const emptyFichaValues: FichaFormValues = {
   telefones: "",
   endereco: "",
   cep: "",
+  municipio: "",
+  uf: "RJ",
   cpfCnpj: "",
   cnh: "",
   dataNascimento: "",

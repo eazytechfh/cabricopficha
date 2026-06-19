@@ -131,17 +131,18 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
         <ClienteValue label="E-mail" value={values.email} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[190px_1fr_190px_190px]">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[130px_1fr_130px_130px_190px_90px]">
         <ClienteValue label="CEP" value={values.cep} />
         <ClienteValue label="Endereco" value={values.endereco} />
         <ClienteValue label="Numero" value="" />
         <ClienteValue label="Complemento" value="" />
+        <ClienteValue label="Municipio" value={values.municipio} />
+        <ClienteValue label="UF" value={values.uf} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr_90px]">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr]">
         <ClienteValue label="CPF/CNPJ" value={values.cpfCnpj} />
         <ClienteValue label="CNH" value={values.cnh} />
-        <ClienteValue label="UF" value="" />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">

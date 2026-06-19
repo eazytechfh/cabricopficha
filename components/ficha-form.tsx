@@ -145,11 +145,9 @@ function parseCnhParts(value: string) {
   const cnhAtual = (value || "").trim()
   const cnhMatch = cnhAtual.match(/^(.*?)(?:\s+\/\s+([A-Za-z]{1,2}))?$/)
   const numero = (cnhMatch?.[1] || cnhAtual).trim().replace(/(?:\s+\/\s+[A-Za-z]?)+$/g, "").trim()
-  const uf = cnhMatch?.[2]?.trim().toUpperCase()
 
   return {
     numero,
-    uf: uf || (numero ? "" : "RJ"),
   }
 }
 
@@ -402,7 +400,6 @@ export function FichaForm({
   const [enderecoNumero, setEnderecoNumero] = useState("")
   const [enderecoComplemento, setEnderecoComplemento] = useState("")
   const [cnhNumero, setCnhNumero] = useState("")
-  const [cnhUf, setCnhUf] = useState("RJ")
   const [telefoneInput, setTelefoneInput] = useState("")
   const lastAutoPrazoServicoRef = useRef("")
 
@@ -422,10 +419,9 @@ export function FichaForm({
   }, [values.endereco])
 
   useEffect(() => {
-    const { numero, uf } = parseCnhParts(values.cnh)
+    const { numero } = parseCnhParts(values.cnh)
 
     setCnhNumero(numero)
-    setCnhUf(uf)
   }, [values.cnh])
 
   useEffect(() => {
@@ -478,9 +474,17 @@ export function FichaForm({
         setCepLookupMessage(endereco ? "Endereco preenchido automaticamente." : "CEP encontrado.")
 
         if (endereco && endereco !== values.endereco) {
-          onChange(
-            updateValue(values, "endereco", endereco)
-          )
+          onChange({
+            ...updateValue(values, "endereco", endereco),
+            municipio: (payload.localidade || "").trim() || values.municipio,
+            uf: (payload.uf || "").trim().toUpperCase() || values.uf,
+          })
+        } else if ((payload.localidade || payload.uf) && !cancelled) {
+          onChange({
+            ...values,
+            municipio: (payload.localidade || "").trim() || values.municipio,
+            uf: (payload.uf || "").trim().toUpperCase() || values.uf,
+          })
         }
       } catch {
         if (cancelled) return
@@ -518,11 +522,10 @@ export function FichaForm({
     setField("endereco", parts.filter(Boolean).join(", "))
   }
 
-  const setCnhParts = (numero: string, uf: string) => {
-    const normalizedUf = (uf || "").trim().toUpperCase()
+  const setCnhParts = (numero: string) => {
     const normalizedNumero = numero.trim()
 
-    setField("cnh", normalizedNumero ? `${normalizedNumero}${normalizedUf ? ` / ${normalizedUf}` : ""}` : "")
+    setField("cnh", normalizedNumero)
   }
 
   const fieldDisabled = readOnly || loading
@@ -973,7 +976,7 @@ export function FichaForm({
             </div>
             {renderInput("email", "E-mail", { type: "email" })}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[110px_minmax(0,1.45fr)_110px_140px_minmax(0,1fr)_90px]">
             <div className="space-y-2">
               <Label htmlFor="cep">CEP</Label>
               <Input
@@ -988,7 +991,7 @@ export function FichaForm({
               {cepLookupLoading ? <p className="text-xs text-muted-foreground">Buscando endereco pelo CEP...</p> : null}
               {!cepLookupLoading && cepLookupMessage ? <p className="text-xs text-muted-foreground">{cepLookupMessage}</p> : null}
             </div>
-            <div className="md:col-span-2 space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="endereco">Endereço</Label>
               <Input
                 id="endereco"
@@ -1030,8 +1033,29 @@ export function FichaForm({
                 disabled={fieldDisabled}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="municipio">Municipio</Label>
+              <Input
+                id="municipio"
+                name="municipio"
+                value={values.municipio}
+                onChange={(event) => setField("municipio", event.target.value)}
+                disabled={fieldDisabled}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="uf">UF</Label>
+              <Input
+                id="uf"
+                name="uf"
+                value={values.uf}
+                maxLength={2}
+                onChange={(event) => setField("uf", event.target.value.toUpperCase())}
+                disabled={fieldDisabled}
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.05fr_88px] gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-4">
             <div className="space-y-2">
               <Label htmlFor="cpfCnpj">CPF/CNPJ{requiredFields.includes("cpfCnpj") ? " *" : ""}</Label>
               <Input
@@ -1056,22 +1080,7 @@ export function FichaForm({
                 onChange={(event) => {
                   const nextValue = event.target.value
                   setCnhNumero(nextValue)
-                  setCnhParts(nextValue, cnhUf)
-                }}
-                disabled={fieldDisabled}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cnhUf">UF</Label>
-              <Input
-                id="cnhUf"
-                name="cnhUf"
-                value={cnhUf}
-                maxLength={2}
-                onChange={(event) => {
-                  const nextValue = event.target.value.toUpperCase()
-                  setCnhUf(nextValue)
-                  setCnhParts(cnhNumero, nextValue)
+                  setCnhParts(nextValue)
                 }}
                 disabled={fieldDisabled}
               />

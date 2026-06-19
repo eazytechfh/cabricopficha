@@ -16,6 +16,8 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   telefones: "Telefone(s)",
   endereco: "Endereco",
   cep: "CEP",
+  municipio: "Municipio",
+  uf: "UF",
   cpfCnpj: "CPF/CNPJ",
   cnh: "CNH",
   dataNascimento: "Data de Nascimento",

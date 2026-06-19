@@ -7,6 +7,8 @@ create table if not exists public.fichas_venda (
   telefones text,
   endereco text,
   cep text,
+  municipio text,
+  uf text,
   cpf_cnpj text,
   cpf_normalizado text,
   cnh text,
@@ -62,7 +64,9 @@ add column if not exists processo_vinculado_multa text,
 add column if not exists observacao_valor_restante text,
 add column if not exists nacionalidade text,
 add column if not exists estado_civil text,
-add column if not exists profissao text;
+add column if not exists profissao text,
+add column if not exists municipio text,
+add column if not exists uf text;
 
 alter table public.fichas_venda enable row level security;
 
