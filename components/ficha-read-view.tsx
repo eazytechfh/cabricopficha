@@ -205,11 +205,6 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
               <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
             </div>
           ) : null}
-          {hasText(values.clausulaAdicional) ? (
-            <div className="md:col-span-2 xl:col-span-5">
-              <ValueCell label="Clausula Adicional" value={values.clausulaAdicional} />
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 
@@ -276,6 +271,17 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         <CardContent>
           <div className="rounded-lg border border-border bg-background px-4 py-3">
             <p className="whitespace-pre-wrap text-sm font-medium text-foreground">{fallback(values.observacoes)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-l-4 border-l-primary shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-primary">Clausula Adicional</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="whitespace-pre-wrap text-sm font-medium text-foreground">{fallback(values.clausulaAdicional)}</p>
           </div>
         </CardContent>
       </Card>

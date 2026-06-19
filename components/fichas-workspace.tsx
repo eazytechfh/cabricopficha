@@ -1690,7 +1690,7 @@ export default function FichasWorkspace() {
                         loading={editLoading}
                         loadingLabel="Atualizando..."
                         showInlineSubmit
-                        visibleSections={viewMode === "editClient" ? ["client"] : viewMode === "editClause" ? ["payment"] : undefined}
+                        visibleSections={viewMode === "editClient" ? ["client"] : viewMode === "editClause" ? ["clause"] : undefined}
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>

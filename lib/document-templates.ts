@@ -193,10 +193,17 @@ export function fillDocumentTemplate(template: string, values: FichaFormValues) 
   const placeholders = buildPlaceholderValues(values)
 
   const normalizedTemplate = normalizeDocumentTemplateContent(template)
-  const templateWithClausePlaceholder =
-    placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")
-      ? normalizedTemplate.replace("{{multasResumo}}", "{{multasResumo}}<br /><br />{{clausulaAdicional}}")
-      : normalizedTemplate
+  let templateWithClausePlaceholder = normalizedTemplate
+
+  if (placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")) {
+    if (normalizedTemplate.includes("{{multasResumo}}")) {
+      templateWithClausePlaceholder = normalizedTemplate.replace("{{multasResumo}}", "{{clausulaAdicional}}<br /><br />{{multasResumo}}")
+    } else if (normalizedTemplate.includes("{{processosResumo}}")) {
+      templateWithClausePlaceholder = normalizedTemplate.replace("{{processosResumo}}", "{{processosResumo}}<br /><br />{{clausulaAdicional}}")
+    } else {
+      templateWithClausePlaceholder = `${normalizedTemplate}<br /><br />{{clausulaAdicional}}`
+    }
+  }
 
   return Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),

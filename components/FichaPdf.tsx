@@ -416,9 +416,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
               ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
               : null}
-            {data.clausulaAdicional?.trim()
-              ? gridRow("1fr", [field("Cláusula Adicional", data.clausulaAdicional)], true)
-              : null}
           </>
         ))}
 
@@ -476,6 +473,23 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               }}
             >
               {fallback(data.observacoes)}
+            </div>
+          </>
+        ))}
+
+        {section("CLÁUSULA ADICIONAL", (
+          <>
+            <div
+              style={{
+                minHeight: 42,
+                padding: "6px 0",
+                borderBottom: `1px solid ${colors.line}`,
+                fontSize: 11.5,
+                color: data.clausulaAdicional?.trim() ? colors.text : colors.muted,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {fallback(data.clausulaAdicional)}
             </div>
           </>
         ))}
