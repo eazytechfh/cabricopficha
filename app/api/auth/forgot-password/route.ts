@@ -18,7 +18,11 @@ export async function POST(request: Request) {
       message: "Enviamos um link de recuperacao para o seu e-mail.",
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Erro ao solicitar recuperacao de senha."
+    const rawMessage = error instanceof Error ? error.message : "Erro ao solicitar recuperacao de senha."
+    const normalizedMessage = rawMessage.toLowerCase()
+    const message = normalizedMessage.includes("email rate limit exceeded")
+      ? "Limite temporario de envio de e-mails atingido no Supabase. Aguarde um pouco e tente novamente. Para evitar esse bloqueio em producao, configure um SMTP proprio no Supabase Auth."
+      : rawMessage
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
