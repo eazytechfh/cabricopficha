@@ -293,7 +293,6 @@ export async function createAccessCode(input: {
     throw new Error("Nao foi possivel criar o usuario.")
   }
 
-  await sendPasswordRecovery(input.email, input.appOrigin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
   return mapAccessCodeRecord(record)
 }
 

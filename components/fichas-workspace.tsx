@@ -713,7 +713,7 @@ export default function FichasWorkspace() {
       setNewUserEmail("")
       setNewUserPhone("")
       setNewUserLevel("consultor")
-      setUsersMessage("Usuario adicionado com sucesso. Um link de acesso foi enviado por e-mail.")
+      setUsersMessage("Usuario adicionado com sucesso. Para definir a senha, o usuario pode usar 'Esqueci minha senha' na tela de acesso.")
       await loadAccessUsers()
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : "Erro ao adicionar usuario.")
