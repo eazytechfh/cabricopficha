@@ -463,6 +463,15 @@ export default function FichasWorkspace() {
     }
   }, [templateEditorKind])
 
+  useEffect(() => {
+    const editor = templateEditorRef.current
+    if (!editor) return
+
+    if (editor.innerHTML !== templateContent) {
+      editor.innerHTML = templateContent
+    }
+  }, [templateContent, templateEditorKind])
+
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
 
@@ -1882,7 +1891,6 @@ export default function FichasWorkspace() {
                 suppressContentEditableWarning
                 onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
                 className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
-                dangerouslySetInnerHTML={{ __html: templateContent }}
               />
               <LogSummary log={latestTemplateLog} />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
