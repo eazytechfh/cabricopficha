@@ -1718,32 +1718,31 @@ export default function FichasWorkspace() {
                     <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
                   ) : null}
 
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                      <h2 className="text-lg font-semibold text-foreground">Fichas</h2>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="listaFichas" className="leading-none">
+                        {selectedContratos.length} {selectedContratos.length === 1 ? "Ficha Encontrada" : "Fichas Encontradas"}
+                      </Label>
+                      <Select value={viewMode === "view" ? selectedFicha?.id ?? "" : ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
+                        <SelectTrigger id="listaFichas" className="min-w-[240px]">
+                          <SelectValue placeholder="Selecionar ficha" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedContratos.map((contrato) => (
+                            <SelectItem key={contrato.id} value={contrato.id}>
+                              {getFichaLabel(contrato.nomeCliente)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                       {selectedFicha && canEditSelectedFicha ? (
                         <Button type="button" onClick={handleAddNovoContrato}>
                           <Plus className="size-4" />
                           Adicionar
                         </Button>
                       ) : null}
-                      <div className="flex min-w-[240px] flex-col gap-1">
-                        <Label htmlFor="listaFichas" className="leading-none">
-                          {selectedContratos.length} {selectedContratos.length === 1 ? "Ficha Encontrada" : "Fichas Encontradas"}
-                        </Label>
-                        <Select value={viewMode === "view" ? selectedFicha?.id ?? "" : ""} onValueChange={(value) => void handleContratoSelectionChange(value)}>
-                          <SelectTrigger id="listaFichas">
-                            <SelectValue placeholder="Selecionar ficha" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedContratos.map((contrato) => (
-                              <SelectItem key={contrato.id} value={contrato.id}>
-                                {getFichaLabel(contrato.nomeCliente)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
                     {viewMode === "view" && selectedFicha ? (
                       <div className="text-sm font-medium text-muted-foreground lg:text-right">
