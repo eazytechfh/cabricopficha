@@ -67,6 +67,13 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{consultor}}",
 ]
 
+const DOCUMENT_TEMPLATE_FONT_OPTIONS = [
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Times New Roman", value: "'Times New Roman', serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Courier New", value: "'Courier New', monospace" },
+]
+
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   if (level === "admin") return "Admin"
   if (level === "andamento") return "Andamento"
@@ -274,6 +281,7 @@ export default function FichasWorkspace() {
   const [userUpdating, setUserUpdating] = useState(false)
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
+  const [templateFontFamily, setTemplateFontFamily] = useState("Arial, sans-serif")
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
   const [templateVariablesOpen, setTemplateVariablesOpen] = useState(false)
@@ -525,6 +533,17 @@ export default function FichasWorkspace() {
 
     editor.focus()
     document.execCommand(command)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateFontChange = (fontFamily: string) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    setTemplateFontFamily(fontFamily)
+    editor.focus()
+    document.execCommand("styleWithCSS", false, "true")
+    document.execCommand("fontName", false, fontFamily)
     setTemplateContent(editor.innerHTML)
   }
 
@@ -1823,6 +1842,20 @@ export default function FichasWorkspace() {
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
               <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2">
+                <div className="min-w-[180px]">
+                  <Select value={templateFontFamily} onValueChange={handleTemplateFontChange} disabled={templateLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Fonte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />
                 </Button>
