@@ -1,4 +1,4 @@
-import type { FichaFormValues } from "@/lib/ficha-types"
+﻿import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 
 export type DocumentTemplateKind = "contract" | "procuration"
@@ -19,7 +19,7 @@ export const DEFAULT_DOCUMENT_TEMPLATES: Record<DocumentTemplateKind, string> = 
 
 CONTRATADA: CABRICOP SERVIÇOS E ASSUNTOS DE TRÂNSITO LTDA. ME, inscrita no CNPJ sob o nº 16.513.797/0001-60, com sede na Pça Olavo Bilac, 28, sala 1816, Centro, Rio de Janeiro - RJ, CEP 20.041-010.
 
-CONTRATANTE: {{nomeCliente}}, {{nacionalidade}}, {{estadoCivil}}, {{profissao}}, CNH nº {{cnh}} e inscrito(a) no CPF/CNPJ sob o nº {{cpfCnpj}}, residente e domiciliado(a) em {{endereco}}.
+CONTRATANTE: {{qualificacaoCliente}}.
 
 Objeto do Contrato
 Este instrumento tem como objeto a prestação de serviços de assessoria e elaboração de recursos administrativos referentes aos processos e/ou notificações abaixo:
@@ -56,7 +56,7 @@ CONTRATANTE
 Consultor: {{consultor}}`,
   procuration: `PROCURAÇÃO
 
-OUTORGANTE: {{nomeCliente}}, {{nacionalidade}}, {{estadoCivil}}, {{profissao}}, CNH nº {{cnh}} e inscrito(a) no CPF/CNPJ sob o nº {{cpfCnpj}}, residente e domiciliado(a) em {{endereco}}.
+OUTORGANTE: {{qualificacaoCliente}}.
 
 OUTORGADO: ADRIANA MELLO RODRIGUES MENDES, portadora da OAB/RJ 213525, com escritório na Praça Olavo Bilac nº 28 sala 1906 e 1816, Centro - Rio de Janeiro - RJ, CEP: 20041-010.
 
@@ -163,17 +163,36 @@ function buildPlaceholderValues(values: FichaFormValues) {
     .map((part) => (part || "").trim())
     .filter(Boolean)
     .join(" - ")
+  const cpfCnpj = normalizeCpfCnpj(values.cpfCnpj) || values.cpfCnpj || ""
+  const qualificacaoBase = [nomeCliente || values.nomeCliente, values.nacionalidade || "Brasileira", values.estadoCivil, values.profissao]
+    .map((value) => (value || "").trim())
+    .filter(Boolean)
+    .join(", ")
+  const qualificacaoPartes = [qualificacaoBase]
+
+  if ((values.cnh || "").trim()) {
+    qualificacaoPartes.push(`CNH nÂº ${values.cnh.trim()}`)
+  }
+
+  if (cpfCnpj.trim()) {
+    qualificacaoPartes.push(`inscrito(a) no CPF/CNPJ sob o nÂº ${cpfCnpj.trim()}`)
+  }
+
+  if (enderecoCompleto.trim()) {
+    qualificacaoPartes.push(`residente e domiciliado(a) em ${enderecoCompleto.trim()}`)
+  }
 
   return {
     nomeCliente: nomeCliente || values.nomeCliente || "-",
     nacionalidade: values.nacionalidade || "Brasileira",
-    estadoCivil: values.estadoCivil || "-",
-    profissao: values.profissao || "-",
-    cnh: values.cnh || "-",
-    cpfCnpj: normalizeCpfCnpj(values.cpfCnpj) || values.cpfCnpj || "-",
-    endereco: enderecoCompleto || values.endereco || "-",
-    telefone: values.telefones || "-",
-    email: values.email || "-",
+    estadoCivil: values.estadoCivil || "",
+    profissao: values.profissao || "",
+    cnh: values.cnh || "",
+    cpfCnpj,
+    endereco: enderecoCompleto || values.endereco || "",
+    qualificacaoCliente: qualificacaoPartes.join(", "),
+    telefone: values.telefones || "",
+    email: values.email || "",
     valorTotal: formatCurrency(parseCurrency(values.valorTotal)),
     valorEntrada: values.valorEntrada ? formatCurrency(parseCurrency(values.valorEntrada)) : "-",
     valorRestante: values.valorRestante ? formatCurrency(parseCurrency(values.valorRestante)) : "-",
@@ -205,10 +224,19 @@ export function fillDocumentTemplate(template: string, values: FichaFormValues) 
     }
   }
 
-  return Object.entries(placeholders).reduce(
+  const filledContent = Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),
     templateWithClausePlaceholder
   )
+
+  return filledContent
+    .replaceAll(", ,", ", ")
+    .replaceAll(" ,", ",")
+    .replace(/,\s*,/g, ", ")
+    .replace(/,\s*\./g, ".")
+    .replace(/\s{2,}/g, " ")
+    .replace(/em\s+\./g, ".")
+    .replace(/,\s+e\s+/g, " e ")
 }
 
 export function getDocumentFilename(kind: DocumentTemplateKind, values: FichaFormValues) {
@@ -219,3 +247,4 @@ export function getDocumentFilename(kind: DocumentTemplateKind, values: FichaFor
 
   return `${kind === "contract" ? "contrato" : "procuracao"}-${safeName}.pdf`
 }
+
