@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileText, Italic, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -285,6 +285,7 @@ export default function FichasWorkspace() {
   const [timelineError, setTimelineError] = useState("")
   const [selectedTimelineGroup, setSelectedTimelineGroup] = useState<TimelineGroup | null>(null)
   const templateEditorRef = useRef<HTMLDivElement | null>(null)
+  const templateImageInputRef = useRef<HTMLInputElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
 
@@ -525,6 +526,38 @@ export default function FichasWorkspace() {
     editor.focus()
     document.execCommand("insertText", false, variable)
     setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateImageSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    const editor = templateEditorRef.current
+
+    if (!file || !editor || templateLoading) {
+      if (event.target) event.target.value = ""
+      return
+    }
+
+    const fileAsDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ""))
+      reader.onerror = () => reject(new Error("Nao foi possivel ler a imagem selecionada."))
+      reader.readAsDataURL(file)
+    }).catch(() => "")
+
+    if (!fileAsDataUrl) {
+      event.target.value = ""
+      setTemplateMessage("Nao foi possivel carregar a imagem selecionada.")
+      return
+    }
+
+    editor.focus()
+    document.execCommand(
+      "insertHTML",
+      false,
+      `<img src="${fileAsDataUrl}" alt="${file.name.replace(/"/g, "")}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 16px;" />`
+    )
+    setTemplateContent(editor.innerHTML)
+    event.target.value = ""
   }
 
   const timelineGroups = useMemo(() => {
@@ -1805,6 +1838,22 @@ export default function FichasWorkspace() {
                 >
                   <Tag className="size-4" />
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => templateImageInputRef.current?.click()}
+                  disabled={templateLoading}
+                >
+                  <FileImage className="size-4" />
+                </Button>
+                <input
+                  ref={templateImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => void handleTemplateImageSelect(event)}
+                />
               </div>
               {templateVariablesOpen ? (
                 <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
