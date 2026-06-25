@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -282,6 +282,7 @@ export default function FichasWorkspace() {
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial, sans-serif")
+  const [selectedTemplateImage, setSelectedTemplateImage] = useState<HTMLImageElement | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
   const [templateVariablesOpen, setTemplateVariablesOpen] = useState(false)
@@ -480,6 +481,14 @@ export default function FichasWorkspace() {
     }
   }, [templateContent, templateEditorKind])
 
+  useEffect(() => {
+    return () => {
+      if (selectedTemplateImage) {
+        selectedTemplateImage.style.outline = ""
+      }
+    }
+  }, [selectedTemplateImage])
+
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
 
@@ -547,6 +556,60 @@ export default function FichasWorkspace() {
     setTemplateContent(editor.innerHTML)
   }
 
+  const handleSelectTemplateImage = (image: HTMLImageElement | null) => {
+    if (selectedTemplateImage && selectedTemplateImage !== image) {
+      selectedTemplateImage.style.outline = ""
+    }
+
+    if (!image) {
+      setSelectedTemplateImage(null)
+      return
+    }
+
+    image.style.outline = "2px solid #0f5a9c"
+    image.style.outlineOffset = "2px"
+    setSelectedTemplateImage(image)
+  }
+
+  const syncTemplateEditorContent = () => {
+    const editor = templateEditorRef.current
+    if (!editor) return
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateImageResize = (direction: "increase" | "decrease") => {
+    if (!selectedTemplateImage || templateLoading) return
+
+    const currentWidth = Number.parseFloat(selectedTemplateImage.style.width || `${selectedTemplateImage.clientWidth || 220}`)
+    const nextWidth = direction === "increase" ? currentWidth + 20 : currentWidth - 20
+    const safeWidth = Math.max(80, Math.min(nextWidth, 700))
+
+    selectedTemplateImage.style.width = `${safeWidth}px`
+    selectedTemplateImage.style.maxWidth = "100%"
+    selectedTemplateImage.style.height = "auto"
+    syncTemplateEditorContent()
+  }
+
+  const handleTemplateImageAlign = (align: "left" | "center" | "right") => {
+    if (!selectedTemplateImage || templateLoading) return
+
+    selectedTemplateImage.style.display = "block"
+    selectedTemplateImage.style.marginBottom = "16px"
+
+    if (align === "left") {
+      selectedTemplateImage.style.marginLeft = "0"
+      selectedTemplateImage.style.marginRight = "auto"
+    } else if (align === "right") {
+      selectedTemplateImage.style.marginLeft = "auto"
+      selectedTemplateImage.style.marginRight = "0"
+    } else {
+      selectedTemplateImage.style.marginLeft = "auto"
+      selectedTemplateImage.style.marginRight = "auto"
+    }
+
+    syncTemplateEditorContent()
+  }
+
   const handleInsertTemplateVariable = (variable: string) => {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
@@ -582,7 +645,7 @@ export default function FichasWorkspace() {
     document.execCommand(
       "insertHTML",
       false,
-      `<img src="${fileAsDataUrl}" alt="${file.name.replace(/"/g, "")}" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto 16px;" />`
+      `<img src="${fileAsDataUrl}" alt="${file.name.replace(/"/g, "")}" style="width: 220px; max-width: 100%; height: auto; display: block; margin: 0 auto 16px;" />`
     )
     setTemplateContent(editor.innerHTML)
     event.target.value = ""
@@ -1894,6 +1957,51 @@ export default function FichasWorkspace() {
                 >
                   <FileImage className="size-4" />
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateImageResize("decrease")}
+                  disabled={templateLoading || !selectedTemplateImage}
+                >
+                  <Minus className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateImageResize("increase")}
+                  disabled={templateLoading || !selectedTemplateImage}
+                >
+                  <Plus className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateImageAlign("left")}
+                  disabled={templateLoading || !selectedTemplateImage}
+                >
+                  <AlignLeft className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateImageAlign("center")}
+                  disabled={templateLoading || !selectedTemplateImage}
+                >
+                  <AlignCenter className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateImageAlign("right")}
+                  disabled={templateLoading || !selectedTemplateImage}
+                >
+                  <AlignRight className="size-4" />
+                </Button>
                 <input
                   ref={templateImageInputRef}
                   type="file"
@@ -1928,6 +2036,14 @@ export default function FichasWorkspace() {
                 contentEditable={!templateLoading}
                 suppressContentEditableWarning
                 onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
+                onClick={(event) => {
+                  const target = event.target
+                  if (target instanceof HTMLImageElement) {
+                    handleSelectTemplateImage(target)
+                  } else {
+                    handleSelectTemplateImage(null)
+                  }
+                }}
                 className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
               />
               <LogSummary log={latestTemplateLog} />
