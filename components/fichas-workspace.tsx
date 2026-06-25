@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -527,7 +527,7 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter") => {
+  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter" | "insertUnorderedList" | "insertOrderedList") => {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
 
@@ -1870,6 +1870,12 @@ export default function FichasWorkspace() {
                 </Button>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
                   <AlignCenter className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertUnorderedList")} disabled={templateLoading}>
+                  <List className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertOrderedList")} disabled={templateLoading}>
+                  <ListOrdered className="size-4" />
                 </Button>
                 <Button
                   type="button"
