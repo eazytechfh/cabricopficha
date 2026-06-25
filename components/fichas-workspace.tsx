@@ -1635,7 +1635,7 @@ export default function FichasWorkspace() {
                       <SelectContent>
                         <SelectItem value="cpf">CPF</SelectItem>
                         <SelectItem value="cnpj">CNPJ</SelectItem>
-                        <SelectItem value="nome">Nome</SelectItem>
+                        <SelectItem value="nome">NOME</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
