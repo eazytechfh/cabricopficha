@@ -1679,24 +1679,24 @@ export default function FichasWorkspace() {
 
                     return (
                       <div key={cliente.key} className="rounded-lg border border-border p-4">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto] xl:items-start">
-                          <div className="xl:col-span-2">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(180px,0.95fr)_minmax(180px,0.95fr)_minmax(180px,1fr)_auto] xl:items-start">
+                          <div className="min-w-0">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
                             <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPF/CNPJ</p>
                             <p className="mt-1 text-sm break-words">{cliente.cpfCnpj || "-"}</p>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
                             <p className="mt-1 text-sm break-words">{cliente.telefones || "-"}</p>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Consultor</p>
                             <p className="mt-1 text-sm break-words">{cliente.nomeConsultor || "-"}</p>
                           </div>
-                          <div className="flex items-start md:col-span-2 xl:col-span-1">
+                          <div className="flex items-start xl:justify-end">
                             {fichaPrincipal ? (
                               <Button variant="outline" onClick={() => handleOpenFichaPicker(cliente.contratos)}>
                                 Visualizar
