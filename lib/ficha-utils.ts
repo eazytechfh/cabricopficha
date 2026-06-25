@@ -154,5 +154,5 @@ export function canEditFicha(
 ) {
   if (currentLevel === "admin") return true
   if (currentLevel === "andamento") return false
-  return ficha.createdByConsultorId === currentConsultorId || ficha.updatedByConsultorId === currentConsultorId
+  return true
 }
