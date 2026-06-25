@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
+import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, requestPasswordRecovery, resetPassword } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
-import { DOCUMENT_TEMPLATE_LABELS, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
+import { DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
@@ -85,6 +86,32 @@ const DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS = [
   { label: "32", value: "6" },
   { label: "48", value: "7" },
 ]
+
+const DOCUMENT_TEMPLATE_PREVIEW_VALUES: FichaFormValues = {
+  ...emptyFichaValues,
+  nomeCliente: "FRANCISCO VALENTIM BRAGA FILHO",
+  telefones: "21999879935",
+  endereco: "Rua Exemplo, 123",
+  municipio: "Rio de Janeiro",
+  uf: "RJ",
+  cpfCnpj: "27381994704",
+  cnh: "113553258",
+  email: "cliente@exemplo.com.br",
+  nomeConsultor: "WALLACE",
+  formaPagamento: "PIX",
+  banco: "ITAU",
+  valorTotal: "R$ 200,00",
+  valorEntrada: "R$ 100,00",
+  valorRestante: "R$ 100,00",
+  observacaoValorRestante: "Pagamento restante em 30 dias.",
+  clausulaAdicional: "Clausula adicional de exemplo para visualizacao do documento.",
+  tipoProcesso: "SUSPENSAO",
+  numeroProcesso: "53535345345435",
+  prazoProcesso: "2026-05-07",
+  autoDetran: "I53552418",
+  placa: "RIQ1E09",
+  prazoMulta: "2026-05-30",
+}
 
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   if (level === "admin") return "Admin"
@@ -720,6 +747,24 @@ export default function FichasWorkspace() {
 
     return Array.from(groups.values())
   }, [timelineLogs])
+
+  const templatePreviewValues = useMemo<FichaFormValues>(() => {
+    if (selectedFicha) {
+      return editValues
+    }
+
+    return {
+      ...DOCUMENT_TEMPLATE_PREVIEW_VALUES,
+      nomeConsultor: consultor?.nome || DOCUMENT_TEMPLATE_PREVIEW_VALUES.nomeConsultor,
+      email: consultor?.email || DOCUMENT_TEMPLATE_PREVIEW_VALUES.email,
+      telefones: consultor?.telefone || DOCUMENT_TEMPLATE_PREVIEW_VALUES.telefones,
+    }
+  }, [consultor, editValues, selectedFicha])
+
+  const templatePreviewContent = useMemo(() => {
+    if (!templateEditorKind || !templateContent.trim()) return ""
+    return fillDocumentTemplate(templateContent, templatePreviewValues)
+  }, [templateContent, templateEditorKind, templatePreviewValues])
 
   const handleLogin = async () => {
     setAuthLoading(true)
@@ -2132,6 +2177,28 @@ export default function FichasWorkspace() {
                 }}
                 className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
               />
+              {templateEditorKind && templatePreviewContent ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Preview do documento</p>
+                  <div className="max-h-[520px] overflow-auto rounded-md border border-border bg-muted/20 p-3">
+                    <div style={{ minWidth: "740px" }}>
+                      <div
+                        style={{
+                          width: "980px",
+                          height: "860px",
+                          transform: "scale(0.72)",
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <DocumentTemplatePdf
+                          title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
+                          content={templatePreviewContent}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               <LogSummary log={latestTemplateLog} />
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
