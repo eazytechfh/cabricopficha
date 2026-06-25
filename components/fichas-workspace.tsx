@@ -1511,14 +1511,14 @@ export default function FichasWorkspace() {
                                   </div>
                                 ) : (
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-5 xl:gap-4 min-w-0">
+                                  <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,1.45fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] xl:gap-4 min-w-0">
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
                                       <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
-                                      <p className="mt-1 text-sm break-all">{user.email}</p>
+                                      <p className="mt-1 text-sm break-words">{user.email}</p>
                                     </div>
                                     <div className="min-w-0">
                                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
