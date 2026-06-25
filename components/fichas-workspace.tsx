@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -69,9 +69,21 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
 
 const DOCUMENT_TEMPLATE_FONT_OPTIONS = [
   { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Arial Narrow", value: "'Arial Narrow', Arial, sans-serif" },
+  { label: "Calibri", value: "Calibri, Arial, sans-serif" },
   { label: "Times New Roman", value: "'Times New Roman', serif" },
   { label: "Georgia", value: "Georgia, serif" },
   { label: "Courier New", value: "'Courier New', monospace" },
+]
+
+const DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS = [
+  { label: "10", value: "1" },
+  { label: "12", value: "2" },
+  { label: "14", value: "3" },
+  { label: "18", value: "4" },
+  { label: "24", value: "5" },
+  { label: "32", value: "6" },
+  { label: "48", value: "7" },
 ]
 
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
@@ -282,6 +294,9 @@ export default function FichasWorkspace() {
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial, sans-serif")
+  const [templateFontSize, setTemplateFontSize] = useState("3")
+  const [templateTextColor, setTemplateTextColor] = useState("#111827")
+  const [templateHighlightColor, setTemplateHighlightColor] = useState("#fff59d")
   const [selectedTemplateImage, setSelectedTemplateImage] = useState<HTMLImageElement | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
@@ -553,6 +568,39 @@ export default function FichasWorkspace() {
     editor.focus()
     document.execCommand("styleWithCSS", false, "true")
     document.execCommand("fontName", false, fontFamily)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateFontSizeChange = (fontSize: string) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    setTemplateFontSize(fontSize)
+    editor.focus()
+    document.execCommand("styleWithCSS", false, "true")
+    document.execCommand("fontSize", false, fontSize)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateTextColorChange = (color: string) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    setTemplateTextColor(color)
+    editor.focus()
+    document.execCommand("styleWithCSS", false, "true")
+    document.execCommand("foreColor", false, color)
+    setTemplateContent(editor.innerHTML)
+  }
+
+  const handleTemplateHighlightColorChange = (color: string) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    setTemplateHighlightColor(color)
+    editor.focus()
+    document.execCommand("styleWithCSS", false, "true")
+    document.execCommand("hiliteColor", false, color)
     setTemplateContent(editor.innerHTML)
   }
 
@@ -1918,6 +1966,20 @@ export default function FichasWorkspace() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="min-w-[96px]">
+                  <Select value={templateFontSize} onValueChange={handleTemplateFontSizeChange} disabled={templateLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tamanho" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />
                 </Button>
@@ -1939,6 +2001,30 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertOrderedList")} disabled={templateLoading}>
                   <ListOrdered className="size-4" />
                 </Button>
+                <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
+                  <Palette className="size-4" />
+                  <span>Fonte</span>
+                  <Input
+                    type="color"
+                    value={templateTextColor}
+                    onChange={(event) => handleTemplateTextColorChange(event.target.value)}
+                    disabled={templateLoading}
+                    className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0"
+                  />
+                </label>
+                <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
+                  <span className="inline-flex size-4 items-center justify-center rounded-sm border border-border bg-yellow-200 text-[10px] font-bold text-foreground">
+                    A
+                  </span>
+                  <span>Realce</span>
+                  <Input
+                    type="color"
+                    value={templateHighlightColor}
+                    onChange={(event) => handleTemplateHighlightColorChange(event.target.value)}
+                    disabled={templateLoading}
+                    className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0"
+                  />
+                </label>
                 <Button
                   type="button"
                   variant={templateVariablesOpen ? "secondary" : "outline"}
