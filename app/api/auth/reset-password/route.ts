@@ -1,21 +1,31 @@
 import { NextResponse } from "next/server"
-import { updateAuthPassword } from "@/lib/server-access"
+import { resetPasswordWithEmailAndPhone, updateAuthPassword } from "@/lib/server-access"
 
 export async function POST(request: Request) {
   try {
-    const { accessToken, password } = await request.json()
+    const { accessToken, password, email, telefone } = await request.json()
     const normalizedToken = String(accessToken || "").trim()
     const normalizedPassword = String(password || "")
-
-    if (!normalizedToken || !normalizedPassword) {
-      return NextResponse.json({ error: "Token e nova senha sao obrigatorios." }, { status: 400 })
-    }
+    const normalizedEmail = String(email || "").trim().toLowerCase()
+    const normalizedPhone = String(telefone || "").trim()
 
     if (normalizedPassword.length < 6) {
       return NextResponse.json({ error: "A senha precisa ter pelo menos 6 caracteres." }, { status: 400 })
     }
 
-    await updateAuthPassword(normalizedToken, normalizedPassword)
+    if (normalizedToken) {
+      await updateAuthPassword(normalizedToken, normalizedPassword)
+    } else {
+      if (!normalizedEmail || !normalizedPhone) {
+        return NextResponse.json({ error: "E-mail, telefone e nova senha sao obrigatorios." }, { status: 400 })
+      }
+
+      await resetPasswordWithEmailAndPhone({
+        email: normalizedEmail,
+        telefone: normalizedPhone,
+        password: normalizedPassword,
+      })
+    }
 
     return NextResponse.json({
       success: true,

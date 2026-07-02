@@ -13,7 +13,7 @@ import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
-import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, requestPasswordRecovery, resetPassword } from "@/lib/accessService"
+import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassword, resetPasswordWithPhone } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
@@ -268,7 +268,7 @@ export default function FichasWorkspace() {
   const [senhaAcesso, setSenhaAcesso] = useState("")
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
   const [forgotEmail, setForgotEmail] = useState("")
-  const [forgotMessage, setForgotMessage] = useState("")
+  const [forgotPhone, setForgotPhone] = useState("")
   const [forgotLoading, setForgotLoading] = useState(false)
   const [resetToken, setResetToken] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -786,20 +786,35 @@ export default function FichasWorkspace() {
   }
 
   const handleForgotPassword = async () => {
-    if (!forgotEmail.trim()) {
-      setAuthError("Informe o e-mail para recuperar a senha.")
+    if (!forgotEmail.trim() || !forgotPhone.trim()) {
+      setAuthError("Informe o e-mail e o telefone para redefinir a senha.")
+      return
+    }
+
+    if (!newPassword || !confirmPassword) {
+      setAuthError("Preencha e confirme a nova senha.")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setAuthError("A confirmacao da senha nao confere.")
       return
     }
 
     setForgotLoading(true)
     setAuthError("")
-    setForgotMessage("")
+    setResetMessage("")
 
     try {
-      const response = await requestPasswordRecovery(forgotEmail.trim())
-      setForgotMessage(response.message)
+      const response = await resetPasswordWithPhone(forgotEmail.trim(), forgotPhone.trim(), newPassword)
+      setResetMessage(response.message)
+      setForgotEmail("")
+      setForgotPhone("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setForgotPasswordOpen(false)
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Erro ao solicitar recuperacao de senha.")
+      setAuthError(error instanceof Error ? error.message : "Erro ao redefinir a senha.")
     } finally {
       setForgotLoading(false)
     }
@@ -1347,7 +1362,7 @@ export default function FichasWorkspace() {
                 {forgotPasswordOpen ? (
                   <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
                     <div className="space-y-2">
-                      <Label htmlFor="forgotEmail">Recuperar senha</Label>
+                      <Label htmlFor="forgotEmail">Esqueceu senha</Label>
                       <Input
                         id="forgotEmail"
                         type="email"
@@ -1357,13 +1372,57 @@ export default function FichasWorkspace() {
                         disabled={forgotLoading}
                       />
                     </div>
-                    {forgotMessage ? <p className="text-sm text-primary">{forgotMessage}</p> : null}
+                    <div className="space-y-2">
+                      <Label htmlFor="forgotPhone">Telefone</Label>
+                      <Input
+                        id="forgotPhone"
+                        type="tel"
+                        value={forgotPhone}
+                        onChange={(event) => setForgotPhone(event.target.value)}
+                        placeholder="Digite seu telefone"
+                        disabled={forgotLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="forgotNewPassword">Nova senha</Label>
+                      <Input
+                        id="forgotNewPassword"
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder="Digite a nova senha"
+                        disabled={forgotLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="forgotConfirmPassword">Confirmar senha</Label>
+                      <Input
+                        id="forgotConfirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        placeholder="Confirme a nova senha"
+                        disabled={forgotLoading}
+                      />
+                    </div>
                     <div className="flex gap-2">
-                      <Button type="button" variant="outline" onClick={() => setForgotPasswordOpen(false)} disabled={forgotLoading}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setForgotPasswordOpen(false)
+                          setForgotEmail("")
+                          setForgotPhone("")
+                          setNewPassword("")
+                          setConfirmPassword("")
+                          setAuthError("")
+                        }}
+                        disabled={forgotLoading}
+                      >
                         Fechar
                       </Button>
                       <Button type="button" onClick={() => void handleForgotPassword()} disabled={forgotLoading}>
-                        {forgotLoading ? "Enviando..." : "Enviar link"}
+                        {forgotLoading ? "Salvando..." : "Salvar nova senha"}
                       </Button>
                     </div>
                   </div>
@@ -1381,8 +1440,21 @@ export default function FichasWorkspace() {
                 <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
                   {authLoading ? "Validando..." : "Entrar"}
                 </Button>
-                <Button type="button" variant="link" className="w-full" onClick={() => setForgotPasswordOpen((current) => !current)}>
-                  Esqueci minha senha
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full"
+                  onClick={() => {
+                    setForgotPasswordOpen((current) => !current)
+                    setAuthError("")
+                    setResetMessage("")
+                    setForgotEmail("")
+                    setForgotPhone("")
+                    setNewPassword("")
+                    setConfirmPassword("")
+                  }}
+                >
+                  Esqueceu senha
                 </Button>
               </>
             )}

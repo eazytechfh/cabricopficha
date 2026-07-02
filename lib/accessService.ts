@@ -34,6 +34,16 @@ export async function requestPasswordRecovery(email: string) {
   return parseResponse<{ success: boolean; message: string }>(response)
 }
 
+export async function resetPasswordWithPhone(email: string, telefone: string, password: string) {
+  const response = await fetch("/api/auth/reset-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, telefone, password }),
+  })
+
+  return parseResponse<{ success: boolean; message: string }>(response)
+}
+
 export async function resetPassword(accessToken: string, password: string) {
   const response = await fetch("/api/auth/reset-password", {
     method: "POST",

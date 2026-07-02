@@ -22,6 +22,10 @@ type AuthUserApiRecord = {
   email?: string
 }
 
+function normalizePhone(value: string) {
+  return String(value || "").replace(/\D/g, "")
+}
+
 function ensureConfig() {
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error("Variaveis do Supabase nao configuradas para o acesso.")
@@ -152,6 +156,22 @@ export async function sendPasswordRecovery(email: string, redirectTo: string) {
   await parseJsonResponse(response, "Erro ao solicitar recuperacao de senha.")
 }
 
+async function fetchProfileByEmail(email: string) {
+  ensureConfig()
+
+  const normalizedEmail = String(email || "").trim().toLowerCase()
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/user_profiles?email=eq.${encodeURIComponent(normalizedEmail)}&select=id,nome_responsavel,email,telefone,nivel_acesso,ativo,must_change_password,last_login_at,created_at,updated_at&limit=1`,
+    {
+      headers: getHeaders(),
+      cache: "no-store",
+    }
+  )
+
+  const payload = await parseJsonResponse<UserProfileApiRecord[]>(response, "Erro ao consultar perfil do usuario.")
+  return payload[0] ?? null
+}
+
 async function clearMustChangePassword(id: string) {
   ensureConfig()
 
@@ -187,6 +207,50 @@ export async function updateAuthPassword(accessToken: string, password: string) 
   if (userId) {
     await clearMustChangePassword(userId)
   }
+}
+
+export async function resetPasswordWithEmailAndPhone(input: {
+  email: string
+  telefone: string
+  password: string
+}) {
+  ensureConfig()
+
+  const normalizedEmail = String(input.email || "").trim().toLowerCase()
+  const normalizedPhone = normalizePhone(input.telefone)
+  const normalizedPassword = String(input.password || "")
+
+  if (!normalizedEmail || !normalizedPhone || !normalizedPassword) {
+    throw new Error("E-mail, telefone e nova senha sao obrigatorios.")
+  }
+
+  const profile = await fetchProfileByEmail(normalizedEmail)
+
+  if (!profile || !profile.ativo) {
+    throw new Error("Nao encontramos um usuario ativo com os dados informados.")
+  }
+
+  const profilePhone = normalizePhone(String(profile.telefone || ""))
+  if (!profilePhone || profilePhone !== normalizedPhone) {
+    throw new Error("E-mail e telefone nao conferem.")
+  }
+
+  const userId = String(profile.id || "")
+  if (!userId) {
+    throw new Error("Nao foi possivel localizar o usuario para redefinir a senha.")
+  }
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: "PUT",
+    headers: getHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      password: normalizedPassword,
+      email_confirm: true,
+    }),
+  })
+
+  await parseJsonResponse(response, "Erro ao redefinir a senha.")
+  await clearMustChangePassword(userId)
 }
 
 export async function assertAdminAccess(consultor: ConsultorSession | null | undefined) {
