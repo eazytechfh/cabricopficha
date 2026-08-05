@@ -2,9 +2,9 @@ import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
 import { splitSerializedEntries } from "@/lib/ficha-utils"
 
 const FICHA_CREATE_WEBHOOK_URL =
-  "https://n8n.srv953248.hstgr.cloud/webhook/7a2f5a7c-3e8b-4266-bfb9-2ecddf843852"
+  "https://n8n.cabricop.com.br/webhook/afc80212-c243-4584-b009-b3cc73a4d217"
 const FICHA_UPDATE_WEBHOOK_URL =
-  "https://n8n.srv953248.hstgr.cloud/webhook/99dd7b30-08f1-48cd-be4b-2e4ccd769709"
+  "https://n8n.cabricop.com.br/webhook/c58b2323-ea91-4569-8401-d69ad37b656a"
 
 type MultaWebhookItem = {
   instancia: string
