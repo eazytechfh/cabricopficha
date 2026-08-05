@@ -1,4 +1,3 @@
-import crypto from "node:crypto"
 import type { AccessCodeRecord, ConsultorSession } from "@/lib/ficha-types"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -282,11 +281,7 @@ export async function getAccessCodes() {
   return payload.map(mapAccessCodeRecord)
 }
 
-function generateTemporaryPassword() {
-  return `Tmp#${crypto.randomBytes(8).toString("hex")}`
-}
-
-async function createAuthUser(email: string) {
+async function createAuthUser(email: string, password: string) {
   ensureConfig()
 
   const response = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
@@ -294,7 +289,7 @@ async function createAuthUser(email: string) {
     headers: getHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       email,
-      password: generateTemporaryPassword(),
+      password,
       email_confirm: true,
     }),
   })
@@ -302,7 +297,7 @@ async function createAuthUser(email: string) {
   return parseJsonResponse<{ id?: string; user?: AuthUserApiRecord }>(response, "Erro ao criar usuario de acesso.")
 }
 
-async function updateAuthUser(id: string, input: { email: string }) {
+async function updateAuthUser(id: string, input: { email: string; password?: string }) {
   ensureConfig()
 
   const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(id)}`, {
@@ -311,6 +306,7 @@ async function updateAuthUser(id: string, input: { email: string }) {
     body: JSON.stringify({
       email: input.email,
       email_confirm: true,
+      ...(input.password ? { password: input.password } : {}),
     }),
   })
 
@@ -322,11 +318,16 @@ export async function createAccessCode(input: {
   email: string
   telefone: string
   nivelAcesso: AccessCodeRecord["nivelAcesso"]
+  password: string
   appOrigin?: string
 }) {
   ensureConfig()
 
-  const authPayload = await createAuthUser(input.email)
+  if (input.password.length < 6) {
+    throw new Error("A senha deve ter pelo menos 6 caracteres.")
+  }
+
+  const authPayload = await createAuthUser(input.email, input.password)
   const authUserId = String(authPayload.user?.id || authPayload.id || "")
 
   if (!authUserId) {
@@ -346,7 +347,7 @@ export async function createAccessCode(input: {
       telefone: input.telefone,
       nivel_acesso: input.nivelAcesso,
       ativo: true,
-      must_change_password: true,
+      must_change_password: false,
     }),
   })
 
@@ -390,11 +391,16 @@ export async function updateAccessCode(
     telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
     ativo: boolean
+    password?: string
   }
 ) {
   ensureConfig()
 
-  await updateAuthUser(id, { email: input.email })
+  if (input.password && input.password.length < 6) {
+    throw new Error("A nova senha deve ter pelo menos 6 caracteres.")
+  }
+
+  await updateAuthUser(id, { email: input.email, password: input.password })
 
   const response = await fetch(`${supabaseUrl}/rest/v1/user_profiles?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",

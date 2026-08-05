@@ -308,6 +308,8 @@ export default function FichasWorkspace() {
   const [newUserName, setNewUserName] = useState("")
   const [newUserEmail, setNewUserEmail] = useState("")
   const [newUserPhone, setNewUserPhone] = useState("")
+  const [newUserPassword, setNewUserPassword] = useState("")
+  const [newUserPasswordConfirmation, setNewUserPasswordConfirmation] = useState("")
   const [newUserLevel, setNewUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [userSaving, setUserSaving] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState("")
@@ -317,6 +319,7 @@ export default function FichasWorkspace() {
   const [editUserPhone, setEditUserPhone] = useState("")
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
+  const [editUserPassword, setEditUserPassword] = useState("")
   const [userUpdating, setUserUpdating] = useState(false)
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
@@ -923,8 +926,18 @@ export default function FichasWorkspace() {
   const handleCreateUser = async () => {
     if (!consultor) return
 
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPhone.trim()) {
-      setUsersError("Nome do responsavel, e-mail e telefone sao obrigatorios.")
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPhone.trim() || !newUserPassword) {
+      setUsersError("Nome do responsavel, e-mail, telefone e senha sao obrigatorios.")
+      return
+    }
+
+    if (newUserPassword.length < 6) {
+      setUsersError("A senha deve ter pelo menos 6 caracteres.")
+      return
+    }
+
+    if (newUserPassword !== newUserPasswordConfirmation) {
+      setUsersError("A confirmacao da senha nao confere.")
       return
     }
 
@@ -938,14 +951,17 @@ export default function FichasWorkspace() {
         email: newUserEmail.trim(),
         telefone: newUserPhone.trim(),
         nivelAcesso: newUserLevel,
+        password: newUserPassword,
         appOrigin: typeof window !== "undefined" ? window.location.origin : "",
       })
 
       setNewUserName("")
       setNewUserEmail("")
       setNewUserPhone("")
+      setNewUserPassword("")
+      setNewUserPasswordConfirmation("")
       setNewUserLevel("consultor")
-      setUsersMessage("Usuario adicionado com sucesso. Para definir a senha, o usuario pode usar 'Esqueci minha senha' na tela de acesso.")
+      setUsersMessage("Usuario adicionado com sucesso com a senha definida pelo administrador.")
       await loadAccessUsers()
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : "Erro ao adicionar usuario.")
@@ -979,6 +995,7 @@ export default function FichasWorkspace() {
     setEditUserPhone(user.telefone)
     setEditUserLevel(user.nivelAcesso)
     setEditUserStatus(user.ativo ? "ativo" : "inativo")
+    setEditUserPassword("")
     setUsersError("")
     setUsersMessage("")
   }
@@ -990,6 +1007,7 @@ export default function FichasWorkspace() {
     setEditUserPhone("")
     setEditUserLevel("consultor")
     setEditUserStatus("ativo")
+    setEditUserPassword("")
   }
 
   const handleUpdateUser = async () => {
@@ -1011,6 +1029,7 @@ export default function FichasWorkspace() {
         telefone: editUserPhone.trim(),
         nivelAcesso: editUserLevel,
         ativo: editUserStatus === "ativo",
+        password: editUserPassword || undefined,
       })
 
       setUsersMessage("Usuario atualizado com sucesso.")
@@ -1624,6 +1643,30 @@ export default function FichasWorkspace() {
                           />
                         </div>
                         <div className="space-y-2 min-w-0">
+                          <Label htmlFor="novoUsuarioSenha">Senha</Label>
+                          <Input
+                            id="novoUsuarioSenha"
+                            type="password"
+                            value={newUserPassword}
+                            onChange={(event) => setNewUserPassword(event.target.value)}
+                            placeholder="Minimo de 6 caracteres"
+                            autoComplete="new-password"
+                            disabled={userSaving}
+                          />
+                        </div>
+                        <div className="space-y-2 min-w-0">
+                          <Label htmlFor="novoUsuarioConfirmarSenha">Confirmar senha</Label>
+                          <Input
+                            id="novoUsuarioConfirmarSenha"
+                            type="password"
+                            value={newUserPasswordConfirmation}
+                            onChange={(event) => setNewUserPasswordConfirmation(event.target.value)}
+                            placeholder="Repita a senha"
+                            autoComplete="new-password"
+                            disabled={userSaving}
+                          />
+                        </div>
+                        <div className="space-y-2 min-w-0">
                           <Label htmlFor="novoUsuarioNivel">Nivel</Label>
                           <Select
                             value={newUserLevel}
@@ -1726,6 +1769,22 @@ export default function FichasWorkspace() {
                                           <SelectItem value="inativo">Inativo</SelectItem>
                                         </SelectContent>
                                       </Select>
+                                    </div>
+
+                                    <div className="space-y-2 min-w-0 lg:col-span-2">
+                                      <Label htmlFor={`edit-senha-${user.id}`}>Definir nova senha</Label>
+                                      <Input
+                                        id={`edit-senha-${user.id}`}
+                                        type="password"
+                                        value={editUserPassword}
+                                        onChange={(event) => setEditUserPassword(event.target.value)}
+                                        placeholder="Deixe vazio para manter a senha atual"
+                                        autoComplete="new-password"
+                                        disabled={userUpdating}
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Por seguranca, a senha atual nao pode ser visualizada. Informe uma nova senha para substitui-la.
+                                      </p>
                                     </div>
 
                                     <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">

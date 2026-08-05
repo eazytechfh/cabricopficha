@@ -20,6 +20,7 @@ export async function PATCH(
         telefone?: string
         nivelAcesso?: AccessCodeRecord["nivelAcesso"]
         ativo?: boolean
+        password?: string
       }
     }
 
@@ -35,6 +36,7 @@ export async function PATCH(
     const telefone = String(payload.input?.telefone || "").trim()
     const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
     const ativo = Boolean(payload.input?.ativo ?? true)
+    const password = String(payload.input?.password || "")
 
     if (!nomeResponsavel || !email || !telefone) {
       return NextResponse.json(
@@ -56,6 +58,7 @@ export async function PATCH(
       telefone,
       nivelAcesso,
       ativo,
+      password: password || undefined,
     })
 
     return NextResponse.json({ user })
