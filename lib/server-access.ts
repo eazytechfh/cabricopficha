@@ -173,7 +173,7 @@ async function fetchProfileByEmail(email: string) {
   return payload[0] ?? null
 }
 
-async function clearMustChangePassword(id: string) {
+async function clearMustChangePassword(id: string, password?: string) {
   ensureConfig()
 
   await fetch(`${supabaseUrl}/rest/v1/user_profiles?id=eq.${encodeURIComponent(id)}`, {
@@ -185,6 +185,7 @@ async function clearMustChangePassword(id: string) {
     body: JSON.stringify({
       must_change_password: false,
       updated_at: new Date().toISOString(),
+      ...(password ? { password_plain: password } : {}),
     }),
   }).catch(() => null)
 }
@@ -206,7 +207,7 @@ export async function updateAuthPassword(accessToken: string, password: string) 
   const payload = await parseJsonResponse<{ id?: string; user?: { id?: string } }>(response, "Erro ao redefinir a senha.")
   const userId = String(payload.user?.id || payload.id || "")
   if (userId) {
-    await clearMustChangePassword(userId)
+    await clearMustChangePassword(userId, password)
   }
 }
 
@@ -251,7 +252,7 @@ export async function resetPasswordWithEmailAndPhone(input: {
   })
 
   await parseJsonResponse(response, "Erro ao redefinir a senha.")
-  await clearMustChangePassword(userId)
+  await clearMustChangePassword(userId, normalizedPassword)
 }
 
 export async function assertAdminAccess(consultor: ConsultorSession | null | undefined) {
