@@ -1357,28 +1357,32 @@ export default function FichasWorkspace() {
               </>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="emailAcesso">E-mail</Label>
-                  <Input
-                    id="emailAcesso"
-                    type="email"
-                    value={emailAcesso}
-                    onChange={(event) => setEmailAcesso(event.target.value)}
-                    placeholder="Digite seu e-mail"
-                    disabled={authLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senhaAcesso">Senha</Label>
-                  <Input
-                    id="senhaAcesso"
-                    type="password"
-                    value={senhaAcesso}
-                    onChange={(event) => setSenhaAcesso(event.target.value)}
-                    placeholder="Digite sua senha"
-                    disabled={authLoading}
-                  />
-                </div>
+                {!forgotPasswordOpen ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="emailAcesso">E-mail</Label>
+                      <Input
+                        id="emailAcesso"
+                        type="email"
+                        value={emailAcesso}
+                        onChange={(event) => setEmailAcesso(event.target.value)}
+                        placeholder="Digite seu e-mail"
+                        disabled={authLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="senhaAcesso">Senha</Label>
+                      <Input
+                        id="senhaAcesso"
+                        type="password"
+                        value={senhaAcesso}
+                        onChange={(event) => setSenhaAcesso(event.target.value)}
+                        placeholder="Digite sua senha"
+                        disabled={authLoading}
+                      />
+                    </div>
+                  </>
+                ) : null}
                 {forgotPasswordOpen ? (
                   <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
                     <div className="space-y-2">
@@ -1455,7 +1459,7 @@ export default function FichasWorkspace() {
               <Button className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
                 {resetLoading ? "Atualizando..." : "Salvar nova senha"}
               </Button>
-            ) : (
+            ) : !forgotPasswordOpen ? (
               <>
                 <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
                   {authLoading ? "Validando..." : "Entrar"}
@@ -1465,7 +1469,7 @@ export default function FichasWorkspace() {
                   variant="link"
                   className="w-full"
                   onClick={() => {
-                    setForgotPasswordOpen((current) => !current)
+                    setForgotPasswordOpen(true)
                     setAuthError("")
                     setResetMessage("")
                     setForgotEmail("")
@@ -1477,7 +1481,7 @@ export default function FichasWorkspace() {
                   Esqueceu senha
                 </Button>
               </>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>
