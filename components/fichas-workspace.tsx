@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, EyeOff, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -321,6 +321,7 @@ export default function FichasWorkspace() {
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
   const [editUserPassword, setEditUserPassword] = useState("")
   const [userUpdating, setUserUpdating] = useState(false)
+  const [visibleUserPasswords, setVisibleUserPasswords] = useState<Record<string, boolean>>({})
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial, sans-serif")
@@ -995,7 +996,7 @@ export default function FichasWorkspace() {
     setEditUserPhone(user.telefone)
     setEditUserLevel(user.nivelAcesso)
     setEditUserStatus(user.ativo ? "ativo" : "inativo")
-    setEditUserPassword("")
+    setEditUserPassword(user.senha || "")
     setUsersError("")
     setUsersMessage("")
   }
@@ -1538,331 +1539,359 @@ export default function FichasWorkspace() {
                         </div>
                       </div>
 
-                  {settingsSection === "menu" ? (
-                    <div className="grid gap-4 px-6 pb-6 pt-5 md:grid-cols-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto justify-start gap-3 p-5 text-left"
-                        onClick={() => void handleOpenUsersSettings()}
-                      >
-                        <UserPlus className="h-5 w-5 text-primary" />
-                        <span>
-                          <span className="block font-semibold">Usuarios</span>
-                        </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto justify-start gap-3 p-5 text-left"
-                        onClick={() => setSettingsSection("documents")}
-                      >
-                        <FileText className="h-5 w-5 text-primary" />
-                        <span>
-                          <span className="block font-semibold">Modelos de Documentos</span>
-                        </span>
-                      </Button>
-                    </div>
-                  ) : null}
-
-                  {settingsSection === "documents" ? (
-                    <div className="space-y-4 px-6 pb-6 pt-5">
-                      {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto justify-start gap-3 p-5 text-left"
-                          onClick={() => void handleOpenTemplateEditor("contract")}
-                        >
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span>
-                            <span className="block font-semibold">Modelo de Contrato</span>
-                            <span className="block text-sm font-normal text-muted-foreground">
-                              Editar texto base do contrato
-                            </span>
-                          </span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto justify-start gap-3 p-5 text-left"
-                          onClick={() => void handleOpenTemplateEditor("procuration")}
-                        >
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span>
-                            <span className="block font-semibold">Modelo de Procuração</span>
-                            <span className="block text-sm font-normal text-muted-foreground">
-                              Editar texto base da procuração
-                            </span>
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {settingsSection === "users" ? (
-                  <div className="space-y-5 px-6 pb-6 pt-5">
-                    <Card className="border border-border/70 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <UserPlus className="h-4 w-4" />
-                          Adicionar novo usuario
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_220px_auto] xl:items-end">
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
-                          <Input
-                            id="novoUsuarioNome"
-                            value={newUserName}
-                            onChange={(event) => setNewUserName(event.target.value)}
-                            placeholder="Digite o nome"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioEmail">E-mail</Label>
-                          <Input
-                            id="novoUsuarioEmail"
-                            type="email"
-                            value={newUserEmail}
-                            onChange={(event) => setNewUserEmail(event.target.value)}
-                            placeholder="Digite o e-mail"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioTelefone">Telefone</Label>
-                          <Input
-                            id="novoUsuarioTelefone"
-                            value={newUserPhone}
-                            onChange={(event) => setNewUserPhone(event.target.value)}
-                            placeholder="Digite o telefone"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioSenha">Senha</Label>
-                          <Input
-                            id="novoUsuarioSenha"
-                            type="password"
-                            value={newUserPassword}
-                            onChange={(event) => setNewUserPassword(event.target.value)}
-                            placeholder="Minimo de 6 caracteres"
-                            autoComplete="new-password"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioConfirmarSenha">Confirmar senha</Label>
-                          <Input
-                            id="novoUsuarioConfirmarSenha"
-                            type="password"
-                            value={newUserPasswordConfirmation}
-                            onChange={(event) => setNewUserPasswordConfirmation(event.target.value)}
-                            placeholder="Repita a senha"
-                            autoComplete="new-password"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioNivel">Nivel</Label>
-                          <Select
-                            value={newUserLevel}
-                            onValueChange={(value) => setNewUserLevel(value as AccessCodeRecord["nivelAcesso"])}
-                            disabled={userSaving}
+                      {settingsSection === "menu" ? (
+                        <div className="grid gap-4 px-6 pb-6 pt-5 md:grid-cols-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-auto justify-start gap-3 p-5 text-left"
+                            onClick={() => void handleOpenUsersSettings()}
                           >
-                            <SelectTrigger id="novoUsuarioNivel">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="consultor">Comercial</SelectItem>
-                              <SelectItem value="andamento">Andamento</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <UserPlus className="h-5 w-5 text-primary" />
+                            <span>
+                              <span className="block font-semibold">Usuarios</span>
+                            </span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-auto justify-start gap-3 p-5 text-left"
+                            onClick={() => setSettingsSection("documents")}
+                          >
+                            <FileText className="h-5 w-5 text-primary" />
+                            <span>
+                              <span className="block font-semibold">Modelos de Documentos</span>
+                            </span>
+                          </Button>
                         </div>
-                        <Button className="w-full xl:w-auto xl:min-w-[120px]" onClick={() => void handleCreateUser()} disabled={userSaving}>
-                          {userSaving ? "Salvando..." : "Adicionar"}
-                        </Button>
-                      </CardContent>
-                    </Card>
+                      ) : null}
 
-                    <Card className="border border-border/70 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {usersError && <p className="text-sm text-red-600">{usersError}</p>}
-                        {usersMessage && <p className="text-sm text-primary font-medium">{usersMessage}</p>}
-
-                        {usersLoading ? (
-                          <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {users.map((user) => (
-                              <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
-                                {editingUserId === user.id ? (
-                                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_180px_180px]">
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
-                                      <Input
-                                        id={`edit-nome-${user.id}`}
-                                        value={editUserName}
-                                        onChange={(event) => setEditUserName(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-email-${user.id}`}>E-mail</Label>
-                                      <Input
-                                        id={`edit-email-${user.id}`}
-                                        type="email"
-                                        value={editUserEmail}
-                                        onChange={(event) => setEditUserEmail(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-telefone-${user.id}`}>Telefone</Label>
-                                      <Input
-                                        id={`edit-telefone-${user.id}`}
-                                        value={editUserPhone}
-                                        onChange={(event) => setEditUserPhone(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-nivel-${user.id}`}>Nivel</Label>
-                                      <Select
-                                        value={editUserLevel}
-                                        onValueChange={(value) => setEditUserLevel(value as AccessCodeRecord["nivelAcesso"])}
-                                        disabled={userUpdating}
-                                      >
-                                        <SelectTrigger id={`edit-nivel-${user.id}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="consultor">Comercial</SelectItem>
-                                          <SelectItem value="andamento">Andamento</SelectItem>
-                                          <SelectItem value="admin">Admin</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0 xl:col-start-4">
-                                      <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
-                                      <Select
-                                        value={editUserStatus}
-                                        onValueChange={(value) => setEditUserStatus(value as "ativo" | "inativo")}
-                                        disabled={userUpdating || user.id === consultor.id}
-                                      >
-                                        <SelectTrigger id={`edit-status-${user.id}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="ativo">Ativo</SelectItem>
-                                          <SelectItem value="inativo">Inativo</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0 lg:col-span-2">
-                                      <Label htmlFor={`edit-senha-${user.id}`}>Definir nova senha</Label>
-                                      <Input
-                                        id={`edit-senha-${user.id}`}
-                                        type="password"
-                                        value={editUserPassword}
-                                        onChange={(event) => setEditUserPassword(event.target.value)}
-                                        placeholder="Deixe vazio para manter a senha atual"
-                                        autoComplete="new-password"
-                                        disabled={userUpdating}
-                                      />
-                                      <p className="text-xs text-muted-foreground">
-                                        Por seguranca, a senha atual nao pode ser visualizada. Informe uma nova senha para substitui-la.
-                                      </p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">
-                                      <Button onClick={() => void handleUpdateUser()} disabled={userUpdating}>
-                                        {userUpdating ? "Salvando..." : "Salvar edicao"}
-                                      </Button>
-                                      <Button variant="outline" onClick={cancelEditingUser} disabled={userUpdating}>
-                                        Cancelar
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,1.45fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] xl:gap-4 min-w-0">
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
-                                      <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
-                                      <p className="mt-1 text-sm break-words">{user.email}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
-                                      <p className="mt-1 text-sm break-all">{user.telefone}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
-                                      <p className="mt-1">{getAccessLevelLabel(user.nivelAcesso)}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
-                                      <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
-                                      <p className="mt-1 text-sm text-muted-foreground break-words">
-                                        {formatAccessDate(user.updatedAt || user.createdAt)}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap justify-end gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => startEditingUser(user)}
-                                      disabled={deletingUserId === user.id}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Editar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => void handleDeleteUser(user)}
-                                      disabled={deletingUserId === user.id || user.id === consultor.id}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      {deletingUserId === user.id ? "Removendo..." : "Remover"}
-                                    </Button>
-                                  </div>
-                                </div>
-                                )}
-                              </div>
-                            ))}
-
-                            {users.length === 0 && (
-                              <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                                Nenhum usuario encontrado.
-                              </div>
-                            )}
+                      {settingsSection === "documents" ? (
+                        <div className="space-y-4 px-6 pb-6 pt-5">
+                          {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("contract")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Contrato</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar texto base do contrato
+                                </span>
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("procuration")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Procuração</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar texto base da procuração
+                                </span>
+                              </span>
+                            </Button>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                  ) : null}
+                        </div>
+                      ) : null}
+
+                      {settingsSection === "users" ? (
+                        <div className="space-y-5 px-6 pb-6 pt-5">
+                          <Card className="border border-border/70 shadow-sm">
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <UserPlus className="h-4 w-4" />
+                                Adicionar novo usuario
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 xl:items-end">
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
+                                <Input
+                                  id="novoUsuarioNome"
+                                  value={newUserName}
+                                  onChange={(event) => setNewUserName(event.target.value)}
+                                  placeholder="Digite o nome"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioEmail">E-mail</Label>
+                                <Input
+                                  id="novoUsuarioEmail"
+                                  type="email"
+                                  value={newUserEmail}
+                                  onChange={(event) => setNewUserEmail(event.target.value)}
+                                  placeholder="Digite o e-mail"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioTelefone">Telefone</Label>
+                                <Input
+                                  id="novoUsuarioTelefone"
+                                  value={newUserPhone}
+                                  onChange={(event) => setNewUserPhone(event.target.value)}
+                                  placeholder="Digite o telefone"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioSenha">Senha</Label>
+                                <Input
+                                  id="novoUsuarioSenha"
+                                  type="text"
+                                  value={newUserPassword}
+                                  onChange={(event) => setNewUserPassword(event.target.value)}
+                                  placeholder="Minimo de 6 caracteres"
+                                  autoComplete="new-password"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioConfirmarSenha">Confirmar senha</Label>
+                                <Input
+                                  id="novoUsuarioConfirmarSenha"
+                                  type="text"
+                                  value={newUserPasswordConfirmation}
+                                  onChange={(event) => setNewUserPasswordConfirmation(event.target.value)}
+                                  placeholder="Repita a senha"
+                                  autoComplete="new-password"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioNivel">Nivel</Label>
+                                <Select
+                                  value={newUserLevel}
+                                  onValueChange={(value) => setNewUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                                  disabled={userSaving}
+                                >
+                                  <SelectTrigger id="novoUsuarioNivel">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="consultor">Comercial</SelectItem>
+                                    <SelectItem value="andamento">Andamento</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button className="w-full xl:w-auto xl:min-w-[120px]" onClick={() => void handleCreateUser()} disabled={userSaving}>
+                                {userSaving ? "Salvando..." : "Adicionar"}
+                              </Button>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border border-border/70 shadow-sm">
+                            <CardHeader>
+                              <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {usersError && <p className="text-sm text-red-600">{usersError}</p>}
+                              {usersMessage && <p className="text-sm text-primary font-medium">{usersMessage}</p>}
+
+                              {usersLoading ? (
+                                <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {users.map((user) => (
+                                    <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
+                                      {editingUserId === user.id ? (
+                                        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_180px_180px]">
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
+                                            <Input
+                                              id={`edit-nome-${user.id}`}
+                                              value={editUserName}
+                                              onChange={(event) => setEditUserName(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-email-${user.id}`}>E-mail</Label>
+                                            <Input
+                                              id={`edit-email-${user.id}`}
+                                              type="email"
+                                              value={editUserEmail}
+                                              onChange={(event) => setEditUserEmail(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-telefone-${user.id}`}>Telefone</Label>
+                                            <Input
+                                              id={`edit-telefone-${user.id}`}
+                                              value={editUserPhone}
+                                              onChange={(event) => setEditUserPhone(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-nivel-${user.id}`}>Nivel</Label>
+                                            <Select
+                                              value={editUserLevel}
+                                              onValueChange={(value) => setEditUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                                              disabled={userUpdating}
+                                            >
+                                              <SelectTrigger id={`edit-nivel-${user.id}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="consultor">Comercial</SelectItem>
+                                                <SelectItem value="andamento">Andamento</SelectItem>
+                                                <SelectItem value="admin">Admin</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0 xl:col-start-4">
+                                            <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
+                                            <Select
+                                              value={editUserStatus}
+                                              onValueChange={(value) => setEditUserStatus(value as "ativo" | "inativo")}
+                                              disabled={userUpdating || user.id === consultor.id}
+                                            >
+                                              <SelectTrigger id={`edit-status-${user.id}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="ativo">Ativo</SelectItem>
+                                                <SelectItem value="inativo">Inativo</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0 lg:col-span-2">
+                                            <Label htmlFor={`edit-senha-${user.id}`}>Senha</Label>
+                                            <Input
+                                              id={`edit-senha-${user.id}`}
+                                              type="text"
+                                              value={editUserPassword}
+                                              onChange={(event) => setEditUserPassword(event.target.value)}
+                                              placeholder="Deixe em branco para manter a senha atual"
+                                              autoComplete="new-password"
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">
+                                            <Button onClick={() => void handleUpdateUser()} disabled={userUpdating}>
+                                              {userUpdating ? "Salvando..." : "Salvar edicao"}
+                                            </Button>
+                                            <Button variant="outline" onClick={cancelEditingUser} disabled={userUpdating}>
+                                              Cancelar
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,1.45fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] xl:gap-4 min-w-0">
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
+                                              <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
+                                              <p className="mt-1 text-sm break-words">{user.email}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
+                                              <p className="mt-1 text-sm break-all">{user.telefone}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Senha</p>
+                                              <div className="mt-1 flex items-center gap-1.5">
+                                                <p className="text-sm break-all">
+                                                  {user.senha
+                                                    ? visibleUserPasswords[user.id]
+                                                      ? user.senha
+                                                      : "•".repeat(Math.min(user.senha.length, 10))
+                                                    : "—"}
+                                                </p>
+                                                {user.senha ? (
+                                                  <button
+                                                    type="button"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                    onClick={() =>
+                                                      setVisibleUserPasswords((prev) => ({
+                                                        ...prev,
+                                                        [user.id]: !prev[user.id],
+                                                      }))
+                                                    }
+                                                    aria-label={visibleUserPasswords[user.id] ? "Ocultar senha" : "Mostrar senha"}
+                                                  >
+                                                    {visibleUserPasswords[user.id] ? (
+                                                      <EyeOff className="h-3.5 w-3.5" />
+                                                    ) : (
+                                                      <Eye className="h-3.5 w-3.5" />
+                                                    )}
+                                                  </button>
+                                                ) : null}
+                                              </div>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
+                                              <p className="mt-1">{getAccessLevelLabel(user.nivelAcesso)}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                                              <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
+                                              <p className="mt-1 text-sm text-muted-foreground break-words">
+                                                {formatAccessDate(user.updatedAt || user.createdAt)}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex flex-wrap justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => startEditingUser(user)}
+                                              disabled={deletingUserId === user.id}
+                                            >
+                                              <Pencil className="mr-2 h-4 w-4" />
+                                              Editar
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => void handleDeleteUser(user)}
+                                              disabled={deletingUserId === user.id || user.id === consultor.id}
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              {deletingUserId === user.id ? "Removendo..." : "Remover"}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+
+                                  {users.length === 0 && (
+                                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
+                                      Nenhum usuario encontrado.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -2357,22 +2386,23 @@ export default function FichasWorkspace() {
               {timelineGroups.map((group) => {
                 const latestLog = group.logs[0]
                 return (
-                <div key={group.key} className="rounded-lg border border-border bg-background px-4 py-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-medium text-foreground">{group.entityLabel}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">{formatAccessDate(latestLog?.createdAt || "")}</p>
-                      <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineGroup(group)}>
-                        <Eye className="size-4" />
-                      </Button>
+                  <div key={group.key} className="rounded-lg border border-border bg-background px-4 py-3">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-medium text-foreground">{group.entityLabel}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground">{formatAccessDate(latestLog?.createdAt || "")}</p>
+                        <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineGroup(group)}>
+                          <Eye className="size-4" />
+                        </Button>
+                      </div>
                     </div>
+                    <p className="mt-1 text-sm text-foreground">Por: {latestLog?.actorName || "-"}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {group.logs.length > 1 ? `${group.logs.length} atualizacoes registradas.` : latestLog?.summary || "-"}
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-foreground">Por: {latestLog?.actorName || "-"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {group.logs.length > 1 ? `${group.logs.length} atualizacoes registradas.` : latestLog?.summary || "-"}
-                  </p>
-                </div>
-              )})}
+                )
+              })}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTimelineOpen(false)}>
@@ -2401,14 +2431,14 @@ export default function FichasWorkspace() {
                         <div key={`${log.id}-${index}`} className="space-y-2 rounded-md border border-border bg-muted/10 p-3">
                           <p className="font-medium text-foreground">{detail.field || "-"}</p>
                           <div className="grid gap-3 md:grid-cols-2">
-                          <div className="rounded-md border border-border bg-muted/20 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
-                          </div>
-                          <div className="rounded-md border border-border bg-muted/20 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
-                          </div>
+                            <div className="rounded-md border border-border bg-muted/20 p-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
+                            </div>
+                            <div className="rounded-md border border-border bg-muted/20 p-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
+                            </div>
                           </div>
                         </div>
                       ))}

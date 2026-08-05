@@ -18,6 +18,7 @@ export type AccessCodeRecord = {
   telefone: string
   nivelAcesso: AccessLevel
   ativo: boolean
+  senha?: string
   mustChangePassword?: boolean
   lastLoginAt?: string
   createdAt: string

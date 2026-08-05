@@ -11,6 +11,7 @@ type UserProfileApiRecord = {
   nivel_acesso?: string
   ativo?: boolean
   must_change_password?: boolean
+  password_plain?: string
   last_login_at?: string
   created_at?: string
   updated_at?: string
@@ -64,6 +65,7 @@ function mapAccessCodeRecord(record: UserProfileApiRecord): AccessCodeRecord {
     telefone: String(record.telefone ?? ""),
     nivelAcesso: String(record.nivel_acesso ?? "consultor") as AccessCodeRecord["nivelAcesso"],
     ativo: Boolean(record.ativo ?? true),
+    senha: record.password_plain ?? "",
     mustChangePassword: Boolean(record.must_change_password ?? false),
     lastLoginAt: String(record.last_login_at ?? ""),
     createdAt: String(record.created_at ?? ""),
@@ -270,7 +272,7 @@ export async function getAccessCodes() {
   ensureConfig()
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/user_profiles?select=id,nome_responsavel,email,telefone,nivel_acesso,ativo,must_change_password,last_login_at,created_at,updated_at&order=created_at.desc`,
+    `${supabaseUrl}/rest/v1/user_profiles?select=id,nome_responsavel,email,telefone,nivel_acesso,ativo,must_change_password,password_plain,last_login_at,created_at,updated_at&order=created_at.desc`,
     {
       headers: getHeaders(),
       cache: "no-store",
@@ -348,6 +350,7 @@ export async function createAccessCode(input: {
       nivel_acesso: input.nivelAcesso,
       ativo: true,
       must_change_password: false,
+      password_plain: input.password,
     }),
   })
 
@@ -415,6 +418,7 @@ export async function updateAccessCode(
       nivel_acesso: input.nivelAcesso,
       ativo: input.ativo,
       updated_at: new Date().toISOString(),
+      ...(input.password ? { password_plain: input.password } : {}),
     }),
   })
 
