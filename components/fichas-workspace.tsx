@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, UserPlus } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
+import { captureEditorSelection, runEditorCommand, syncEditableContent } from "@/lib/document-editor"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
@@ -69,13 +70,15 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
 ]
 
 const DOCUMENT_TEMPLATE_FONT_OPTIONS = [
-  { label: "Arial", value: "Arial, sans-serif" },
-  { label: "Arial Narrow", value: "'Arial Narrow', Arial, sans-serif" },
-  { label: "Calibri", value: "Calibri, Arial, sans-serif" },
-  { label: "Times New Roman", value: "'Times New Roman', serif" },
-  { label: "Georgia", value: "Georgia, serif" },
-  { label: "Courier New", value: "'Courier New', monospace" },
+  { label: "Arial", value: "Arial" },
+  { label: "Arial Narrow", value: "Arial Narrow" },
+  { label: "Calibri", value: "Calibri" },
+  { label: "Times New Roman", value: "Times New Roman" },
+  { label: "Georgia", value: "Georgia" },
+  { label: "Courier New", value: "Courier New" },
 ]
+
+const MAX_TEMPLATE_IMAGE_SIZE_BYTES = 1_500_000
 
 const DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS = [
   { label: "10", value: "1" },
@@ -320,7 +323,7 @@ export default function FichasWorkspace() {
   const [userUpdating, setUserUpdating] = useState(false)
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
-  const [templateFontFamily, setTemplateFontFamily] = useState("Arial, sans-serif")
+  const [templateFontFamily, setTemplateFontFamily] = useState("Arial")
   const [templateFontSize, setTemplateFontSize] = useState("3")
   const [templateTextColor, setTemplateTextColor] = useState("#111827")
   const [templateHighlightColor, setTemplateHighlightColor] = useState("#fff59d")
@@ -336,9 +339,23 @@ export default function FichasWorkspace() {
   const [timelineError, setTimelineError] = useState("")
   const [selectedTimelineGroup, setSelectedTimelineGroup] = useState<TimelineGroup | null>(null)
   const templateEditorRef = useRef<HTMLDivElement | null>(null)
+  const templateContentRef = useRef("")
+  const templateEditorKindRef = useRef<DocumentTemplateKind | null>(null)
+  const templateSelectionRef = useRef<Range | null>(null)
+  const templateLoadRequestRef = useRef(0)
   const templateImageInputRef = useRef<HTMLInputElement | null>(null)
   const cadastroTopRef = useRef<HTMLDivElement | null>(null)
   const consultaTopRef = useRef<HTMLDivElement | null>(null)
+
+  templateContentRef.current = templateContent
+  templateEditorKindRef.current = templateEditorKind
+
+  const handleTemplateEditorRef = useCallback((editor: HTMLDivElement | null) => {
+    templateEditorRef.current = editor
+    if (editor) {
+      syncEditableContent(editor, templateContentRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const access = getCurrentAccess()
@@ -518,9 +535,7 @@ export default function FichasWorkspace() {
     const editor = templateEditorRef.current
     if (!editor) return
 
-    if (editor.innerHTML !== templateContent) {
-      editor.innerHTML = templateContent
-    }
+    syncEditableContent(editor, templateContent)
   }, [templateContent, templateEditorKind])
 
   useEffect(() => {
@@ -544,47 +559,92 @@ export default function FichasWorkspace() {
   const handleOpenTemplateEditor = async (kind: DocumentTemplateKind) => {
     if (!consultor || !isAdmin) return
 
+    const requestId = ++templateLoadRequestRef.current
+    templateEditorKindRef.current = kind
     setTemplateEditorKind(kind)
+    setTemplateContent("")
     setTemplateLoading(true)
     setTemplateMessage("")
     setTemplateVariablesOpen(false)
+    templateSelectionRef.current = null
+    handleSelectTemplateImage(null)
 
     try {
       const template = await getDocumentTemplate(kind)
-      setTemplateContent(normalizeDocumentTemplateContent(template.content))
+      if (requestId === templateLoadRequestRef.current) {
+        setTemplateContent(normalizeDocumentTemplateContent(template.content))
+      }
     } catch (error) {
-      setTemplateMessage(error instanceof Error ? error.message : "Erro ao carregar modelo.")
+      if (requestId === templateLoadRequestRef.current) {
+        setTemplateMessage(error instanceof Error ? error.message : "Erro ao carregar modelo.")
+      }
     } finally {
-      setTemplateLoading(false)
+      if (requestId === templateLoadRequestRef.current) {
+        setTemplateLoading(false)
+      }
     }
+  }
+
+  const handleCloseTemplateEditor = () => {
+    templateLoadRequestRef.current += 1
+    templateEditorKindRef.current = null
+    templateSelectionRef.current = null
+    handleSelectTemplateImage(null)
+    setTemplateEditorKind(null)
+    setTemplateContent("")
+    setTemplateLoading(false)
+    setTemplateVariablesOpen(false)
   }
 
   const handleSaveTemplate = async () => {
     if (!consultor || !templateEditorKind) return
 
+    const saveRequestId = templateLoadRequestRef.current
+    const saveKind = templateEditorKind
     setTemplateLoading(true)
     setTemplateMessage("")
 
     try {
-      const template = await updateDocumentTemplate(templateEditorKind, templateContent, consultor)
+      const template = await updateDocumentTemplate(saveKind, templateContent, consultor)
+      if (saveRequestId !== templateLoadRequestRef.current || templateEditorKindRef.current !== saveKind) return
+
       setTemplateContent(normalizeDocumentTemplateContent(template.content))
       setTemplateMessage("Modelo salvo com sucesso.")
-      const latest = await getLatestLog("document_template", templateEditorKind)
-      setLatestTemplateLog(latest)
+      const latest = await getLatestLog("document_template", saveKind)
+      if (saveRequestId === templateLoadRequestRef.current && templateEditorKindRef.current === saveKind) {
+        setLatestTemplateLog(latest)
+      }
     } catch (error) {
-      setTemplateMessage(error instanceof Error ? error.message : "Erro ao salvar modelo.")
+      if (saveRequestId === templateLoadRequestRef.current && templateEditorKindRef.current === saveKind) {
+        setTemplateMessage(error instanceof Error ? error.message : "Erro ao salvar modelo.")
+      }
     } finally {
-      setTemplateLoading(false)
+      if (saveRequestId === templateLoadRequestRef.current && templateEditorKindRef.current === saveKind) {
+        setTemplateLoading(false)
+      }
     }
   }
 
-  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter" | "insertUnorderedList" | "insertOrderedList") => {
+  const captureTemplateSelection = () => {
+    const editor = templateEditorRef.current
+    if (!editor) return
+
+    const selection = editor.ownerDocument.defaultView?.getSelection() ?? null
+    const range = captureEditorSelection(editor, selection)
+    if (range) templateSelectionRef.current = range
+  }
+
+  const runTemplateCommand = (command: string, value?: string) => {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
 
-    editor.focus()
-    document.execCommand(command)
-    setTemplateContent(editor.innerHTML)
+    const result = runEditorCommand(editor, command, value, templateSelectionRef.current)
+    templateSelectionRef.current = result.selection
+    setTemplateContent(result.content)
+  }
+
+  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter" | "insertUnorderedList" | "insertOrderedList") => {
+    runTemplateCommand(command)
   }
 
   const handleTemplateFontChange = (fontFamily: string) => {
@@ -592,10 +652,8 @@ export default function FichasWorkspace() {
     if (!editor || templateLoading) return
 
     setTemplateFontFamily(fontFamily)
-    editor.focus()
-    document.execCommand("styleWithCSS", false, "true")
-    document.execCommand("fontName", false, fontFamily)
-    setTemplateContent(editor.innerHTML)
+    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
+    runTemplateCommand("fontName", fontFamily)
   }
 
   const handleTemplateFontSizeChange = (fontSize: string) => {
@@ -603,10 +661,8 @@ export default function FichasWorkspace() {
     if (!editor || templateLoading) return
 
     setTemplateFontSize(fontSize)
-    editor.focus()
-    document.execCommand("styleWithCSS", false, "true")
-    document.execCommand("fontSize", false, fontSize)
-    setTemplateContent(editor.innerHTML)
+    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
+    runTemplateCommand("fontSize", fontSize)
   }
 
   const handleTemplateTextColorChange = (color: string) => {
@@ -614,10 +670,8 @@ export default function FichasWorkspace() {
     if (!editor || templateLoading) return
 
     setTemplateTextColor(color)
-    editor.focus()
-    document.execCommand("styleWithCSS", false, "true")
-    document.execCommand("foreColor", false, color)
-    setTemplateContent(editor.innerHTML)
+    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
+    runTemplateCommand("foreColor", color)
   }
 
   const handleTemplateHighlightColorChange = (color: string) => {
@@ -625,10 +679,8 @@ export default function FichasWorkspace() {
     if (!editor || templateLoading) return
 
     setTemplateHighlightColor(color)
-    editor.focus()
-    document.execCommand("styleWithCSS", false, "true")
-    document.execCommand("hiliteColor", false, color)
-    setTemplateContent(editor.innerHTML)
+    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
+    runTemplateCommand("hiliteColor", color)
   }
 
   const handleSelectTemplateImage = (image: HTMLImageElement | null) => {
@@ -689,9 +741,7 @@ export default function FichasWorkspace() {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
 
-    editor.focus()
-    document.execCommand("insertText", false, variable)
-    setTemplateContent(editor.innerHTML)
+    runTemplateCommand("insertText", variable)
   }
 
   const handleTemplateImageSelect = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -703,6 +753,21 @@ export default function FichasWorkspace() {
       return
     }
 
+    const imageRequestId = templateLoadRequestRef.current
+    const imageKind = templateEditorKind
+
+    if (!file.type.startsWith("image/")) {
+      event.target.value = ""
+      setTemplateMessage("Selecione um arquivo de imagem valido.")
+      return
+    }
+
+    if (file.size > MAX_TEMPLATE_IMAGE_SIZE_BYTES) {
+      event.target.value = ""
+      setTemplateMessage("A imagem deve ter no maximo 1,5 MB.")
+      return
+    }
+
     const fileAsDataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(String(reader.result || ""))
@@ -710,19 +775,25 @@ export default function FichasWorkspace() {
       reader.readAsDataURL(file)
     }).catch(() => "")
 
+    if (
+      imageRequestId !== templateLoadRequestRef.current ||
+      imageKind !== templateEditorKindRef.current ||
+      templateEditorRef.current !== editor
+    ) {
+      event.target.value = ""
+      return
+    }
+
     if (!fileAsDataUrl) {
       event.target.value = ""
       setTemplateMessage("Nao foi possivel carregar a imagem selecionada.")
       return
     }
 
-    editor.focus()
-    document.execCommand(
+    runTemplateCommand(
       "insertHTML",
-      false,
       `<img src="${fileAsDataUrl}" alt="${file.name.replace(/"/g, "")}" style="width: 220px; max-width: 100%; height: auto; display: block; margin: 0 auto 16px;" />`
     )
-    setTemplateContent(editor.innerHTML)
     event.target.value = ""
   }
 
@@ -2053,8 +2124,7 @@ export default function FichasWorkspace() {
           open={Boolean(templateEditorKind)}
           onOpenChange={(open) => {
             if (!open) {
-              setTemplateEditorKind(null)
-              setTemplateVariablesOpen(false)
+              handleCloseTemplateEditor()
             }
           }}
         >
@@ -2068,7 +2138,10 @@ export default function FichasWorkspace() {
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
-              <div className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2">
+              <div
+                className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2"
+                onPointerDown={captureTemplateSelection}
+              >
                 <div className="min-w-[180px]">
                   <Select value={templateFontFamily} onValueChange={handleTemplateFontChange} disabled={templateLoading}>
                     <SelectTrigger>
@@ -2117,6 +2190,17 @@ export default function FichasWorkspace() {
                 </Button>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertOrderedList")} disabled={templateLoading}>
                   <ListOrdered className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => runTemplateCommand("undo")}
+                  disabled={templateLoading}
+                  aria-label="Desfazer ultima alteracao"
+                  title="Desfazer"
+                >
+                  <Undo2 className="size-4" />
                 </Button>
                 <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
                   <Palette className="size-4" />
@@ -2235,10 +2319,16 @@ export default function FichasWorkspace() {
               ) : null}
               <div
                 key={templateEditorKind ?? "template-editor"}
-                ref={templateEditorRef}
+                ref={handleTemplateEditorRef}
                 contentEditable={!templateLoading}
                 suppressContentEditableWarning
-                onInput={(event) => setTemplateContent(event.currentTarget.innerHTML)}
+                onInput={(event) => {
+                  setTemplateContent(event.currentTarget.innerHTML)
+                  captureTemplateSelection()
+                }}
+                onFocus={captureTemplateSelection}
+                onKeyUp={captureTemplateSelection}
+                onMouseUp={captureTemplateSelection}
                 onClick={(event) => {
                   const target = event.target
                   if (target instanceof HTMLImageElement) {
@@ -2247,7 +2337,8 @@ export default function FichasWorkspace() {
                     handleSelectTemplateImage(null)
                   }
                 }}
-                className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-mono text-sm leading-6 outline-none"
+                aria-label="Conteudo do modelo de documento"
+                className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-sans text-sm leading-6 outline-none"
               />
               {templateEditorKind && templatePreviewContent ? (
                 <div className="space-y-2">
@@ -2275,7 +2366,7 @@ export default function FichasWorkspace() {
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setTemplateEditorKind(null)} disabled={templateLoading}>
+              <Button type="button" variant="outline" onClick={handleCloseTemplateEditor} disabled={templateLoading}>
                 Fechar
               </Button>
               <Button type="button" onClick={() => void handleSaveTemplate()} disabled={templateLoading}>
