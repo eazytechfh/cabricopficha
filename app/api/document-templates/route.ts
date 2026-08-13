@@ -3,20 +3,32 @@ import { assertAdminAccess } from "@/lib/server-access"
 import { getServerDocumentTemplate, updateServerDocumentTemplate } from "@/lib/server-document-templates"
 import type { ConsultorSession } from "@/lib/ficha-types"
 import type { DocumentTemplateKind } from "@/lib/document-templates"
-
-function parseKind(value: unknown): DocumentTemplateKind {
-  return value === "procuration" ? "procuration" : "contract"
-}
+import { parseDocumentTemplateKind, validateDocumentTemplateContent } from "@/lib/document-template-validation"
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as {
+    let rawPayload: unknown
+    try {
+      rawPayload = await request.json()
+    } catch {
+      return NextResponse.json({ error: "Corpo da requisicao invalido." }, { status: 400 })
+    }
+
+    if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
+      return NextResponse.json({ error: "Corpo da requisicao invalido." }, { status: 400 })
+    }
+
+    const payload = rawPayload as {
       action?: "get" | "update"
       kind?: DocumentTemplateKind
       content?: string
       consultor?: ConsultorSession
     }
-    const kind = parseKind(payload.kind)
+    const kind = parseDocumentTemplateKind(payload.kind)
+
+    if (!kind) {
+      return NextResponse.json({ error: "Tipo de modelo invalido." }, { status: 400 })
+    }
 
     if (payload.action === "get") {
       const template = await getServerDocumentTemplate(kind)
@@ -25,10 +37,12 @@ export async function POST(request: Request) {
 
     if (payload.action === "update") {
       await assertAdminAccess(payload.consultor)
-      const content = String(payload.content || "").trim()
-
-      if (!content) {
-        return NextResponse.json({ error: "O modelo nao pode ficar vazio." }, { status: 400 })
+      let content: string
+      try {
+        content = validateDocumentTemplateContent(payload.content)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Conteudo do modelo invalido."
+        return NextResponse.json({ error: message }, { status: 400 })
       }
 
       const template = await updateServerDocumentTemplate(kind, content, payload.consultor as ConsultorSession)

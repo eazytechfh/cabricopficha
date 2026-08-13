@@ -19,6 +19,7 @@ export function DocumentTemplatePdf({ title, content }: DocumentTemplatePdfProps
           {title}
         </h1>
         <div
+          className="document-rich-text"
           style={{ fontSize: 15, lineHeight: 1.55, textAlign: "justify" }}
           dangerouslySetInnerHTML={{ __html: content }}
         />
