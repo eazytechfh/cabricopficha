@@ -4,6 +4,7 @@ import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
+import { buildAccentInsensitivePattern } from "@/lib/search-utils"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -335,7 +336,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   const searchParams = new URLSearchParams({
     select,
-    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast,id.desc",
   })
 
   if (cpfNormalizado) {
@@ -346,7 +347,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   }
 
   if (nome) {
-    searchParams.set("nome_cliente", `ilike.*${nome}*`)
+    searchParams.set("nome_cliente", `imatch.${buildAccentInsensitivePattern(nome)}`)
   }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
