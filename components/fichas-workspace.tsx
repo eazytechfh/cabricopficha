@@ -19,7 +19,7 @@ import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
-import { captureEditorSelection, runEditorCommand, syncEditableContent } from "@/lib/document-editor"
+import { captureEditorSelection, getEditorSelectionFormatting, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
@@ -81,13 +81,14 @@ const DOCUMENT_TEMPLATE_FONT_OPTIONS = [
 const MAX_TEMPLATE_IMAGE_SIZE_BYTES = 1_500_000
 
 const DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS = [
-  { label: "10", value: "1" },
-  { label: "12", value: "2" },
-  { label: "14", value: "3" },
-  { label: "18", value: "4" },
-  { label: "24", value: "5" },
-  { label: "32", value: "6" },
-  { label: "48", value: "7" },
+  "10",
+  "12",
+  "14",
+  "18",
+  "22",
+  "24",
+  "32",
+  "48",
 ]
 
 const DOCUMENT_TEMPLATE_PREVIEW_VALUES: FichaFormValues = {
@@ -328,7 +329,7 @@ export default function FichasWorkspace() {
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial")
-  const [templateFontSize, setTemplateFontSize] = useState("3")
+  const [templateFontSize, setTemplateFontSize] = useState("14")
   const [templateTextColor, setTemplateTextColor] = useState("#111827")
   const [templateHighlightColor, setTemplateHighlightColor] = useState("#fff59d")
   const [selectedTemplateImage, setSelectedTemplateImage] = useState<HTMLImageElement | null>(null)
@@ -641,6 +642,10 @@ export default function FichasWorkspace() {
     const selection = editor.ownerDocument.defaultView?.getSelection() ?? null
     const range = captureEditorSelection(editor, selection)
     if (range) templateSelectionRef.current = range
+
+    const formatting = getEditorSelectionFormatting(editor, selection)
+    if (formatting?.fontFamily) setTemplateFontFamily(formatting.fontFamily)
+    if (formatting?.fontSize) setTemplateFontSize(formatting.fontSize)
   }
 
   const runTemplateCommand = (command: string, value?: string) => {
@@ -658,20 +663,24 @@ export default function FichasWorkspace() {
 
   const handleTemplateFontChange = (fontFamily: string) => {
     const editor = templateEditorRef.current
-    if (!editor || templateLoading) return
+    const normalizedFontFamily = fontFamily.trim()
+    if (!editor || templateLoading || !normalizedFontFamily) return
 
-    setTemplateFontFamily(fontFamily)
+    setTemplateFontFamily(normalizedFontFamily)
     editor.ownerDocument.execCommand("styleWithCSS", false, "true")
-    runTemplateCommand("fontName", fontFamily)
+    runTemplateCommand("fontName", normalizedFontFamily)
   }
 
   const handleTemplateFontSizeChange = (fontSize: string) => {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
 
-    setTemplateFontSize(fontSize)
-    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
-    runTemplateCommand("fontSize", fontSize)
+    const result = runEditorFontSizeCommand(editor, fontSize, templateSelectionRef.current)
+    if (!result.executed) return
+
+    templateSelectionRef.current = result.selection
+    setTemplateContent(result.content)
+    setTemplateFontSize(result.fontSize)
   }
 
   const handleTemplateTextColorChange = (color: string) => {
@@ -843,7 +852,7 @@ export default function FichasWorkspace() {
 
   const templatePreviewContent = useMemo(() => {
     if (!templateEditorKind || !templateContent.trim()) return ""
-    return fillDocumentTemplate(templateContent, templatePreviewValues)
+    return fillDocumentTemplate(templateContent, templatePreviewValues, templateEditorKind)
   }, [templateContent, templateEditorKind, templatePreviewValues])
 
   const handleLogin = async () => {
@@ -2240,32 +2249,52 @@ export default function FichasWorkspace() {
                 onPointerDown={captureTemplateSelection}
               >
                 <div className="min-w-[180px]">
-                  <Select value={templateFontFamily} onValueChange={handleTemplateFontChange} disabled={templateLoading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Fonte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    aria-label="Fonte atual"
+                    title="Fonte atual"
+                    list="document-template-font-options"
+                    value={templateFontFamily}
+                    onChange={(event) => setTemplateFontFamily(event.target.value)}
+                    onBlur={(event) => handleTemplateFontChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    disabled={templateLoading}
+                  />
+                  <datalist id="document-template-font-options">
+                    {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </datalist>
                 </div>
                 <div className="min-w-[96px]">
-                  <Select value={templateFontSize} onValueChange={handleTemplateFontSizeChange} disabled={templateLoading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tamanho" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    type="number"
+                    aria-label="Tamanho atual da fonte"
+                    title="Tamanho atual da fonte em pixels"
+                    list="document-template-font-size-options"
+                    min="6"
+                    max="96"
+                    step="1"
+                    value={templateFontSize}
+                    onChange={(event) => setTemplateFontSize(event.target.value)}
+                    onBlur={(event) => handleTemplateFontSizeChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    disabled={templateLoading}
+                  />
+                  <datalist id="document-template-font-size-options">
+                    {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
+                      <option key={option} value={option} />
+                    ))}
+                  </datalist>
                 </div>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />

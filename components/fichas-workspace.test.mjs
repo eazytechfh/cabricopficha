@@ -41,3 +41,13 @@ test("workspace keeps document headings inside editable content and hides the fi
   assert.match(pdf, /renderTitle \? \(/)
   assert.match(pdfClient, /renderTitle=\{false\}/)
 })
+
+test("workspace exposes editable font controls synchronized with the editor selection", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.match(source, /getEditorSelectionFormatting\(editor, selection\)/)
+  assert.match(source, /runEditorFontSizeCommand/)
+  assert.match(source, /list="document-template-font-options"/)
+  assert.match(source, /list="document-template-font-size-options"/)
+  assert.match(source, /type="number"/)
+})

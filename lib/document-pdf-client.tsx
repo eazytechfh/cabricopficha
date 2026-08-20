@@ -9,7 +9,7 @@ import { getDocumentTemplate } from "@/lib/document-template-client"
 
 export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, values: FichaFormValues) {
   const template = await getDocumentTemplate(kind)
-  const content = fillDocumentTemplate(template.content, values)
+  const content = fillDocumentTemplate(template.content, values, kind)
 
   const host = document.createElement("div")
   host.style.position = "fixed"

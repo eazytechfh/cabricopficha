@@ -210,13 +210,13 @@ function buildPlaceholderValues(values: FichaFormValues) {
   }
 }
 
-export function fillDocumentTemplate(template: string, values: FichaFormValues) {
+export function fillDocumentTemplate(template: string, values: FichaFormValues, kind: DocumentTemplateKind) {
   const placeholders = buildPlaceholderValues(values)
 
   const normalizedTemplate = normalizeDocumentTemplateContent(template)
   let templateWithClausePlaceholder = normalizedTemplate
 
-  if (placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")) {
+  if (kind === "contract" && placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")) {
     if (normalizedTemplate.includes("{{multasResumo}}")) {
       templateWithClausePlaceholder = normalizedTemplate.replace("{{multasResumo}}", "{{clausulaAdicional}}<br /><br />{{multasResumo}}")
     } else if (normalizedTemplate.includes("{{processosResumo}}")) {
