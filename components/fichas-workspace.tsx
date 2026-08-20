@@ -2471,7 +2471,7 @@ export default function FichasWorkspace() {
                         <DocumentTemplatePdf
                           title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
                           content={templatePreviewContent}
-                          renderTitle={templateEditorKind !== "contract"}
+                          renderTitle={false}
                         />
                       </div>
                     </div>

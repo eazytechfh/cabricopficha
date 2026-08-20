@@ -29,15 +29,15 @@ test("workspace exposes list commands in a rich-text surface", async () => {
   assert.match(styles, /list-style-type: decimal/)
 })
 
-test("workspace keeps the contract heading inside editable content and hides the fixed PDF title", async () => {
+test("workspace keeps document headings inside editable content and hides the fixed PDF title", async () => {
   const workspace = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
   const pdf = await readFile(new URL("./DocumentTemplatePdf.tsx", import.meta.url), "utf8")
   const pdfClient = await readFile(new URL("../lib/document-pdf-client.tsx", import.meta.url), "utf8")
 
   assert.match(workspace, /prepareDocumentTemplateContent\(kind, DEFAULT_DOCUMENT_TEMPLATES\[kind\]\)/)
   assert.match(workspace, /prepareDocumentTemplateContent\(kind, template\.content\)/)
-  assert.match(workspace, /renderTitle=\{templateEditorKind !== "contract"\}/)
+  assert.match(workspace, /renderTitle=\{false\}/)
   assert.match(pdf, /renderTitle\?: boolean/)
   assert.match(pdf, /renderTitle \? \(/)
-  assert.match(pdfClient, /renderTitle=\{kind !== "contract"\}/)
+  assert.match(pdfClient, /renderTitle=\{false\}/)
 })

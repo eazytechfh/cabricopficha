@@ -27,7 +27,7 @@ export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, valu
     <DocumentTemplatePdf
       title={DOCUMENT_TEMPLATE_LABELS[kind]}
       content={content}
-      renderTitle={kind !== "contract"}
+      renderTitle={false}
     />
   )
 
