@@ -89,7 +89,7 @@ export function runEditorFontSizeCommand(
     }
   }
 
-  const safeFontSize = Math.min(96, Math.max(6, parsedFontSize))
+  const safeFontSize = Math.min(48, Math.max(6, parsedFontSize))
   const normalizedFontSize = Number.isInteger(safeFontSize) ? String(safeFontSize) : String(Number(safeFontSize.toFixed(2)))
 
   restoreEditorSelection(editor, savedRange, selection)

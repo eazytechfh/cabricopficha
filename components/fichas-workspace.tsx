@@ -2277,7 +2277,7 @@ export default function FichasWorkspace() {
                     title="Tamanho atual da fonte em pixels"
                     list="document-template-font-size-options"
                     min="6"
-                    max="96"
+                    max="48"
                     step="1"
                     value={templateFontSize}
                     onChange={(event) => setTemplateFontSize(event.target.value)}
