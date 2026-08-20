@@ -1,6 +1,8 @@
 ﻿import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 
+export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
+
 export type DocumentTemplateKind = "contract" | "procuration"
 
 export type DocumentTemplateRecord = {

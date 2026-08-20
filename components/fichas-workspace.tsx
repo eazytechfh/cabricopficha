@@ -17,7 +17,7 @@ import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassw
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
-import { DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
+import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
 import { captureEditorSelection, runEditorCommand, syncEditableContent } from "@/lib/document-editor"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
@@ -333,6 +333,7 @@ export default function FichasWorkspace() {
   const [templateHighlightColor, setTemplateHighlightColor] = useState("#fff59d")
   const [selectedTemplateImage, setSelectedTemplateImage] = useState<HTMLImageElement | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
   const [templateVariablesOpen, setTemplateVariablesOpen] = useState(false)
   const [latestFichaLog, setLatestFichaLog] = useState<ActivityLogRecord | null>(null)
@@ -566,8 +567,9 @@ export default function FichasWorkspace() {
     const requestId = ++templateLoadRequestRef.current
     templateEditorKindRef.current = kind
     setTemplateEditorKind(kind)
-    setTemplateContent("")
+    setTemplateContent(prepareDocumentTemplateContent(kind, DEFAULT_DOCUMENT_TEMPLATES[kind]))
     setTemplateLoading(true)
+    setTemplateSaving(false)
     setTemplateMessage("")
     setTemplateVariablesOpen(false)
     templateSelectionRef.current = null
@@ -576,7 +578,7 @@ export default function FichasWorkspace() {
     try {
       const template = await getDocumentTemplate(kind)
       if (requestId === templateLoadRequestRef.current) {
-        setTemplateContent(normalizeDocumentTemplateContent(template.content))
+        setTemplateContent(prepareDocumentTemplateContent(kind, template.content))
       }
     } catch (error) {
       if (requestId === templateLoadRequestRef.current) {
@@ -597,6 +599,7 @@ export default function FichasWorkspace() {
     setTemplateEditorKind(null)
     setTemplateContent("")
     setTemplateLoading(false)
+    setTemplateSaving(false)
     setTemplateVariablesOpen(false)
   }
 
@@ -606,6 +609,7 @@ export default function FichasWorkspace() {
     const saveRequestId = templateLoadRequestRef.current
     const saveKind = templateEditorKind
     setTemplateLoading(true)
+    setTemplateSaving(true)
     setTemplateMessage("")
 
     try {
@@ -625,6 +629,7 @@ export default function FichasWorkspace() {
     } finally {
       if (saveRequestId === templateLoadRequestRef.current && templateEditorKindRef.current === saveKind) {
         setTemplateLoading(false)
+        setTemplateSaving(false)
       }
     }
   }
@@ -2299,17 +2304,19 @@ export default function FichasWorkspace() {
                 >
                   <ListOrdered className="size-4" />
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={() => runTemplateCommand("undo")}
-                  disabled={templateLoading}
-                  aria-label="Desfazer ultima alteracao"
-                  title="Desfazer"
-                >
-                  <Undo2 className="size-4" />
-                </Button>
+                {templateEditorKind === "procuration" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    onClick={() => runTemplateCommand("undo")}
+                    disabled={templateLoading}
+                    aria-label="Desfazer ultima alteracao"
+                    title="Desfazer"
+                  >
+                    <Undo2 className="size-4" />
+                  </Button>
+                ) : null}
                 <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
                   <Palette className="size-4" />
                   <span>Fonte</span>
@@ -2464,6 +2471,7 @@ export default function FichasWorkspace() {
                         <DocumentTemplatePdf
                           title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
                           content={templatePreviewContent}
+                          renderTitle={templateEditorKind !== "contract"}
                         />
                       </div>
                     </div>
@@ -2471,6 +2479,7 @@ export default function FichasWorkspace() {
                 </div>
               ) : null}
               <LogSummary log={latestTemplateLog} />
+              {templateLoading && !templateSaving ? <p className="text-sm text-muted-foreground">Carregando modelo...</p> : null}
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
             <DialogFooter>
@@ -2478,7 +2487,7 @@ export default function FichasWorkspace() {
                 Fechar
               </Button>
               <Button type="button" onClick={() => void handleSaveTemplate()} disabled={templateLoading}>
-                {templateLoading ? "Salvando..." : "Salvar modelo"}
+                {templateSaving ? "Salvando..." : "Salvar modelo"}
               </Button>
             </DialogFooter>
           </DialogContent>

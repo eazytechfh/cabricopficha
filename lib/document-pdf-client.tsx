@@ -23,7 +23,13 @@ export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, valu
   document.body.appendChild(host)
 
   const root = createRoot(host)
-  root.render(<DocumentTemplatePdf title={DOCUMENT_TEMPLATE_LABELS[kind]} content={content} />)
+  root.render(
+    <DocumentTemplatePdf
+      title={DOCUMENT_TEMPLATE_LABELS[kind]}
+      content={content}
+      renderTitle={kind !== "contract"}
+    />
+  )
 
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))

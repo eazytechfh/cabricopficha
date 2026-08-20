@@ -1,6 +1,7 @@
-import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, type DocumentTemplateKind, type DocumentTemplateRecord } from "@/lib/document-templates"
+import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, prepareDocumentTemplateContent, type DocumentTemplateKind, type DocumentTemplateRecord } from "@/lib/document-templates"
 import { createActivityLog } from "@/lib/server-activity-logs"
 import type { ConsultorSession } from "@/lib/ficha-types"
+import { hasMeaningfulDocumentTemplateContent } from "@/lib/document-template-validation"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -25,15 +26,19 @@ function defaultTemplate(kind: DocumentTemplateKind): DocumentTemplateRecord {
   return {
     key: kind,
     title: DOCUMENT_TEMPLATE_LABELS[kind],
-    content: DEFAULT_DOCUMENT_TEMPLATES[kind],
+    content: prepareDocumentTemplateContent(kind, DEFAULT_DOCUMENT_TEMPLATES[kind]),
   }
 }
 
 function mapTemplate(record: Record<string, unknown>, kind: DocumentTemplateKind): DocumentTemplateRecord {
+  const storedContent = typeof record.content === "string" ? record.content : ""
   return {
     key: kind,
     title: DOCUMENT_TEMPLATE_LABELS[kind],
-    content: String(record.content || DEFAULT_DOCUMENT_TEMPLATES[kind]),
+    content: prepareDocumentTemplateContent(
+      kind,
+      hasMeaningfulDocumentTemplateContent(storedContent) ? storedContent : DEFAULT_DOCUMENT_TEMPLATES[kind]
+    ),
   }
 }
 
