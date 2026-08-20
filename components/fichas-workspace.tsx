@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, EyeOff, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
@@ -2248,11 +2249,10 @@ export default function FichasWorkspace() {
                 className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2"
                 onPointerDown={captureTemplateSelection}
               >
-                <div className="min-w-[180px]">
+                <div className="flex min-w-[220px] rounded-md border border-input bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
                   <Input
                     aria-label="Fonte atual"
                     title="Fonte atual"
-                    list="document-template-font-options"
                     value={templateFontFamily}
                     onChange={(event) => setTemplateFontFamily(event.target.value)}
                     onBlur={(event) => handleTemplateFontChange(event.target.value)}
@@ -2263,19 +2263,38 @@ export default function FichasWorkspace() {
                       }
                     }}
                     disabled={templateLoading}
+                    className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
                   />
-                  <datalist id="document-template-font-options">
-                    {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </datalist>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Abrir lista de fontes"
+                        title="Abrir lista de fontes"
+                        disabled={templateLoading}
+                        className="shrink-0 rounded-l-none border-l border-input"
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[220px]">
+                      <DropdownMenuRadioGroup value={templateFontFamily} onValueChange={handleTemplateFontChange}>
+                        {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
+                          <DropdownMenuRadioItem key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                            {option.label}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="min-w-[96px]">
+                <div className="flex min-w-[118px] rounded-md border border-input bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
                   <Input
                     type="number"
                     aria-label="Tamanho atual da fonte"
                     title="Tamanho atual da fonte em pixels"
-                    list="document-template-font-size-options"
                     min="6"
                     max="48"
                     step="1"
@@ -2289,12 +2308,32 @@ export default function FichasWorkspace() {
                       }
                     }}
                     disabled={templateLoading}
+                    className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
                   />
-                  <datalist id="document-template-font-size-options">
-                    {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
-                      <option key={option} value={option} />
-                    ))}
-                  </datalist>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Abrir lista de tamanhos"
+                        title="Abrir lista de tamanhos"
+                        disabled={templateLoading}
+                        className="shrink-0 rounded-l-none border-l border-input"
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[118px]">
+                      <DropdownMenuRadioGroup value={templateFontSize} onValueChange={handleTemplateFontSizeChange}>
+                        {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
+                          <DropdownMenuRadioItem key={option} value={option}>
+                            {option} px
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />
