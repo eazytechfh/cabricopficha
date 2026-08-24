@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { createFicha, getFichasByFilters, saveFichaToExcel } from "@/lib/server-fichas"
-import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
+import { createFicha, findPotentialDuplicateFichas, getFichaById, getFichasByFilters, saveFichaToExcel } from "@/lib/server-fichas"
+import { mergeClientIdentity } from "@/lib/ficha-duplicates"
+import type { ConsultorSession, DuplicateResolution, FichaFormValues } from "@/lib/ficha-types"
 
 export async function GET(request: Request) {
   try {
@@ -22,12 +23,30 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { data, consultor } = (await request.json()) as {
+    const { data, consultor, resolution } = (await request.json()) as {
       data: FichaFormValues
       consultor: ConsultorSession
+      resolution?: DuplicateResolution
     }
 
-    const ficha = await createFicha(data, consultor)
+    const matches = await findPotentialDuplicateFichas(data)
+    if (resolution && resolution.action !== "create_new" && resolution.action !== "merge") {
+      return NextResponse.json({ error: "Resolução de duplicidade inválida." }, { status: 400 })
+    }
+    if (matches.length > 0 && !resolution) {
+      return NextResponse.json({ code: "POTENTIAL_DUPLICATE", matches, error: "Foi encontrado um possível cadastro duplicado." }, { status: 409 })
+    }
+
+    let createData = data
+    if (resolution?.action === "merge") {
+      const selectedMatch = matches.find((match) => match.id === resolution.matchedFichaId)
+      if (!selectedMatch) {
+        return NextResponse.json({ error: "O cadastro selecionado para unificação não corresponde mais aos dados informados." }, { status: 409 })
+      }
+      createData = mergeClientIdentity(data, await getFichaById(selectedMatch.id))
+    }
+
+    const ficha = await createFicha(createData, consultor)
 
     let excelSaved = true
     let excelError: string | undefined

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
+import { deleteFicha, deleteFichaFromExcel, getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha, normalizeFichaValues, toRecordValues } from "@/lib/ficha-utils"
 import { createActivityLog } from "@/lib/server-activity-logs"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
@@ -158,6 +158,46 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Erro ao atualizar ficha:", error)
     const message = error instanceof Error ? error.message : "Erro ao atualizar ficha."
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params
+    const { consultor } = (await request.json()) as { consultor: ConsultorSession }
+    const current = await getFichaById(id)
+
+    if (!canEditFicha(consultor.id, consultor.nivelAcesso, current)) {
+      return NextResponse.json({ error: "Você não tem permissão para excluir esta ficha." }, { status: 403 })
+    }
+
+    await deleteFicha(id)
+    let excelSaved = true
+    try {
+      await deleteFichaFromExcel(id)
+    } catch (error) {
+      excelSaved = false
+      console.error("Erro ao excluir ficha do Excel:", error)
+    }
+
+    try {
+      await createActivityLog({
+        entityType: "ficha",
+        entityId: id,
+        entityLabel: current.nomeCliente || `Ficha ${id}`,
+        action: "delete",
+        summary: "Excluiu uma ficha identificada como duplicada.",
+        actorId: consultor.id,
+        actorName: consultor.nome,
+      })
+    } catch (error) {
+      console.error("Ficha excluída, mas não foi possível registrar a atividade:", error)
+    }
+
+    return NextResponse.json({ ok: true, excelSaved })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao excluir ficha."
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

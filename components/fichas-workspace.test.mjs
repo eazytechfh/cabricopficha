@@ -56,3 +56,14 @@ test("workspace exposes editable font controls synchronized with the editor sele
   assert.match(source, /DropdownMenuRadioGroup value=\{templateFontSize\}/)
   assert.doesNotMatch(source, /<datalist/)
 })
+
+test("workspace resolves potential duplicate clients before definitive creation", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.match(source, /checkFichaDuplicates\(values\)/)
+  assert.match(source, /Cadastrar como novo/)
+  assert.match(source, /Unificar com este cadastro/)
+  assert.match(source, /Excluir duplicado/)
+  assert.match(source, /window\.confirm/)
+  assert.match(source, /DuplicateResolution/)
+})

@@ -2,12 +2,13 @@ import { mkdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import * as XLSX from "xlsx"
-import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
+import type { ConsultorSession, FichaDuplicateMatch, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
 import { buildAccentInsensitivePattern } from "@/lib/search-utils"
 import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { findDuplicateReasons } from "@/lib/ficha-duplicates"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -418,6 +419,75 @@ export async function getFichaById(id: string): Promise<FichaRecord> {
   return fromRow(row)
 }
 
+function safeFilterValue(value: string) {
+  return String(value || "").replace(/[(),*]/g, "").trim()
+}
+
+export async function findPotentialDuplicateFichas(data: FichaFormValues): Promise<FichaDuplicateMatch[]> {
+  ensureSupabaseConfig()
+
+  const filters: string[] = []
+  const cpf = normalizeCpfCnpj(data.cpfCnpj)
+  const cnh = safeFilterValue(data.cnh).replace(/\D/g, "")
+  const email = safeFilterValue(data.email).toLowerCase()
+  const name = safeFilterValue(stripIdentifierSuffix(data.nomeCliente))
+  const phone = (data.telefones.match(/\d/g) || []).join("").slice(-4)
+
+  if (cpf) filters.push(`cpf_normalizado.eq.${cpf}`, `cpf_cnpj.eq.${cpf}`, `cpf_cnpj.eq.${cpf}.0`)
+  if (cnh) filters.push(`cnh.eq.${cnh}`, `cnh.eq.${cnh}.0`)
+  if (email) filters.push(`email.ilike.${email}`)
+  if (name) filters.push(`nome_cliente.imatch.${buildAccentInsensitivePattern(name)}`)
+  if (phone.length === 4) filters.push(`telefones.ilike.*${phone}*`)
+
+  if (!filters.length) return []
+
+  const searchParams = new URLSearchParams({
+    select: "*",
+    or: `(${filters.join(",")})`,
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+    limit: "200",
+  })
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
+    headers: headers(),
+    cache: "no-store",
+  })
+  const payload = await response.json()
+
+  if (!response.ok) {
+    throw new Error(payload.message || payload.error || "Erro ao verificar cadastros semelhantes.")
+  }
+
+  return (payload as Array<Record<string, unknown>>)
+    .map(fromRow)
+    .map((candidate) => ({ candidate, reasons: findDuplicateReasons(data, candidate) }))
+    .filter(({ reasons }) => reasons.length > 0)
+    .map(({ candidate, reasons }) => ({
+      id: candidate.id,
+      nomeCliente: candidate.nomeCliente,
+      cpfCnpj: candidate.cpfCnpj,
+      telefones: candidate.telefones,
+      numeroEndereco: candidate.numeroEndereco,
+      email: candidate.email,
+      cnh: candidate.cnh,
+      dataContrato: candidate.dataContrato,
+      nomeConsultor: candidate.nomeConsultor,
+      reasons,
+    }))
+}
+
+export async function deleteFicha(id: string) {
+  ensureSupabaseConfig()
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: headers(),
+    cache: "no-store",
+  })
+  if (!response.ok) {
+    const payload = await response.json()
+    throw new Error(payload.message || payload.error || "Erro ao excluir ficha.")
+  }
+}
+
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
   const sequence = await getFichaSequenceByCpf(data.cpfCnpj)
   const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)
@@ -536,5 +606,11 @@ export async function updateFichaInExcel(ficha: FichaRecord) {
   }
 
   await writeWorkbookRows(nextRows)
+  return true
+}
+
+export async function deleteFichaFromExcel(id: string) {
+  const { rows } = await readWorkbookRows()
+  await writeWorkbookRows(rows.filter((row) => String(row.id ?? "") !== id))
   return true
 }

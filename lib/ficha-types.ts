@@ -117,6 +117,18 @@ export type FichaListItem = Pick<
   | "updatedByConsultorId"
 >
 
+export type FichaDuplicateMatch = Pick<
+  FichaRecord,
+  "id" | "nomeCliente" | "cpfCnpj" | "telefones" | "numeroEndereco" | "email" | "cnh" | "dataContrato" | "nomeConsultor"
+> & {
+  reasons: string[]
+}
+
+export type DuplicateResolution = {
+  action: "create_new" | "merge"
+  matchedFichaId?: string
+}
+
 export const emptyFichaValues: FichaFormValues = {
   dataContrato: "",
   prazoServico: "",

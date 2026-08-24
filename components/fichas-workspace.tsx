@@ -27,7 +27,7 @@ import { resolveCustomEditorHistory, type DocumentEditorHistoryEntry } from "@/l
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
-import { getFichaById, getFichas } from "@/lib/fichas-api"
+import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 import { shouldValidatePayments } from "@/lib/payment-validation-context"
@@ -36,6 +36,8 @@ import {
   type AccessCodeRecord,
   type ActivityLogRecord,
   type ConsultorSession,
+  type DuplicateResolution,
+  type FichaDuplicateMatch,
   type FichaFormValues,
   type FichaListItem,
   type FichaRecord,
@@ -307,6 +309,8 @@ export default function FichasWorkspace() {
   const [createMessage, setCreateMessage] = useState("")
   const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
   const [createReturnToConsulta, setCreateReturnToConsulta] = useState(false)
+  const [duplicateMatches, setDuplicateMatches] = useState<FichaDuplicateMatch[]>([])
+  const [duplicateActionId, setDuplicateActionId] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
   const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
@@ -1187,30 +1191,14 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleCreate = async () => {
+  const persistCreate = async (values: FichaFormValues, resolution?: DuplicateResolution) => {
     if (!consultor) return
-
-    if (!createValues.nomeCliente.trim() || !createValues.cpfCnpj.trim()) {
-      setCreateMessage("Nome Completo e CPF/CNPJ sao obrigatorios.")
-      return
-    }
-
-    const paymentError = validatePaymentEntries(createValues.valorTotal, parsePaymentEntries(createValues.pagamentos, createValues))
-    if (paymentError) {
-      setCreateMessage(paymentError)
-      return
-    }
-
     setCreateLoading(true)
     setCreateMessage("")
+    setDuplicateMatches([])
 
     try {
-      const values = {
-        ...createValues,
-        nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
-      }
-
-      const response = await saveFichaWithPdfAndWebhook(values, consultor)
+      const response = await saveFichaWithPdfAndWebhook(values, consultor, resolution)
       setCreateMessage(
         response.webhookSent
           ? "Ficha salva com sucesso."
@@ -1239,6 +1227,82 @@ export default function FichasWorkspace() {
       setCreateMessage(error instanceof Error ? error.message : "Erro ao salvar a ficha.")
     } finally {
       setCreateLoading(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!consultor) return
+
+    if (!createValues.nomeCliente.trim() || !createValues.cpfCnpj.trim()) {
+      setCreateMessage("Nome Completo e CPF/CNPJ sao obrigatorios.")
+      return
+    }
+
+    const paymentError = validatePaymentEntries(createValues.valorTotal, parsePaymentEntries(createValues.pagamentos, createValues))
+    if (paymentError) {
+      setCreateMessage(paymentError)
+      return
+    }
+
+    const values = {
+      ...createValues,
+      nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+    }
+
+    setCreateLoading(true)
+    setCreateMessage("")
+    try {
+      const { matches } = await checkFichaDuplicates(values)
+      if (matches.length > 0) {
+        setDuplicateMatches(matches)
+        return
+      }
+    } catch (error) {
+      setCreateMessage(error instanceof Error ? error.message : "Erro ao verificar cadastros semelhantes.")
+      return
+    } finally {
+      setCreateLoading(false)
+    }
+
+    await persistCreate(values)
+  }
+
+  const handleDuplicateResolution = async (resolution: DuplicateResolution) => {
+    if (!consultor || duplicateActionId) return
+    const values = {
+      ...createValues,
+      nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+    }
+    setDuplicateActionId(resolution.matchedFichaId || resolution.action)
+    try {
+      await persistCreate(values, resolution)
+    } finally {
+      setDuplicateActionId("")
+    }
+  }
+
+  const handleDeleteDuplicate = async (match: FichaDuplicateMatch) => {
+    if (!consultor || duplicateActionId) return
+    if (!window.confirm(`Excluir definitivamente a ficha de ${getClienteBaseName(match.nomeCliente)}? Esta ação não pode ser desfeita.`)) return
+
+    setDuplicateActionId(match.id)
+    try {
+      await deleteFicha(match.id, consultor)
+      const values = {
+        ...createValues,
+        nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+      }
+      const { matches } = await checkFichaDuplicates(values)
+      if (matches.length > 0) {
+        setDuplicateMatches(matches)
+        setCreateMessage("Ficha duplicada excluída. Ainda existem outras correspondências para revisar.")
+      } else {
+        await persistCreate(values)
+      }
+    } catch (error) {
+      setCreateMessage(error instanceof Error ? error.message : "Erro ao excluir a ficha duplicada.")
+    } finally {
+      setDuplicateActionId("")
     }
   }
 
@@ -2313,6 +2377,61 @@ export default function FichasWorkspace() {
             )}
           </TabsContent>
         </Tabs>
+        <Dialog open={duplicateMatches.length > 0} onOpenChange={(open) => !open && !duplicateActionId && setDuplicateMatches([])}>
+          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Possível cliente já cadastrado</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Revise as correspondências antes de criar a ficha. Unificar mantém o novo contrato e reutiliza os dados cadastrais do cliente escolhido.
+            </p>
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {duplicateMatches.map((match) => (
+                <div key={match.id} className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="grid gap-2 text-sm sm:grid-cols-2">
+                    <p><span className="font-semibold">Cliente:</span> {getClienteBaseName(match.nomeCliente)}</p>
+                    <p><span className="font-semibold">CPF/CNPJ:</span> {match.cpfCnpj || "-"}</p>
+                    <p><span className="font-semibold">Telefone:</span> {match.telefones || "-"}</p>
+                    <p><span className="font-semibold">E-mail:</span> {match.email || "-"}</p>
+                    <p><span className="font-semibold">Número:</span> {match.numeroEndereco || "-"}</p>
+                    <p><span className="font-semibold">Correspondências:</span> {match.reasons.join(", ")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => void handleDuplicateResolution({ action: "merge", matchedFichaId: match.id })}
+                      disabled={Boolean(duplicateActionId)}
+                    >
+                      Unificar com este cadastro
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => void handleDeleteDuplicate(match)}
+                      disabled={Boolean(duplicateActionId)}
+                    >
+                      <Trash2 className="size-4" />
+                      Excluir duplicado
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDuplicateMatches([])} disabled={Boolean(duplicateActionId)}>
+                Voltar e revisar
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleDuplicateResolution({ action: "create_new" })}
+                disabled={Boolean(duplicateActionId)}
+              >
+                Cadastrar como novo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog
           open={Boolean(templateEditorKind)}
           onOpenChange={(open) => {
