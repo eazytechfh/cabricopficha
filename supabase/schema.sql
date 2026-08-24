@@ -6,6 +6,8 @@ create table if not exists public.fichas_venda (
   terceiros text,
   telefones text,
   endereco text,
+  numero_endereco text,
+  complemento_endereco text,
   cep text,
   municipio text,
   uf text,
@@ -23,6 +25,7 @@ create table if not exists public.fichas_venda (
   sne text,
   forma_pagamento text,
   banco text,
+  pagamentos jsonb not null default '[]'::jsonb,
   valor_total numeric(12, 2),
   valor_entrada numeric(12, 2),
   valor_restante numeric(12, 2),
@@ -58,6 +61,9 @@ create index if not exists fichas_venda_cpf_normalizado_idx
 on public.fichas_venda (cpf_normalizado);
 
 alter table public.fichas_venda
+add column if not exists numero_endereco text,
+add column if not exists complemento_endereco text,
+add column if not exists pagamentos jsonb not null default '[]'::jsonb,
 add column if not exists placa_proprietario text,
 add column if not exists cpf_proprietario text,
 add column if not exists multas_processo text,

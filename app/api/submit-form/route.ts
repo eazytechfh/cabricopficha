@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { calculatePrazoServico } from '@/lib/prazo-servico'
+import { parsePaymentEntries, reconcilePaymentValues, validatePaymentEntries } from '@/lib/payment-details'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -19,13 +21,19 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json()
+    const payments = parsePaymentEntries(data.pagamentos, data)
+    const paymentError = validatePaymentEntries(String(data.valorTotal || ''), payments)
+    if (paymentError) return NextResponse.json({ error: paymentError }, { status: 400 })
+    const paymentTotals = reconcilePaymentValues(String(data.valorTotal || ''), payments)
     const payload: Record<string, unknown> = {
       data_contrato: data.dataContrato || null,
-      prazo_servico: data.prazoServico || null,
+      prazo_servico: calculatePrazoServico(data.prazoProcesso, data.prazoMulta) || null,
       nome_cliente: data.nomeCliente || null,
       terceiros: data.terceiros || null,
       telefones: data.telefones || null,
       endereco: data.endereco || null,
+      numero_endereco: data.numeroEndereco || null,
+      complemento_endereco: data.complementoEndereco || null,
       cep: data.cep || null,
       municipio: data.municipio || null,
       uf: data.uf || null,
@@ -40,11 +48,12 @@ export async function POST(request: Request) {
       nome_consultor: data.nomeConsultor || null,
       origem: data.origem || null,
       sne: data.sne || null,
-      forma_pagamento: data.formaPagamento || null,
-      banco: data.banco || null,
+      forma_pagamento: payments.map((payment) => payment.formaPagamento).filter(Boolean).join('\n') || null,
+      banco: payments.map((payment) => payment.banco).filter(Boolean).join('\n') || null,
+      pagamentos: payments,
       valor_total: data.valorTotal || null,
-      valor_entrada: data.valorEntrada || null,
-      valor_restante: data.valorRestante || null,
+      valor_entrada: paymentTotals.paid || null,
+      valor_restante: paymentTotals.remaining,
       clausula_adicional: data.clausulaAdicional || null,
       instancia_processo: data.instanciaProcesso || null,
       tipo_processo: data.tipoProcesso || null,

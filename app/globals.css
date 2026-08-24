@@ -136,4 +136,21 @@
   .document-rich-text :where(ul, ol) {
     padding-inline-start: 1.5rem;
   }
+
+  .document-rich-text [data-list-spacer="true"] {
+    min-height: 1.5em;
+  }
+
+  .document-template-editor [data-document-top-space="true"] {
+    background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--muted) 45%, transparent),
+      color-mix(in srgb, var(--muted) 45%, transparent) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    border-bottom: 1px dashed var(--border);
+    cursor: text;
+    min-height: 32px;
+  }
 }

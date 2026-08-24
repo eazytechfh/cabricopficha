@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,11 +21,14 @@ import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
 import { captureEditorSelection, getEditorSelectionFormatting, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
+import { convertEmptyListItemToSpacer, normalizeDocumentListSpacing } from "@/lib/document-list-spacing"
+import type { DocumentEditorFormatCommand } from "@/lib/document-editor-formats"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { getFichaById, getFichas } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
+import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 import {
   emptyFichaValues,
   type AccessCodeRecord,
@@ -159,67 +162,81 @@ type ConsultaClienteGroup = {
 
 function ClienteValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="min-h-10 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-xs">
-        {fallback(value)}
-      </div>
+    <div className="min-w-0 border-b border-slate-200 px-3 py-2.5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-5 text-slate-900">{fallback(value)}</p>
     </div>
   )
 }
 
 function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues; onEdit: () => void; canEdit: boolean }) {
   return (
-    <div className="relative rounded-lg border border-border border-l-4 border-l-primary bg-background p-4 pb-16 shadow-sm">
-      <div className="mb-6 flex items-center gap-2">
-        <UserPlus className="size-5 text-primary" />
-        <h3 className="text-lg font-semibold text-primary">Dados do Cliente</h3>
+    <div className="relative overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
+      <div className="grid grid-cols-3 items-center border-b border-slate-300 px-4 py-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Data do contrato</p>
+          <p className="mt-1 text-base font-bold text-[#214674]">{formatDisplayDate(values.dataContrato)}</p>
+        </div>
+        <div className="flex justify-center">
+          <div className="rounded-lg bg-[#214674] px-4 py-2 shadow-sm">
+            <img src="/logo.png" alt="CABRICOP" className="h-10 w-auto object-contain brightness-0 invert" />
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Prazo</p>
+          <p className="mt-1 text-base font-bold text-[#214674]">{formatDisplayDate(values.prazoServico)}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="relative flex items-center justify-center bg-[#214674] px-4 py-2 text-white">
+        <UserPlus className="absolute left-4 size-4" />
+        <h3 className="text-sm font-bold uppercase tracking-wide">Dados do Cliente</h3>
+        {canEdit ? (
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="absolute right-2 h-7 text-white hover:bg-white/15 hover:text-white">
+            <Pencil className="size-3.5" />
+            Editar
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="Nome Completo" value={getClienteBaseName(values.nomeCliente) || values.nomeCliente} />
         <ClienteValue label="Terceiros" value={values.terceiros} />
         <ClienteValue label="Telefone(s)" value={values.telefones} />
         <ClienteValue label="E-mail" value={values.email} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[130px_1fr_130px_130px_190px_90px]">
+      <div className="grid grid-cols-1 md:grid-cols-[130px_1fr_110px_150px_180px_80px]">
         <ClienteValue label="CEP" value={values.cep} />
         <ClienteValue label="Endereco" value={values.endereco} />
-        <ClienteValue label="Numero" value="" />
-        <ClienteValue label="Complemento" value="" />
+        <ClienteValue label="Numero" value={values.numeroEndereco} />
+        <ClienteValue label="Complemento" value={values.complementoEndereco} />
         <ClienteValue label="Municipio" value={values.municipio} />
         <ClienteValue label="UF" value={values.uf} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="CPF/CNPJ" value={values.cpfCnpj} />
         <ClienteValue label="CNH" value={values.cnh} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-3">
         <ClienteValue label="Data de Nascimento" value={formatDisplayDate(values.dataNascimento)} />
         <ClienteValue label="Data da 1a CNH" value={formatDisplayDate(values.dataPrimeiraCnh)} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-4">
         <ClienteValue label="Nacionalidade" value={values.nacionalidade} />
         <ClienteValue label="Estado Civil" value={values.estadoCivil} />
         <ClienteValue label="Profissão" value={values.profissao} />
         <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="Origem" value={values.origem} />
         <ClienteValue label="SNE" value={values.sne} />
       </div>
 
-      {canEdit ? (
-        <Button type="button" variant="outline" size="sm" onClick={onEdit} className="absolute bottom-4 right-4">
-          <Plus className="size-4" />
-          Editar
-        </Button>
-      ) : null}
     </div>
   )
 }
@@ -569,7 +586,7 @@ export default function FichasWorkspace() {
     const requestId = ++templateLoadRequestRef.current
     templateEditorKindRef.current = kind
     setTemplateEditorKind(kind)
-    setTemplateContent(prepareDocumentTemplateContent(kind, DEFAULT_DOCUMENT_TEMPLATES[kind]))
+    setTemplateContent(prepareDocumentTemplateContent(kind, normalizeDocumentListSpacing(DEFAULT_DOCUMENT_TEMPLATES[kind])))
     setTemplateLoading(true)
     setTemplateSaving(false)
     setTemplateMessage("")
@@ -580,7 +597,7 @@ export default function FichasWorkspace() {
     try {
       const template = await getDocumentTemplate(kind)
       if (requestId === templateLoadRequestRef.current) {
-        setTemplateContent(prepareDocumentTemplateContent(kind, template.content))
+        setTemplateContent(prepareDocumentTemplateContent(kind, normalizeDocumentListSpacing(template.content)))
       }
     } catch (error) {
       if (requestId === templateLoadRequestRef.current) {
@@ -615,7 +632,7 @@ export default function FichasWorkspace() {
     setTemplateMessage("")
 
     try {
-      const template = await updateDocumentTemplate(saveKind, templateContent, consultor)
+      const template = await updateDocumentTemplate(saveKind, normalizeDocumentListSpacing(templateContent), consultor)
       if (saveRequestId !== templateLoadRequestRef.current || templateEditorKindRef.current !== saveKind) return
 
       setTemplateContent(normalizeDocumentTemplateContent(template.content))
@@ -658,7 +675,7 @@ export default function FichasWorkspace() {
     setTemplateContent(result.content)
   }
 
-  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter" | "insertUnorderedList" | "insertOrderedList") => {
+  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | DocumentEditorFormatCommand) => {
     runTemplateCommand(command)
   }
 
@@ -1137,6 +1154,12 @@ export default function FichasWorkspace() {
       return
     }
 
+    const paymentError = validatePaymentEntries(createValues.valorTotal, parsePaymentEntries(createValues.pagamentos, createValues))
+    if (paymentError) {
+      setCreateMessage(paymentError)
+      return
+    }
+
     setCreateLoading(true)
     setCreateMessage("")
 
@@ -1333,6 +1356,8 @@ export default function FichasWorkspace() {
       terceiros: fichaBase.terceiros,
       telefones: fichaBase.telefones,
       endereco: fichaBase.endereco,
+      numeroEndereco: fichaBase.numeroEndereco,
+      complementoEndereco: fichaBase.complementoEndereco,
       cep: fichaBase.cep,
       municipio: fichaBase.municipio,
       uf: fichaBase.uf,
@@ -1369,6 +1394,12 @@ export default function FichasWorkspace() {
 
   const handleUpdate = async () => {
     if (!consultor || !selectedFicha) return
+
+    const paymentError = validatePaymentEntries(editValues.valorTotal, parsePaymentEntries(editValues.pagamentos, editValues))
+    if (paymentError) {
+      setEditMessage(paymentError)
+      return
+    }
 
     setEditLoading(true)
     setEditMessage("")
@@ -2119,7 +2150,7 @@ export default function FichasWorkspace() {
 
             {(viewMode === "picker" || (selectedFicha && viewMode === "view")) && (
               <Card className="shadow-md">
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5 p-4 md:p-6">
                   {selectedFicha ? (
                     <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
                   ) : null}
@@ -2157,7 +2188,7 @@ export default function FichasWorkspace() {
                     ) : null}
                   </div>
 
-                  <div className="space-y-4 rounded-lg border border-border p-4">
+                  <div className="space-y-4">
                     {viewMode === "view" && selectedFicha ? (
                       <FichaReadView
                         values={editValues}
@@ -2350,6 +2381,12 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
                   <AlignCenter className="size-4" />
                 </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyRight")} disabled={templateLoading} aria-label="Alinhar à direita" title="Alinhar à direita">
+                  <AlignRight className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyFull")} disabled={templateLoading} aria-label="Justificar" title="Justificar">
+                  <AlignJustify className="size-4" />
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -2372,19 +2409,21 @@ export default function FichasWorkspace() {
                 >
                   <ListOrdered className="size-4" />
                 </Button>
-                {templateEditorKind === "procuration" ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={() => runTemplateCommand("undo")}
-                    disabled={templateLoading}
-                    aria-label="Desfazer ultima alteracao"
-                    title="Desfazer"
-                  >
-                    <Undo2 className="size-4" />
-                  </Button>
-                ) : null}
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("outdent")} disabled={templateLoading} aria-label="Diminuir recuo" title="Diminuir recuo">
+                  <IndentDecrease className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("indent")} disabled={templateLoading} aria-label="Aumentar recuo" title="Aumentar recuo">
+                  <IndentIncrease className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("undo")} disabled={templateLoading} aria-label="Desfazer última alteração" title="Desfazer">
+                  <Undo2 className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("redo")} disabled={templateLoading} aria-label="Refazer última alteração" title="Refazer">
+                  <Redo2 className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("removeFormat")} disabled={templateLoading} aria-label="Limpar formatação" title="Limpar formatação">
+                  <RemoveFormatting className="size-4" />
+                </Button>
                 <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
                   <Palette className="size-4" />
                   <span>Fonte</span>
@@ -2511,6 +2550,14 @@ export default function FichasWorkspace() {
                 }}
                 onFocus={captureTemplateSelection}
                 onKeyUp={captureTemplateSelection}
+                onKeyDown={(event) => {
+                  if (event.key !== " ") return
+                  if (!convertEmptyListItemToSpacer(event.currentTarget)) return
+
+                  event.preventDefault()
+                  setTemplateContent(event.currentTarget.innerHTML)
+                  captureTemplateSelection()
+                }}
                 onMouseUp={captureTemplateSelection}
                 onClick={(event) => {
                   const target = event.target
@@ -2521,7 +2568,7 @@ export default function FichasWorkspace() {
                   }
                 }}
                 aria-label="Conteudo do modelo de documento"
-                className="document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-sans text-sm leading-6 outline-none"
+                className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 font-sans text-sm leading-6 outline-none"
               />
               {templateEditorKind && templatePreviewContent ? (
                 <div className="space-y-2">

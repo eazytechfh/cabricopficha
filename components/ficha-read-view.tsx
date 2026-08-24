@@ -1,8 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { parsePaymentEntries } from "@/lib/payment-details"
 import type { ReactNode } from "react"
 
 type FichaReadViewProps = {
@@ -156,10 +156,23 @@ function getMultaLines(block: {
 
 function ValueCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-background px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-foreground">{fallback(value)}</p>
+    <div className="min-w-0 border-b border-slate-200 px-3 py-3 last:border-b-0 md:border-b-0">
+      <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-5 text-slate-900">{fallback(value)}</p>
     </div>
+  )
+}
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h3 className="bg-[#214674] px-4 py-2 text-center text-sm font-bold uppercase tracking-wide text-white">{children}</h3>
+}
+
+function ReadSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden border-x border-b border-slate-300 bg-white first:border-t">
+      <SectionTitle>{title}</SectionTitle>
+      {children}
+    </section>
   )
 }
 
@@ -169,6 +182,7 @@ function formatMoneyValue(value: string) {
 }
 
 export function FichaReadView({ values, actions, details }: FichaReadViewProps) {
+  const payments = parsePaymentEntries(values.pagamentos, values)
   const processoLines = getProcessoLines(values).filter((line) =>
     hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
   )
@@ -186,36 +200,42 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
   )
 
   return (
-    <div className="space-y-6">
-      {actions ? <div className="flex flex-wrap gap-4">{actions}</div> : null}
+    <div className="space-y-4">
+      {actions ? <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">{actions}</div> : null}
       {details}
 
-      <Card className="border-l-4 border-l-secondary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Dados do Pagamento</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <ValueCell label="Forma de Pagamento" value={formatPaymentMethod(values.formaPagamento)} />
-          <ValueCell label="Banco" value={formatBank(values.banco)} />
+      <div className="overflow-hidden rounded-lg border border-slate-300 shadow-sm">
+      <ReadSection title="Dados do Pagamento">
+        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
           <ValueCell label="Valor Total" value={formatMoneyValue(values.valorTotal)} />
-          <ValueCell label="Valor de Entrada" value={formatMoneyValue(values.valorEntrada)} />
+          <ValueCell label="Total Pago" value={formatMoneyValue(values.valorEntrada)} />
           <ValueCell label="Valor Restante" value={formatMoneyValue(values.valorRestante)} />
+        </div>
+        {payments.length > 0 ? (
+          <div className="divide-y divide-slate-200 border-t border-slate-300">
+            {payments.map((payment, index) => (
+              <div key={payment.id} className="grid grid-cols-1 md:grid-cols-3 md:divide-x md:divide-slate-200">
+                <ValueCell label={`Pagamento ${index + 1}`} value={formatPaymentMethod(payment.formaPagamento)} />
+                <ValueCell label="Banco / Operadora" value={formatBank(payment.banco)} />
+                <ValueCell label="Valor" value={formatMoneyValue(payment.valor)} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div>
           {parseCurrency(values.valorRestante) > 0 && hasText(values.observacaoValorRestante) ? (
-            <div className="md:col-span-2 xl:col-span-5">
+            <div className="border-t border-slate-200">
               <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
             </div>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </ReadSection>
 
       {processoLines.length > 0 ? (
-        <Card className="border-l-4 border-l-primary shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-primary">Processos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <ReadSection title="Processos">
+          <div className="divide-y divide-slate-300">
             {processoLines.map((line, index) => (
-              <div key={`processo-read-${index}`} className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-slate-50/60 p-4 xl:grid-cols-5">
+              <div key={`processo-read-${index}`} className="grid grid-cols-1 bg-white md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-slate-200">
                 <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
                 <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
                 <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
@@ -223,24 +243,21 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </ReadSection>
       ) : null}
 
       {multaBlocks.length > 0 ? (
-        <Card className="border-l-4 border-l-secondary shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-primary">Multas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <ReadSection title="Multas">
+          <div className="divide-y divide-slate-300">
             {multaBlocks.map((block, index) => {
               const multaLines = getMultaLines(block).filter((line) =>
                 hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
               )
 
               return (
-                <div key={`multa-read-${index}`} className="space-y-3 rounded-xl border border-border bg-slate-50/60 p-4">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div key={`multa-read-${index}`} className="bg-white">
+                  <div className="grid grid-cols-1 bg-slate-50 md:grid-cols-2 md:divide-x md:divide-slate-200">
                     <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
                     <ValueCell label="RENAVAM" value={block.renavam} />
                     {block.placaProprietario !== "sim" && hasText(block.cpfProprietario) ? (
@@ -249,7 +266,7 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                   </div>
 
                   {multaLines.map((line, lineIndex) => (
-                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-background p-3 xl:grid-cols-5">
+                    <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 border-t border-slate-200 xl:grid-cols-5 xl:divide-x xl:divide-slate-200">
                       <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
                       <ValueCell label="Detran" value={line.autoDetran} />
                       <ValueCell label="Renainf" value={line.autoRenainf} />
@@ -260,31 +277,18 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </ReadSection>
       ) : null}
 
-      <Card className="border-l-4 border-l-muted shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Observacoes Adicionais</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="whitespace-pre-wrap text-sm font-medium text-foreground">{fallback(values.observacoes)}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <ReadSection title="Observações Adicionais">
+        <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{fallback(values.observacoes)}</p>
+      </ReadSection>
 
-      <Card className="border-l-4 border-l-primary shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-primary">Clausula Adicional</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border border-border bg-background px-4 py-3">
-            <p className="whitespace-pre-wrap text-sm font-medium text-foreground">{fallback(values.clausulaAdicional)}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <ReadSection title="Cláusula Adicional">
+        <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{fallback(values.clausulaAdicional)}</p>
+      </ReadSection>
+      </div>
     </div>
   )
 }

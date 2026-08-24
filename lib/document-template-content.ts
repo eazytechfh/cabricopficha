@@ -9,6 +9,21 @@ function buildEditableDocumentTitle(title: string) {
   return `<h1 data-document-title="true" style="margin: 0 0 24px; text-align: center; font-size: 22px; font-weight: 800; text-transform: uppercase;">${title}</h1>`
 }
 
+function buildEditableTopSpace() {
+  return '<div data-document-top-space="true" style="min-height: 32px;"><br></div>'
+}
+
+function buildEditableLogo() {
+  return '<div data-document-logo="true" style="display: flex; justify-content: center; margin-bottom: 20px;"><img src="/logo.png" alt="CABRICOP" style="max-width: 220px; width: 100%; height: auto; object-fit: contain;"></div>'
+}
+
+function ensureEditablePageHeader(content: string) {
+  if (/data-document-top-space=["']true["']/i.test(content)) return content
+
+  const logo = /<img\b/i.test(content) ? "" : buildEditableLogo()
+  return `${buildEditableTopSpace()}${logo}${content}`
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -34,20 +49,20 @@ export function prepareDocumentTemplateContent(kind: EditableDocumentTemplateKin
   const editableTitle = buildEditableDocumentTitle(title)
 
   if (/data-document-title=["']true["']/i.test(content)) {
-    return content
+    return ensureEditablePageHeader(content)
   }
 
   const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   const headingPattern = new RegExp(`^\\s*<h1\\b[^>]*>\\s*${escapedTitle}\\s*<\\/h1>`, "i")
 
   if (headingPattern.test(content)) {
-    return content.replace(/^\s*<h1\b/i, '<h1 data-document-title="true"')
+    return ensureEditablePageHeader(content.replace(/^\s*<h1\b/i, '<h1 data-document-title="true"'))
   }
 
   const plainTitlePattern = new RegExp(`^\\s*${escapedTitle}(?:<br\\s*\\/?>\\s*)+`, "i")
   if (plainTitlePattern.test(content)) {
-    return content.replace(plainTitlePattern, editableTitle)
+    return ensureEditablePageHeader(content.replace(plainTitlePattern, editableTitle))
   }
 
-  return `${editableTitle}${content}`
+  return ensureEditablePageHeader(`${editableTitle}${content}`)
 }

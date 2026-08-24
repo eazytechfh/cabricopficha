@@ -5,6 +5,9 @@ import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
 import { buildAccentInsensitivePattern } from "@/lib/search-utils"
+import { readAddressFields } from "@/lib/address-fields"
+import { calculatePrazoServico } from "@/lib/prazo-servico"
+import { parsePaymentEntries, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -86,6 +89,9 @@ async function getFichaSequenceByCpf(cpf: string) {
 function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "create" | "update") {
   const now = new Date().toISOString()
   const normalizedData = normalizeFichaValues(data)
+  const payments = parsePaymentEntries(normalizedData.pagamentos)
+  const paymentError = validatePaymentEntries(normalizedData.valorTotal, payments)
+  if (paymentError) throw new Error(paymentError)
 
   return {
     data_contrato: toDatabaseDate(normalizedData.dataContrato),
@@ -94,6 +100,8 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     terceiros: normalizedData.terceiros || null,
     telefones: normalizedData.telefones || null,
     endereco: normalizedData.endereco || null,
+    numero_endereco: normalizedData.numeroEndereco || null,
+    complemento_endereco: normalizedData.complementoEndereco || null,
     cep: normalizedData.cep || null,
     municipio: normalizedData.municipio || null,
     uf: normalizedData.uf || null,
@@ -111,6 +119,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     sne: normalizedData.sne || null,
     forma_pagamento: normalizedData.formaPagamento || null,
     banco: normalizedData.banco || null,
+    pagamentos: payments,
     valor_total: normalizedData.valorTotal || null,
     valor_entrada: normalizedData.valorEntrada || null,
     valor_restante: normalizedData.valorRestante || null,
@@ -203,14 +212,25 @@ async function sendFichaMutation(url: string, method: "POST" | "PATCH", payload:
 }
 
 function fromRow(row: Record<string, unknown>): FichaRecord {
+  const address = readAddressFields(row)
+  const prazoProcesso = String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo)
+  const prazoMulta = fromDatabaseDate(row.prazo_multa)
+  const pagamentos = parsePaymentEntries(row.pagamentos, {
+    formaPagamento: String(row.forma_pagamento ?? ""),
+    banco: String(row.banco ?? ""),
+    valorEntrada: String(row.valor_entrada ?? ""),
+  })
+
   return {
     id: String(row.id ?? ""),
     dataContrato: String(row.data_contrato ?? ""),
-    prazoServico: String(row.prazo_servico ?? ""),
+    prazoServico: calculatePrazoServico(prazoProcesso, prazoMulta),
     nomeCliente: String(row.nome_cliente ?? ""),
     terceiros: String(row.terceiros ?? ""),
     telefones: String(row.telefones ?? ""),
-    endereco: String(row.endereco ?? ""),
+    endereco: address.endereco,
+    numeroEndereco: address.numeroEndereco,
+    complementoEndereco: address.complementoEndereco,
     cep: String(row.cep ?? ""),
     municipio: String(row.municipio ?? ""),
     uf: String(row.uf ?? ""),
@@ -228,6 +248,8 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     sne: String(row.sne ?? ""),
     formaPagamento: String(row.forma_pagamento ?? ""),
     banco: String(row.banco ?? ""),
+    bancoOutro: "",
+    pagamentos: serializePaymentEntries(pagamentos),
     valorTotal: String(row.valor_total ?? ""),
     valorEntrada: String(row.valor_entrada ?? ""),
     valorRestante: String(row.valor_restante ?? ""),
@@ -236,7 +258,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     instanciaProcesso: String(row.instancia_processo ?? ""),
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
-    prazoProcesso: String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo),
+    prazoProcesso,
     vistoJuridico: String(row.multas_processo ?? row.visto_juridico ?? ""),
     assinaturaVistoJuridico: String(row.assinatura_visto_juridico ?? ""),
     instanciaMulta: String(row.instancia_multa ?? ""),
@@ -247,7 +269,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     placaProprietario: String(row.placa_proprietario ?? ""),
     cpfProprietario: String(row.cpf_proprietario ?? ""),
     renavam: String(row.renavam ?? ""),
-    prazoMulta: fromDatabaseDate(row.prazo_multa),
+    prazoMulta,
     vistoJuridicoMulta: String(row.processo_vinculado_multa ?? row.visto_juridico_multa ?? ""),
     observacoes: String(row.observacoes ?? ""),
     createdAt: String(row.created_at ?? ""),
@@ -455,6 +477,8 @@ function fichaToExcelRow(ficha: FichaRecord) {
     telefone: ficha.telefones,
     email: ficha.email,
     endereco: ficha.endereco,
+    numeroEndereco: ficha.numeroEndereco,
+    complementoEndereco: ficha.complementoEndereco,
     nacionalidade: ficha.nacionalidade,
     estadoCivil: ficha.estadoCivil,
     profissao: ficha.profissao,
@@ -466,6 +490,7 @@ function fichaToExcelRow(ficha: FichaRecord) {
     updatedByConsultorId: ficha.updatedByConsultorId,
     formaPagamento: ficha.formaPagamento,
     banco: ficha.banco,
+    pagamentos: ficha.pagamentos,
     valorTotal: ficha.valorTotal,
     valorEntrada: ficha.valorEntrada,
     valorRestante: ficha.valorRestante,

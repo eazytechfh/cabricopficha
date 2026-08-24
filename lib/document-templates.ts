@@ -1,5 +1,6 @@
 ﻿import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
 
@@ -157,11 +158,16 @@ function buildMultasResumo(values: FichaFormValues) {
 }
 
 function buildPlaceholderValues(values: FichaFormValues) {
+  const payments = parsePaymentEntries(values.pagamentos, values)
+  const paymentSummary = payments.map((payment) => {
+    const bank = payment.banco ? ` (${payment.banco.toLocaleUpperCase("pt-BR")})` : ""
+    return `${payment.formaPagamento.toLocaleUpperCase("pt-BR")}${bank}: ${formatCurrency(parsePaymentAmount(payment.valor))}`
+  }).join("; ")
   const nomeCliente = (values.nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
   const placas = getMultaLines(values)
     .map((line) => line.placa.trim().toUpperCase())
     .filter(Boolean)
-  const enderecoCompleto = [values.endereco, values.municipio, values.uf]
+  const enderecoCompleto = [values.endereco, values.numeroEndereco, values.complementoEndereco, values.municipio, values.uf]
     .map((part) => (part || "").trim())
     .filter(Boolean)
     .join(" - ")
@@ -200,7 +206,7 @@ function buildPlaceholderValues(values: FichaFormValues) {
     valorRestante: values.valorRestante ? formatCurrency(parseCurrency(values.valorRestante)) : "-",
     observacaoValorRestante: values.observacaoValorRestante || "-",
     clausulaAdicional: values.clausulaAdicional?.trim() ? `Cláusula Adicional\n${values.clausulaAdicional.trim()}` : "",
-    formaPagamento: values.formaPagamento || "-",
+    formaPagamento: paymentSummary || values.formaPagamento || "-",
     banco: values.banco || "-",
     processosResumo: buildProcessosResumo(values),
     multasResumo: buildMultasResumo(values),

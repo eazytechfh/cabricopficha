@@ -1,4 +1,6 @@
 import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
+import { calculatePrazoServico } from "@/lib/prazo-servico"
+import { formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries } from "@/lib/payment-details"
 
 const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
 export const MULTI_ENTRY_SEPARATOR = "||__MULTI_ENTRY__||"
@@ -100,12 +102,25 @@ function normalizeInstanciaSelections(value: string) {
 }
 
 export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
-  const banco = values.banco === "outros" ? values.bancoOutro.trim() : values.banco
+  const legacyBanco = values.banco === "outros" ? values.bancoOutro.trim() : values.banco
+  const pagamentos = parsePaymentEntries(values.pagamentos, {
+    formaPagamento: values.formaPagamento,
+    banco: legacyBanco,
+    valorEntrada: values.valorEntrada,
+  })
+  const paymentTotals = reconcilePaymentValues(values.valorTotal, pagamentos)
+  const formaPagamento = pagamentos.map((payment) => payment.formaPagamento).filter(Boolean).join("\n")
+  const banco = pagamentos.map((payment) => payment.banco).filter(Boolean).join("\n")
 
   return {
     ...values,
+    prazoServico: calculatePrazoServico(values.prazoProcesso, values.prazoMulta),
+    formaPagamento,
     banco,
-    bancoOutro: values.banco === "outros" ? values.bancoOutro : "",
+    bancoOutro: "",
+    pagamentos: serializePaymentEntries(pagamentos),
+    valorEntrada: pagamentos.length ? formatPaymentAmount(paymentTotals.paid) : "",
+    valorRestante: paymentTotals.total > 0 ? formatPaymentAmount(paymentTotals.remaining) : "",
     instanciaProcesso: normalizeInstanciaSelections(values.instanciaProcesso),
     instanciaMulta: values.instanciaMulta
       .split(MULTI_ENTRY_SEPARATOR)
@@ -136,6 +151,11 @@ export function toRecordValues(record: FichaRecord): FichaFormValues {
 
   return {
     ...record,
+    pagamentos: serializePaymentEntries(parsePaymentEntries(record.pagamentos, {
+      formaPagamento: record.formaPagamento,
+      banco: record.banco,
+      valorEntrada: record.valorEntrada,
+    })),
     instanciaProcesso: normalizeInstanciaSelections(record.instanciaProcesso),
     instanciaMulta: record.instanciaMulta
       .split(MULTI_ENTRY_SEPARATOR)
