@@ -102,9 +102,18 @@ export function runEditorAlignmentCommand(
     block.style.textAlign = alignment
   })
 
+  if (blocks.length === 0 && range && !range.collapsed) {
+    const wrapper = editor.ownerDocument.createElement("div")
+    wrapper.style.textAlign = alignment
+    const selectedContent = range.extractContents()
+    wrapper.appendChild(selectedContent)
+    range.insertNode(wrapper)
+    range.selectNodeContents(wrapper)
+  }
+
   return {
     content: editor.innerHTML,
-    executed: blocks.length > 0,
+    executed: blocks.length > 0 || Boolean(range && !range.collapsed),
     selection: captureEditorSelection(editor, selection),
   }
 }
