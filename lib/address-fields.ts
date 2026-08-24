@@ -4,6 +4,10 @@ export type AddressFields = {
   complementoEndereco: string
 }
 
+export function updateAddressFields(current: AddressFields, field: keyof AddressFields, value: string): AddressFields {
+  return { ...current, [field]: value }
+}
+
 export function splitLegacyAddress(endereco: string): AddressFields {
   const value = String(endereco || "")
   const numeroMatch = value.match(/,\s*N[uú]mero\s+([^,]+)(?=,\s*Complemento\s+|$)/i)

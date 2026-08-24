@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import { validarCPF } from "@/lib/cpf-utils"
+import { updateAddressFields } from "@/lib/address-fields"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
@@ -357,17 +358,8 @@ export function FichaForm({
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
   const [cepLookupLoading, setCepLookupLoading] = useState(false)
-  const [enderecoRua, setEnderecoRua] = useState(values.endereco)
-  const [enderecoNumero, setEnderecoNumero] = useState(values.numeroEndereco)
-  const [enderecoComplemento, setEnderecoComplemento] = useState(values.complementoEndereco)
   const [cnhNumero, setCnhNumero] = useState("")
   const [telefoneInput, setTelefoneInput] = useState("")
-
-  useEffect(() => {
-    setEnderecoRua(values.endereco || "")
-    setEnderecoNumero(values.numeroEndereco || "")
-    setEnderecoComplemento(values.complementoEndereco || "")
-  }, [values.endereco, values.numeroEndereco, values.complementoEndereco])
 
   useEffect(() => {
     const { numero } = parseCnhParts(values.cnh)
@@ -459,13 +451,12 @@ export function FichaForm({
     onChange(updateValue(values, field, value))
   }
 
-  const setEnderecoParts = (rua: string, numero: string, complemento: string) => {
+  const setAddressField = (field: "endereco" | "numeroEndereco" | "complementoEndereco", value: string) => {
     if (readOnly) return
+    const address = updateAddressFields(values, field, value)
     onChange({
       ...values,
-      endereco: rua,
-      numeroEndereco: numero,
-      complementoEndereco: complemento,
+      ...address,
     })
   }
 
@@ -896,12 +887,8 @@ export function FichaForm({
               <Input
                 id="endereco"
                 name="endereco"
-                value={enderecoRua}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoRua(nextValue)
-                  setEnderecoParts(nextValue, enderecoNumero, enderecoComplemento)
-                }}
+                value={values.endereco}
+                onChange={(event) => setAddressField("endereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
@@ -910,12 +897,8 @@ export function FichaForm({
               <Input
                 id="numeroEndereco"
                 name="numeroEndereco"
-                value={enderecoNumero}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoNumero(nextValue)
-                  setEnderecoParts(enderecoRua, nextValue, enderecoComplemento)
-                }}
+                value={values.numeroEndereco}
+                onChange={(event) => setAddressField("numeroEndereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
@@ -924,12 +907,8 @@ export function FichaForm({
               <Input
                 id="complementoEndereco"
                 name="complementoEndereco"
-                value={enderecoComplemento}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoComplemento(nextValue)
-                  setEnderecoParts(enderecoRua, enderecoNumero, nextValue)
-                }}
+                value={values.complementoEndereco}
+                onChange={(event) => setAddressField("complementoEndereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
