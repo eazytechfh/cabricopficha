@@ -1455,6 +1455,12 @@ export default function FichasWorkspace() {
           <CardHeader>
             <CardTitle>Tela de Acesso</CardTitle>
           </CardHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!resetToken && !forgotPasswordOpen && !authLoading) void handleLogin()
+            }}
+          >
           <CardContent className="space-y-4">
             {resetToken ? (
               <>
@@ -1582,12 +1588,12 @@ export default function FichasWorkspace() {
             {authError && <p className="text-sm text-red-600">{authError}</p>}
             {resetMessage ? <p className="text-sm text-primary">{resetMessage}</p> : null}
             {resetToken ? (
-              <Button className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
+              <Button type="button" className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
                 {resetLoading ? "Atualizando..." : "Salvar nova senha"}
               </Button>
             ) : !forgotPasswordOpen ? (
               <>
-                <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
+                <Button type="submit" className="w-full" disabled={authLoading}>
                   {authLoading ? "Validando..." : "Entrar"}
                 </Button>
                 <Button
@@ -1609,6 +1615,7 @@ export default function FichasWorkspace() {
               </>
             ) : null}
           </CardContent>
+          </form>
         </Card>
       </div>
     )
