@@ -2078,7 +2078,14 @@ export default function FichasWorkspace() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
+                <form
+                  data-ficha-search="true"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (!consultaLoading) void handleConsultarFichas()
+                  }}
+                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]"
+                >
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
                     <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as TipoBusca)}>
@@ -2112,11 +2119,11 @@ export default function FichasWorkspace() {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button onClick={() => void handleConsultarFichas()} disabled={consultaLoading}>
+                    <Button type="submit" disabled={consultaLoading}>
                       {consultaLoading ? "Consultando..." : "Consultar"}
                     </Button>
                   </div>
-                </div>
+                </form>
                 {consultaError && <p className="text-sm text-red-600">{consultaError}</p>}
               </CardContent>
             </Card>
