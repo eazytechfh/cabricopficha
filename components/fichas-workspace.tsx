@@ -23,6 +23,7 @@ import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-temp
 import { captureEditorSelection, getEditorSelectionFormatting, runEditorAlignmentCommand, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
 import { convertEmptyListItemToSpacer, normalizeDocumentListSpacing } from "@/lib/document-list-spacing"
 import type { DocumentEditorFormatCommand } from "@/lib/document-editor-formats"
+import { resolveCustomEditorHistory, type DocumentEditorHistoryEntry } from "@/lib/document-editor-history"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
@@ -347,6 +348,8 @@ export default function FichasWorkspace() {
   const [visibleUserPasswords, setVisibleUserPasswords] = useState<Record<string, boolean>>({})
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
+  const templateUndoHistoryRef = useRef<DocumentEditorHistoryEntry[]>([])
+  const templateRedoHistoryRef = useRef<DocumentEditorHistoryEntry[]>([])
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial")
   const [templateFontSize, setTemplateFontSize] = useState("14")
   const [templateTextColor, setTemplateTextColor] = useState("#111827")
@@ -593,6 +596,8 @@ export default function FichasWorkspace() {
     setTemplateMessage("")
     setTemplateVariablesOpen(false)
     templateSelectionRef.current = null
+    templateUndoHistoryRef.current = []
+    templateRedoHistoryRef.current = []
     handleSelectTemplateImage(null)
 
     try {
@@ -615,6 +620,8 @@ export default function FichasWorkspace() {
     templateLoadRequestRef.current += 1
     templateEditorKindRef.current = null
     templateSelectionRef.current = null
+    templateUndoHistoryRef.current = []
+    templateRedoHistoryRef.current = []
     handleSelectTemplateImage(null)
     setTemplateEditorKind(null)
     setTemplateContent("")
@@ -677,10 +684,35 @@ export default function FichasWorkspace() {
   }
 
   const handleTemplateCommand = (command: "bold" | "italic" | "underline" | DocumentEditorFormatCommand) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    if (command === "undo" || command === "redo") {
+      const source = command === "undo" ? templateUndoHistoryRef.current : templateRedoHistoryRef.current
+      const target = command === "undo" ? templateRedoHistoryRef.current : templateUndoHistoryRef.current
+      const entry = source.at(-1)
+      if (entry) {
+        const resolved = resolveCustomEditorHistory(editor.innerHTML, entry, command)
+        if (resolved.applied) {
+          source.pop()
+          target.push(entry)
+          editor.innerHTML = resolved.content
+          setTemplateContent(resolved.content)
+          templateSelectionRef.current = null
+          return
+        }
+      }
+      runTemplateCommand(command)
+      return
+    }
+
+    templateRedoHistoryRef.current = []
     if (command === "justifyLeft" || command === "justifyCenter" || command === "justifyRight" || command === "justifyFull") {
-      const editor = templateEditorRef.current
-      if (!editor || templateLoading) return
+      const before = editor.innerHTML
       const result = runEditorAlignmentCommand(editor, command, templateSelectionRef.current)
+      if (result.executed && result.content !== before) {
+        templateUndoHistoryRef.current.push({ before, after: result.content })
+      }
       templateSelectionRef.current = result.selection
       setTemplateContent(result.content)
       return
@@ -2568,12 +2600,23 @@ export default function FichasWorkspace() {
                 contentEditable={!templateLoading}
                 suppressContentEditableWarning
                 onInput={(event) => {
+                  templateRedoHistoryRef.current = []
                   setTemplateContent(event.currentTarget.innerHTML)
                   captureTemplateSelection()
                 }}
                 onFocus={captureTemplateSelection}
                 onKeyUp={captureTemplateSelection}
                 onKeyDown={(event) => {
+                  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+                    event.preventDefault()
+                    handleTemplateCommand(event.shiftKey ? "redo" : "undo")
+                    return
+                  }
+                  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+                    event.preventDefault()
+                    handleTemplateCommand("redo")
+                    return
+                  }
                   if (event.key !== " ") return
                   if (!convertEmptyListItemToSpacer(event.currentTarget)) return
 
