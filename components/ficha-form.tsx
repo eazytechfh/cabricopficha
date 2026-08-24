@@ -16,7 +16,7 @@ import { validarCPF } from "@/lib/cpf-utils"
 import { updateAddressFields } from "@/lib/address-fields"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
-import { formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
+import { appendPaymentEntry, formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
 import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, Plus, X } from "lucide-react"
 
 type MultaBlock = {
@@ -512,13 +512,12 @@ export function FichaForm({
 
   const setPaymentLines = (nextLines: PaymentEntry[]) => {
     if (readOnly) return
-    const startedLines = nextLines.filter((line) => line.formaPagamento || line.banco || line.valor)
-    const totals = reconcilePaymentValues(values.valorTotal, startedLines)
+    const totals = reconcilePaymentValues(values.valorTotal, nextLines)
     onChange({
       ...values,
-      pagamentos: serializePaymentEntries(startedLines),
-      formaPagamento: startedLines.map((line) => line.formaPagamento).filter(Boolean).join("\n"),
-      banco: startedLines.map((line) => line.banco).filter(Boolean).join("\n"),
+      pagamentos: serializePaymentEntries(nextLines),
+      formaPagamento: nextLines.map((line) => line.formaPagamento).filter(Boolean).join("\n"),
+      banco: nextLines.map((line) => line.banco).filter(Boolean).join("\n"),
       bancoOutro: "",
       valorEntrada: totals.paid > 0 ? formatPaymentAmount(totals.paid) : "",
       valorRestante: totals.total > 0 ? formatPaymentAmount(totals.remaining) : "",
@@ -529,7 +528,7 @@ export function FichaForm({
   const updatePaymentLine = (index: number, field: keyof Omit<PaymentEntry, "id">, value: string) => {
     setPaymentLines(visiblePaymentLines.map((line, lineIndex) => lineIndex === index ? { ...line, [field]: value } : line))
   }
-  const addPaymentLine = () => setPaymentLines([...visiblePaymentLines, { id: `payment-${Date.now()}`, formaPagamento: "", banco: "", valor: "" }])
+  const addPaymentLine = () => setPaymentLines(appendPaymentEntry(visiblePaymentLines, `payment-${Date.now()}`))
   const removePaymentLine = (index: number) => setPaymentLines(visiblePaymentLines.filter((_, lineIndex) => lineIndex !== index))
 
   const setTelefones = (nextTelefones: string[]) => {

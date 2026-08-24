@@ -5,6 +5,10 @@ export type PaymentEntry = {
   valor: string
 }
 
+export function appendPaymentEntry(entries: PaymentEntry[], id: string): PaymentEntry[] {
+  return [...entries, { id, formaPagamento: "", banco: "", valor: "" }]
+}
+
 type LegacyPayment = {
   formaPagamento?: string
   banco?: string
