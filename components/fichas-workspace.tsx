@@ -20,7 +20,7 @@ import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
-import { captureEditorSelection, getEditorSelectionFormatting, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
+import { captureEditorSelection, getEditorSelectionFormatting, runEditorAlignmentCommand, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
 import { convertEmptyListItemToSpacer, normalizeDocumentListSpacing } from "@/lib/document-list-spacing"
 import type { DocumentEditorFormatCommand } from "@/lib/document-editor-formats"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
@@ -677,6 +677,14 @@ export default function FichasWorkspace() {
   }
 
   const handleTemplateCommand = (command: "bold" | "italic" | "underline" | DocumentEditorFormatCommand) => {
+    if (command === "justifyLeft" || command === "justifyCenter" || command === "justifyRight" || command === "justifyFull") {
+      const editor = templateEditorRef.current
+      if (!editor || templateLoading) return
+      const result = runEditorAlignmentCommand(editor, command, templateSelectionRef.current)
+      templateSelectionRef.current = result.selection
+      setTemplateContent(result.content)
+      return
+    }
     runTemplateCommand(command)
   }
 

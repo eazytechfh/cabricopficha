@@ -72,6 +72,43 @@ export function runEditorCommand(
   }
 }
 
+const ALIGNMENT_VALUES: Record<string, string> = {
+  justifyLeft: "left",
+  justifyCenter: "center",
+  justifyRight: "right",
+  justifyFull: "justify",
+}
+
+export function runEditorAlignmentCommand(
+  editor: HTMLElement,
+  command: "justifyLeft" | "justifyCenter" | "justifyRight" | "justifyFull",
+  savedRange: Range | null = null
+) {
+  const selection = editor.ownerDocument.defaultView?.getSelection() ?? null
+  restoreEditorSelection(editor, savedRange, selection)
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : savedRange
+  const alignment = ALIGNMENT_VALUES[command]
+  const blocks = Array.from(editor.querySelectorAll<HTMLElement>("p, div, li, h1, h2, h3, h4, h5, h6, blockquote"))
+    .filter((block) => {
+      if (!range) return false
+      try {
+        return range.intersectsNode(block)
+      } catch {
+        return false
+      }
+    })
+
+  blocks.forEach((block) => {
+    block.style.textAlign = alignment
+  })
+
+  return {
+    content: editor.innerHTML,
+    executed: blocks.length > 0,
+    selection: captureEditorSelection(editor, selection),
+  }
+}
+
 export function runEditorFontSizeCommand(
   editor: HTMLElement,
   fontSize: string,
