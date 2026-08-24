@@ -7,7 +7,7 @@ import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDeci
 import { buildAccentInsensitivePattern } from "@/lib/search-utils"
 import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
-import { parsePaymentEntries, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -91,7 +91,9 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
   const normalizedData = normalizeFichaValues(data)
   const payments = parsePaymentEntries(normalizedData.pagamentos)
   const paymentError = validatePaymentEntries(normalizedData.valorTotal, payments)
-  if (paymentError) throw new Error(paymentError)
+  if (paymentError && (mode === "create" || reconcilePaymentValues(normalizedData.valorTotal, payments).exceedsTotal)) {
+    throw new Error(paymentError)
+  }
 
   return {
     data_contrato: toDatabaseDate(normalizedData.dataContrato),

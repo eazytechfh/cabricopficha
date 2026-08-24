@@ -29,6 +29,7 @@ import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { getFichaById, getFichas } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { shouldValidatePayments } from "@/lib/payment-validation-context"
 import {
   emptyFichaValues,
   type AccessCodeRecord,
@@ -1395,7 +1396,7 @@ export default function FichasWorkspace() {
   const handleUpdate = async () => {
     if (!consultor || !selectedFicha) return
 
-    const paymentError = validatePaymentEntries(editValues.valorTotal, parsePaymentEntries(editValues.pagamentos, editValues))
+    const paymentError = shouldValidatePayments(viewMode) ? validatePaymentEntries(editValues.valorTotal, parsePaymentEntries(editValues.pagamentos, editValues)) : ""
     if (paymentError) {
       setEditMessage(paymentError)
       return
