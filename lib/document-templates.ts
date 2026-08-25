@@ -188,12 +188,29 @@ function buildProcessosResumo(values: FichaFormValues) {
     .join("\n")
 }
 
+function formatMultaInstancias(value: string) {
+  const labels = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const normalized = item.toLocaleUpperCase("pt-BR")
+      if (normalized === "DP" || normalized === "DEFESA PRÉVIA" || normalized === "DEFESA PREVIA") return "Defesa Prévia"
+      if (/^1[^À-ſ\w]?\s*INST/.test(normalized)) return "1º Instância"
+      if (/^2[^À-ſ\w]?\s*INST/.test(normalized)) return "2º Instância"
+      return item
+    })
+
+  if (labels.length <= 1) return labels[0] || "-"
+  return `${labels.slice(0, -1).join(", ")} e ${labels.at(-1)}`
+}
+
 function buildMultasResumo(values: FichaFormValues) {
   const lines = getMultaLines(values).filter((line) => line.instancia || line.autoDetran || line.autoRenainf || line.placa)
   if (!lines.length) return "-"
 
   return lines
-    .map((line, index) => `${index + 1}. Instância da Multa: ${line.instancia || "-"} - Auto DETRAN: ${line.autoDetran || "-"} - Auto RENAINF: ${line.autoRenainf || "-"} - Placa: ${line.placa || "-"}`)
+    .map((line) => `${formatMultaInstancias(line.instancia)} - Auto: ${line.autoDetran || line.autoRenainf || "-"} - Placa: ${line.placa || "-"}`)
     .join("\n")
 }
 
@@ -207,7 +224,7 @@ function buildPlaceholderValues(values: FichaFormValues) {
   const placas = getMultaLines(values)
     .map((line) => line.placa.trim().toUpperCase())
     .filter(Boolean)
-  const enderecoCompleto = [values.endereco, values.numeroEndereco, values.complementoEndereco, values.municipio, values.uf]
+  const enderecoCompleto = [values.endereco, values.numeroEndereco, values.complementoEndereco, values.municipio, values.uf, values.cep?.trim() ? `CEP: ${values.cep.trim()}` : ""]
     .map((part) => (part || "").trim())
     .filter(Boolean)
     .join(" - ")
