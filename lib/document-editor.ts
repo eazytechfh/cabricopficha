@@ -79,6 +79,26 @@ const ALIGNMENT_VALUES: Record<string, string> = {
   justifyFull: "justify",
 }
 
+const ALIGNMENT_BLOCK_SELECTOR = "p, div, li, h1, h2, h3, h4, h5, h6, blockquote"
+
+function getCaretBlock(editor: HTMLElement, range: Range) {
+  let node: Node | null = range.startContainer
+
+  if (node === editor) {
+    const childIndex = Math.min(range.startOffset, Math.max(0, editor.childNodes.length - 1))
+    node = editor.childNodes[childIndex] ?? null
+  }
+
+  while (node && node !== editor) {
+    const element: HTMLElement | null = node.nodeType === 1 ? node as HTMLElement : node.parentElement
+    if (!element || element === editor) return null
+    if (element.matches(ALIGNMENT_BLOCK_SELECTOR)) return element
+    node = element.parentElement
+  }
+
+  return null
+}
+
 export function runEditorAlignmentCommand(
   editor: HTMLElement,
   command: "justifyLeft" | "justifyCenter" | "justifyRight" | "justifyFull",
@@ -88,15 +108,20 @@ export function runEditorAlignmentCommand(
   restoreEditorSelection(editor, savedRange, selection)
   const range = selection?.rangeCount ? selection.getRangeAt(0) : savedRange
   const alignment = ALIGNMENT_VALUES[command]
-  const blocks = Array.from(editor.querySelectorAll<HTMLElement>("p, div, li, h1, h2, h3, h4, h5, h6, blockquote"))
-    .filter((block) => {
-      if (!range) return false
-      try {
-        return range.intersectsNode(block)
-      } catch {
-        return false
-      }
-    })
+  const intersectingBlocks = !range || range.collapsed
+    ? []
+    : Array.from(editor.querySelectorAll<HTMLElement>(ALIGNMENT_BLOCK_SELECTOR)).filter((block) => {
+        try {
+          return range.intersectsNode(block)
+        } catch {
+          return false
+        }
+      })
+  const blocks = range?.collapsed
+    ? [getCaretBlock(editor, range)].filter((block): block is HTMLElement => Boolean(block))
+    : intersectingBlocks.filter((block) =>
+        !intersectingBlocks.some((candidate) => candidate !== block && block.contains?.(candidate))
+      )
 
   blocks.forEach((block) => {
     block.style.textAlign = alignment
