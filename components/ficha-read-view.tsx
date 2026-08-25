@@ -26,7 +26,7 @@ function hasAnyText(values: string[]) {
 function formatDate(value: string) {
   if (!value) return "-"
   if (value === "VENCIDA") return "Vencida"
-  if (value === "Vencida" || value === "Revisão de Ato") return value
+  if (value === "Vencida" || value === "Revisão de Ato" || value === "AG Penalidade") return value
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`

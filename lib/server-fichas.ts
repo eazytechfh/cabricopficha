@@ -17,6 +17,7 @@ const excelBaseDir = process.env.VERCEL ? path.join(tmpdir(), "cabricopficha") :
 const excelPath = path.join(excelBaseDir, "fichas.xlsx")
 const VENCIDA_SENTINEL_DATE = "1900-01-01"
 const REVISAO_ATO_SENTINEL_DATE = "1900-01-02"
+const AG_PENALIDADE_SENTINEL_DATE = "1900-01-03"
 
 function ensureSupabaseConfig() {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -43,6 +44,9 @@ function toDatabaseDate(value: string) {
   if (normalizedValue === "Revisão de Ato" || normalizedValue === "Revisao de Ato") {
     return REVISAO_ATO_SENTINEL_DATE
   }
+  if (normalizedValue === "AG Penalidade") {
+    return AG_PENALIDADE_SENTINEL_DATE
+  }
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
 }
 
@@ -50,6 +54,7 @@ function fromDatabaseDate(value: unknown) {
   const normalizedValue = String(value ?? "")
   if (normalizedValue === VENCIDA_SENTINEL_DATE) return "Vencida"
   if (normalizedValue === REVISAO_ATO_SENTINEL_DATE) return "Revisão de Ato"
+  if (normalizedValue === AG_PENALIDADE_SENTINEL_DATE) return "AG Penalidade"
   return normalizedValue
 }
 

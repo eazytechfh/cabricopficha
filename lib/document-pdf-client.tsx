@@ -2,13 +2,17 @@
 
 import { createRoot } from "react-dom/client"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
-import { DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, getDocumentFilename, type DocumentTemplateKind } from "@/lib/document-templates"
+import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, getDocumentFilename, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { generatePdf } from "@/lib/generatePdf"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { getDocumentTemplate } from "@/lib/document-template-client"
 
 export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, values: FichaFormValues) {
-  const template = await getDocumentTemplate(kind)
+  const template = await getDocumentTemplate(kind).catch(() => ({
+    key: kind,
+    title: DOCUMENT_TEMPLATE_LABELS[kind],
+    content: prepareDocumentTemplateContent(kind, DEFAULT_DOCUMENT_TEMPLATES[kind]),
+  }))
   const content = fillDocumentTemplate(template.content, values, kind)
 
   const host = document.createElement("div")

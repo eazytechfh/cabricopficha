@@ -326,6 +326,7 @@ export default function FichasWorkspace() {
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
+  const [documentLoading, setDocumentLoading] = useState<DocumentTemplateKind | null>(null)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("menu")
@@ -580,11 +581,14 @@ export default function FichasWorkspace() {
 
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
+    setDocumentLoading(kind)
 
     try {
       await downloadFilledDocumentPdf(kind, editValues)
     } catch (error) {
       setEditMessage(error instanceof Error ? error.message : "Erro ao gerar documento.")
+    } finally {
+      setDocumentLoading(null)
     }
   }
 
@@ -2308,6 +2312,9 @@ export default function FichasWorkspace() {
                   </div>
 
                   <div className="space-y-4">
+                    {editMessage && viewMode === "view" ? (
+                      <p role="alert" className="text-sm font-medium text-red-600">{editMessage}</p>
+                    ) : null}
                     {viewMode === "view" && selectedFicha ? (
                       <FichaReadView
                         values={editValues}
@@ -2322,11 +2329,11 @@ export default function FichasWorkspace() {
                             <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                               🖨️ FICHA
                             </Button>
-                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
-                              🖨️ CONTRATO
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("contract")}>
+                              {documentLoading === "contract" ? "Gerando contrato..." : "🖨️ CONTRATO"}
                             </Button>
-                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
-                              🖨️ PROCURAÇÃO
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("procuration")}>
+                              {documentLoading === "procuration" ? "Gerando procuração..." : "🖨️ PROCURAÇÃO"}
                             </Button>
                           </>
                         }

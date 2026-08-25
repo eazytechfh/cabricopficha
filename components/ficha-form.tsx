@@ -276,6 +276,7 @@ function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
 function getPrazoMode(value: string) {
   if (value === "Vencida" || value === "VENCIDA") return "Vencida"
   if (value === "Revisão de Ato") return "Revisão de Ato"
+  if (value === "AG Penalidade") return "AG Penalidade"
   return "DATA"
 }
 
@@ -1207,6 +1208,7 @@ export function FichaForm({
                       <SelectItem value="DATA">Data</SelectItem>
                       <SelectItem value="Vencida">Vencida</SelectItem>
                       <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
+                      <SelectItem value="AG Penalidade">AG Penalidade</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -1403,6 +1405,7 @@ export function FichaForm({
                               <SelectItem value="DATA">Data</SelectItem>
                               <SelectItem value="Vencida">Vencida</SelectItem>
                               <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
+                              <SelectItem value="AG Penalidade">AG Penalidade</SelectItem>
                             </SelectContent>
                           </Select>
 
