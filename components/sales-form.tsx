@@ -168,7 +168,6 @@ export default function SalesForm() {
       valorEntrada: parseCurrencyInput(getString("valorEntrada")),
       valorRestante,
       observacaoValorRestante: getString("observacaoValorRestante"),
-      clausulaAdicional: getString("clausulaAdicional"),
       instanciaProcesso: getString("instanciaProcesso"),
       tipoProcesso: getString("tipoProcesso"),
       numeroProcesso: getString("numeroProcesso"),

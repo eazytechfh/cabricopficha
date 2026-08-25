@@ -3,6 +3,7 @@ import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
+import { removeDeprecatedDocumentVariables } from "@/lib/document-template-content"
 
 export type DocumentTemplateKind = "contract" | "procuration"
 
@@ -30,8 +31,6 @@ Este instrumento tem como objeto a prestação de serviços de assessoria e elab
 {{processosResumo}}
 
 {{multasResumo}}
-
-{{clausulaAdicional}}
 
 REFERENTE A PLACA(S): {{placas}}
 
@@ -205,7 +204,6 @@ function buildPlaceholderValues(values: FichaFormValues) {
     valorEntrada: values.valorEntrada ? formatCurrency(parseCurrency(values.valorEntrada)) : "-",
     valorRestante: values.valorRestante ? formatCurrency(parseCurrency(values.valorRestante)) : "-",
     observacaoValorRestante: values.observacaoValorRestante || "-",
-    clausulaAdicional: values.clausulaAdicional?.trim() ? `Cláusula Adicional\n${values.clausulaAdicional.trim()}` : "",
     formaPagamento: paymentSummary || values.formaPagamento || "-",
     banco: values.banco || "-",
     processosResumo: buildProcessosResumo(values),
@@ -219,22 +217,11 @@ function buildPlaceholderValues(values: FichaFormValues) {
 export function fillDocumentTemplate(template: string, values: FichaFormValues, kind: DocumentTemplateKind) {
   const placeholders = buildPlaceholderValues(values)
 
-  const normalizedTemplate = normalizeDocumentTemplateContent(template)
-  let templateWithClausePlaceholder = normalizedTemplate
-
-  if (kind === "contract" && placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")) {
-    if (normalizedTemplate.includes("{{multasResumo}}")) {
-      templateWithClausePlaceholder = normalizedTemplate.replace("{{multasResumo}}", "{{clausulaAdicional}}<br /><br />{{multasResumo}}")
-    } else if (normalizedTemplate.includes("{{processosResumo}}")) {
-      templateWithClausePlaceholder = normalizedTemplate.replace("{{processosResumo}}", "{{processosResumo}}<br /><br />{{clausulaAdicional}}")
-    } else {
-      templateWithClausePlaceholder = `${normalizedTemplate}<br /><br />{{clausulaAdicional}}`
-    }
-  }
+  const normalizedTemplate = removeDeprecatedDocumentVariables(normalizeDocumentTemplateContent(template))
 
   const filledContent = Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),
-    templateWithClausePlaceholder
+    normalizedTemplate
   )
 
   return filledContent

@@ -4,5 +4,4 @@ export const FICHA_READ_SECTION_ORDER = [
   "Processos",
   "Multas",
   "Observações Adicionais",
-  "Cláusula Adicional",
 ] as const

@@ -32,7 +32,6 @@ export type FichaPdfData = {
   valorEntrada: number
   valorRestante: number
   observacaoValorRestante: string
-  clausulaAdicional: string
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
@@ -476,22 +475,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
-        {section("CLÁUSULA ADICIONAL", (
-          <>
-            <div
-              style={{
-                minHeight: 42,
-                padding: "6px 0",
-                borderBottom: `1px solid ${colors.line}`,
-                fontSize: 11.5,
-                color: data.clausulaAdicional?.trim() ? colors.text : colors.muted,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {fallback(data.clausulaAdicional)}
-            </div>
-          </>
-        ))}
       </div>
     </div>
   )

@@ -39,7 +39,6 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   valorEntrada: "Valor de Entrada",
   valorRestante: "Valor Restante",
   observacaoValorRestante: "Observacao do Valor Restante",
-  clausulaAdicional: "Clausula Adicional",
   instanciaProcesso: "Instancia do Processo",
   tipoProcesso: "Tipo do Processo",
   numeroProcesso: "No do Processo",

@@ -43,8 +43,17 @@ export function normalizeDocumentTemplateContent(template: string) {
   return escapeHtml(template).replaceAll("\n", "<br />")
 }
 
+export function removeDeprecatedDocumentVariables(template: string) {
+  return template
+    .replace(
+      /<(h[1-6]|p|div)\b[^>]*>\s*Cl[aá]usula Adicional\s*<\/\1>\s*<(p|div)\b[^>]*>\s*\{\{clausulaAdicional\}\}\s*<\/\2>/gi,
+      ""
+    )
+    .replaceAll("{{clausulaAdicional}}", "")
+}
+
 export function prepareDocumentTemplateContent(kind: EditableDocumentTemplateKind, template: string) {
-  const content = normalizeDocumentTemplateContent(template)
+  const content = removeDeprecatedDocumentVariables(normalizeDocumentTemplateContent(template))
   const title = DOCUMENT_TITLES[kind]
   const editableTitle = buildEditableDocumentTitle(title)
 

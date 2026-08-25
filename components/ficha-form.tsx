@@ -304,7 +304,7 @@ type FichaFormProps = {
   visibleSections?: FichaFormSection[]
 }
 
-type FichaFormSection = "contract" | "client" | "payment" | "processes" | "fines" | "notes" | "clause"
+type FichaFormSection = "contract" | "client" | "payment" | "processes" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -1461,24 +1461,6 @@ export function FichaForm({
             disabled={fieldDisabled}
             className="min-h-[120px]"
             placeholder="Digite observacoes adicionais sobre a venda..."
-          />
-        </CardContent>
-      </Card>
-
-      <Card className={`order-[65] border-l-4 border-l-primary shadow-md ${shouldShowSection("clause") ? "" : "hidden"}`}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-primary">Clausula Adicional</CardTitle>
-          {renderSectionSubmit()}
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            id="clausulaAdicional"
-            name="clausulaAdicional"
-            value={values.clausulaAdicional}
-            onChange={(event) => setField("clausulaAdicional", event.target.value)}
-            disabled={fieldDisabled}
-            className="min-h-[120px]"
-            placeholder="Digite uma clausula adicional para aparecer no contrato..."
           />
         </CardContent>
       </Card>

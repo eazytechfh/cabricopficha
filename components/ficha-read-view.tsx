@@ -285,9 +285,6 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{fallback(values.observacoes)}</p>
       </ReadSection>
 
-      <ReadSection title="Cláusula Adicional">
-        <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{fallback(values.clausulaAdicional)}</p>
-      </ReadSection>
       </div>
     </div>
   )
