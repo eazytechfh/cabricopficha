@@ -67,7 +67,7 @@ function getSectionSpacingMm(section: HTMLElement, fallbackSpacingMm: number) {
 }
 
 async function renderSectionCanvas(
-  html2canvas: typeof import("html2canvas").default,
+  html2canvas: typeof import("html2canvas-pro").default,
   section: HTMLElement
 ) {
   return html2canvas(section, {
@@ -143,7 +143,7 @@ function appendLargeSectionToPdf(
 
 export async function generatePdf(element: HTMLElement, filename: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
+    import("html2canvas-pro"),
     import("jspdf/dist/jspdf.es.min.js"),
   ])
 
