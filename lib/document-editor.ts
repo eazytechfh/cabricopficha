@@ -27,10 +27,11 @@ export function getEditorSelectionFormatting(editor: HTMLElement, selection: Sel
   const computedStyle = editor.ownerDocument.defaultView?.getComputedStyle(element)
   if (!computedStyle) return null
 
-  const fontFamily = computedStyle.fontFamily
+  const detectedFontFamily = computedStyle.fontFamily
     .split(",")[0]
     .trim()
     .replace(/^["']|["']$/g, "")
+  const fontFamily = /^Geist(?:\s|$)/i.test(detectedFontFamily) ? "Arial" : detectedFontFamily
   const parsedFontSize = Number.parseFloat(computedStyle.fontSize)
 
   return {

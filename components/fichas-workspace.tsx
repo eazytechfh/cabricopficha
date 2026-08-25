@@ -2789,7 +2789,8 @@ export default function FichasWorkspace() {
                   }
                 }}
                 aria-label="Conteudo do modelo de documento"
-                className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 font-sans text-sm leading-6 outline-none"
+                style={{ fontFamily: "Arial, sans-serif" }}
+                className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none"
               />
               {templateEditorKind && templatePreviewContent ? (
                 <div className="space-y-2">
