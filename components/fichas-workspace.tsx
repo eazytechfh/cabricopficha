@@ -2569,7 +2569,7 @@ export default function FichasWorkspace() {
                       <DropdownMenuRadioGroup value={templateFontSize} onValueChange={handleTemplateFontSizeChange}>
                         {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
                           <DropdownMenuRadioItem key={option} value={option}>
-                            {option} px
+                            {option}
                           </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>
