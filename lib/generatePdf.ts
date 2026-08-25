@@ -218,6 +218,7 @@ export async function generatePdf(element: HTMLElement, filename: string) {
     }
 
     let currentY = PDF_MARGIN_Y_MM
+    let pageHasContent = false
 
     for (let index = 0; index < sections.length; index += 1) {
       const section = sections[index]
@@ -231,18 +232,21 @@ export async function generatePdf(element: HTMLElement, filename: string) {
       if (sectionHeightMm <= pageHeightMm - PDF_MARGIN_Y_MM * 2) {
         const remainingHeightMm = pageHeightMm - PDF_MARGIN_Y_MM - currentY
 
-        if (currentY > 0 && sectionHeightMm > remainingHeightMm) {
+        if (pageHasContent && sectionHeightMm > remainingHeightMm) {
           pdf.addPage()
           currentY = PDF_MARGIN_Y_MM
+          pageHasContent = false
         }
 
         const renderedHeightMm = appendCanvasToPdf(pdf, sectionCanvas, currentY, renderWidthMm, PDF_MARGIN_X_MM)
         currentY += renderedHeightMm
+        pageHasContent = true
 
         if (spacingMm > 0) {
           if (currentY + spacingMm > pageHeightMm - PDF_MARGIN_Y_MM) {
             pdf.addPage()
             currentY = PDF_MARGIN_Y_MM
+            pageHasContent = false
           } else {
             currentY += spacingMm
           }
@@ -251,9 +255,10 @@ export async function generatePdf(element: HTMLElement, filename: string) {
         continue
       }
 
-      if (currentY > 0) {
+      if (pageHasContent) {
         pdf.addPage()
         currentY = PDF_MARGIN_Y_MM
+        pageHasContent = false
       }
 
       currentY = appendLargeSectionToPdf(
@@ -266,11 +271,13 @@ export async function generatePdf(element: HTMLElement, filename: string) {
         PDF_MARGIN_Y_MM,
         PDF_MARGIN_Y_MM
       )
+      pageHasContent = true
 
       if (spacingMm > 0) {
         if (currentY + spacingMm > pageHeightMm - PDF_MARGIN_Y_MM) {
           pdf.addPage()
           currentY = PDF_MARGIN_Y_MM
+          pageHasContent = false
         } else {
           currentY += spacingMm
         }
