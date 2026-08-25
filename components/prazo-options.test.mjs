@@ -8,6 +8,8 @@ test("multas e processos oferecem AG Penalidade como prazo", async () => {
 
   assert.equal(source.split(option).length - 1, 2)
   assert.match(source, /if \(value === "AG Penalidade"\) return "AG Penalidade"/)
+  assert.equal(source.split('? "grid grid-cols-\[110px_minmax\(0,1fr\)\] gap-2" : "grid grid-cols-1"').length - 1, 2)
+  assert.equal(source.split('=== "DATA" ? \(').length - 1 >= 2, true)
 })
 
 test("AG Penalidade e preservado nas visualizacoes e na persistencia", async () => {

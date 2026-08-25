@@ -1189,7 +1189,7 @@ export function FichaForm({
                   <Label htmlFor={`prazoProcesso-${lineIndex}`} className="flex min-h-8 items-end">
                     Prazo
                   </Label>
-                  <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
+                  <div className={getPrazoMode(line.prazoProcesso) === "DATA" ? "grid grid-cols-[110px_minmax(0,1fr)] gap-2" : "grid grid-cols-1"}>
                     <Select
                       value={getPrazoMode(line.prazoProcesso)}
                       onValueChange={(value) =>
@@ -1212,13 +1212,15 @@ export function FichaForm({
                     </SelectContent>
                   </Select>
 
-                    <Input
-                      id={`prazoProcesso-${lineIndex}`}
-                      type="date"
-                      value={getPrazoMode(line.prazoProcesso) === "DATA" ? line.prazoProcesso : ""}
-                      onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
-                      disabled={fieldDisabled || getPrazoMode(line.prazoProcesso) !== "DATA"}
-                    />
+                    {getPrazoMode(line.prazoProcesso) === "DATA" ? (
+                      <Input
+                        id={`prazoProcesso-${lineIndex}`}
+                        type="date"
+                        value={line.prazoProcesso}
+                        onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
+                        disabled={fieldDisabled}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
@@ -1385,7 +1387,7 @@ export function FichaForm({
                         <Label htmlFor={`prazoMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
                           Prazo
                         </Label>
-                        <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
+                        <div className={getPrazoMode(line.prazoMulta) === "DATA" ? "grid grid-cols-[110px_minmax(0,1fr)] gap-2" : "grid grid-cols-1"}>
                           <Select
                             value={getPrazoMode(line.prazoMulta)}
                             onValueChange={(value) =>
@@ -1409,13 +1411,15 @@ export function FichaForm({
                             </SelectContent>
                           </Select>
 
-                          <Input
-                            id={`prazoMulta-${index}-${lineIndex}`}
-                            type="date"
-                            value={getPrazoMode(line.prazoMulta) === "DATA" ? line.prazoMulta : ""}
-                            onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
-                            disabled={fieldDisabled || getPrazoMode(line.prazoMulta) !== "DATA"}
-                          />
+                          {getPrazoMode(line.prazoMulta) === "DATA" ? (
+                            <Input
+                              id={`prazoMulta-${index}-${lineIndex}`}
+                              type="date"
+                              value={line.prazoMulta}
+                              onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
+                              disabled={fieldDisabled}
+                            />
+                          ) : null}
                         </div>
                       </div>
 
