@@ -136,13 +136,6 @@ function splitLines(value: string) {
   return value.split("\n")
 }
 
-function formatDate(value: string) {
-  if (!value) return "-"
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
-}
-
 function formatToday() {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -153,46 +146,54 @@ function formatToday() {
 
 function getMultaLines(values: FichaFormValues) {
   const placas = splitSerializedEntries(values.placa)
-  const autosDetran = splitSerializedEntries(values.autoDetran)
-  const autosRenainf = splitSerializedEntries(values.autoRenainf)
-  const prazos = splitSerializedEntries(values.prazoMulta)
-  const maxLength = Math.max(placas.length, autosDetran.length, autosRenainf.length, prazos.length, 1)
+  const instanciaBlocks = splitSerializedEntries(values.instanciaMulta)
+  const autoDetranBlocks = splitSerializedEntries(values.autoDetran)
+  const autoRenainfBlocks = splitSerializedEntries(values.autoRenainf)
+  const blockCount = Math.max(placas.length, instanciaBlocks.length, autoDetranBlocks.length, autoRenainfBlocks.length, 1)
 
-  return Array.from({ length: maxLength }, (_, index) => ({
-    placa: placas[index] || "",
-    auto: autosDetran[index] || autosRenainf[index] || "",
-    prazo: prazos[index] || "",
-  }))
+  return Array.from({ length: blockCount }).flatMap((_, blockIndex) => {
+    const instancias = splitLines(instanciaBlocks[blockIndex] || "")
+    const autosDetran = splitLines(autoDetranBlocks[blockIndex] || "")
+    const autosRenainf = splitLines(autoRenainfBlocks[blockIndex] || "")
+    const lineCount = Math.max(instancias.length, autosDetran.length, autosRenainf.length, 1)
+
+    return Array.from({ length: lineCount }, (_, lineIndex) => ({
+      instancia: instancias[lineIndex] || "",
+      placa: placas[blockIndex] || "",
+      autoDetran: autosDetran[lineIndex] || "",
+      autoRenainf: autosRenainf[lineIndex] || "",
+    }))
+  })
 }
 
 function getProcessoLines(values: FichaFormValues) {
+  const instancias = splitLines(values.instanciaProcesso)
   const tipos = splitLines(values.tipoProcesso)
   const numeros = splitLines(values.numeroProcesso)
-  const prazos = splitLines(values.prazoProcesso)
-  const maxLength = Math.max(tipos.length, numeros.length, prazos.length, 1)
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
+    instancia: instancias[index] || "",
     tipo: tipos[index] || "",
     numero: numeros[index] || "",
-    prazo: prazos[index] || "",
   }))
 }
 
 function buildProcessosResumo(values: FichaFormValues) {
-  const lines = getProcessoLines(values).filter((line) => line.tipo || line.numero || line.prazo)
+  const lines = getProcessoLines(values).filter((line) => line.instancia || line.tipo || line.numero)
   if (!lines.length) return "-"
 
   return lines
-    .map((line, index) => `${index + 1}. ${line.tipo || "Processo"} nº ${line.numero || "-"} - prazo ${formatDate(line.prazo)}`)
+    .map((line, index) => `${index + 1}. Instância do Processo: ${line.instancia || "-"} - Tipo do Processo: ${line.tipo || "-"} - Nº do Processo: ${line.numero || "-"}`)
     .join("\n")
 }
 
 function buildMultasResumo(values: FichaFormValues) {
-  const lines = getMultaLines(values).filter((line) => line.placa || line.auto || line.prazo)
+  const lines = getMultaLines(values).filter((line) => line.instancia || line.autoDetran || line.autoRenainf || line.placa)
   if (!lines.length) return "-"
 
   return lines
-    .map((line, index) => `${index + 1}. Auto ${line.auto || "-"} - placa ${line.placa || "-"} - prazo ${formatDate(line.prazo)}`)
+    .map((line, index) => `${index + 1}. Instância da Multa: ${line.instancia || "-"} - Auto DETRAN: ${line.autoDetran || "-"} - Auto RENAINF: ${line.autoRenainf || "-"} - Placa: ${line.placa || "-"}`)
     .join("\n")
 }
 
