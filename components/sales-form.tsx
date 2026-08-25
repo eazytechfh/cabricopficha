@@ -170,6 +170,8 @@ export default function SalesForm() {
       observacaoValorRestante: getString("observacaoValorRestante"),
       instanciaProcesso: getString("instanciaProcesso"),
       tipoProcesso: getString("tipoProcesso"),
+      tipoOutroServico: getString("tipoOutroServico"),
+      poderesOutroServico: getString("poderesOutroServico"),
       numeroProcesso: getString("numeroProcesso"),
       prazoProcesso: getString("prazoProcesso"),
       vistoJuridico: getString("vistoJuridico"),

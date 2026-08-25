@@ -304,7 +304,7 @@ type FichaFormProps = {
   visibleSections?: FichaFormSection[]
 }
 
-type FichaFormSection = "contract" | "client" | "payment" | "processes" | "fines" | "notes"
+type FichaFormSection = "contract" | "client" | "payment" | "processes" | "otherServices" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -1447,6 +1447,39 @@ export function FichaForm({
               </div>
             )
           })}
+        </CardContent>
+      </Card>
+
+      <Card className={`order-[52] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="w-5 h-5" />
+            Outros Serviços
+          </CardTitle>
+          {renderSectionSubmit()}
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="tipoOutroServico">Tipo do Serviço</Label>
+            <Input
+              id="tipoOutroServico"
+              value={values.tipoOutroServico}
+              onChange={(event) => setField("tipoOutroServico", event.target.value)}
+              disabled={fieldDisabled}
+              placeholder="Informe o tipo do serviço"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="poderesOutroServico">Poderes</Label>
+            <Textarea
+              id="poderesOutroServico"
+              value={values.poderesOutroServico}
+              onChange={(event) => setField("poderesOutroServico", event.target.value)}
+              disabled={fieldDisabled}
+              className="min-h-[96px]"
+              placeholder="Descreva os poderes concedidos"
+            />
+          </div>
         </CardContent>
       </Card>
 

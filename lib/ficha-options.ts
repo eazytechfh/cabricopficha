@@ -40,7 +40,7 @@ export const INSTANCIA_MULTA_OPTIONS = ["DP", "1° Inst", "2° Inst"] as const
 
 export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
-export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO", "OUTROS"] as const
+export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO"] as const
 
 export const ESTADO_CIVIL_OPTIONS = ["CASADO(A)", "SOLTEIRO(A)", "UNIÃO ESTÁVEL", "DIVORCIADO(A)", "VIÚVO(A)"] as const
 

@@ -1,8 +1,10 @@
-export type EditableDocumentTemplateKind = "contract" | "procuration"
+export type EditableDocumentTemplateKind = "contract" | "procuration" | "other-services-contract" | "other-services-procuration"
 
 const DOCUMENT_TITLES: Record<EditableDocumentTemplateKind, string> = {
   contract: "CONTRATO",
   procuration: "PROCURAÇÃO",
+  "other-services-contract": "CONTRATO - OUTROS SERVIÇOS",
+  "other-services-procuration": "PROCURAÇÃO - OUTROS SERVIÇOS",
 }
 
 function buildEditableDocumentTitle(title: string) {

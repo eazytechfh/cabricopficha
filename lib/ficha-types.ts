@@ -79,6 +79,8 @@ export type FichaFormValues = {
   prazoProcesso: string
   vistoJuridico: string
   assinaturaVistoJuridico: string
+  tipoOutroServico: string
+  poderesOutroServico: string
   instanciaMulta: string
   autoDetran: string
   autoRenainf: string
@@ -165,6 +167,8 @@ export const emptyFichaValues: FichaFormValues = {
   prazoProcesso: "",
   vistoJuridico: "",
   assinaturaVistoJuridico: "",
+  tipoOutroServico: "",
+  poderesOutroServico: "",
   instanciaMulta: "",
   autoDetran: "",
   autoRenainf: "",

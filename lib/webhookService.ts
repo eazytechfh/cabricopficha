@@ -60,6 +60,10 @@ type FichaWebhookPayloadBase = {
       prazo: string
       assinaturaVistoJuridico: string
     }
+    outrosServicos: {
+      tipoServico: string
+      poderes: string
+    }
     multas: MultaWebhookItem
     multasLista: MultaWebhookItem[]
     observacoes: string
@@ -166,6 +170,10 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         multasProcesso: ficha.vistoJuridico,
         prazo: ficha.prazoProcesso,
         assinaturaVistoJuridico: "",
+      },
+      outrosServicos: {
+        tipoServico: ficha.tipoOutroServico,
+        poderes: ficha.poderesOutroServico,
       },
       multas: multasLista[0] || {
         instancia: "",

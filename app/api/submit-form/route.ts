@@ -56,6 +56,8 @@ export async function POST(request: Request) {
       valor_restante: paymentTotals.remaining,
       instancia_processo: data.instanciaProcesso || null,
       tipo_processo: data.tipoProcesso || null,
+      tipo_outro_servico: data.tipoOutroServico || null,
+      poderes_outro_servico: data.poderesOutroServico || null,
       numero_processo: data.numeroProcesso || null,
       prazo_processo: data.prazoProcesso || null,
       visto_juridico: data.vistoJuridico || null,

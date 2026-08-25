@@ -37,6 +37,8 @@ create table if not exists public.fichas_venda (
   prazo_processo date,
   visto_juridico text,
   assinatura_visto_juridico text,
+  tipo_outro_servico text,
+  poderes_outro_servico text,
   multas_processo text,
   instancia_multa text,
   auto_detran text,
@@ -74,7 +76,9 @@ add column if not exists nacionalidade text,
 add column if not exists estado_civil text,
 add column if not exists profissao text,
 add column if not exists municipio text,
-add column if not exists uf text;
+add column if not exists uf text,
+add column if not exists tipo_outro_servico text,
+add column if not exists poderes_outro_servico text;
 
 alter table public.fichas_venda enable row level security;
 

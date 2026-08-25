@@ -5,7 +5,7 @@ import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
 import { removeDeprecatedDocumentVariables } from "@/lib/document-template-content"
 
-export type DocumentTemplateKind = "contract" | "procuration"
+export type DocumentTemplateKind = "contract" | "procuration" | "other-services-contract" | "other-services-procuration"
 
 export type DocumentTemplateRecord = {
   key: DocumentTemplateKind
@@ -16,6 +16,8 @@ export type DocumentTemplateRecord = {
 export const DOCUMENT_TEMPLATE_LABELS: Record<DocumentTemplateKind, string> = {
   contract: "Contrato",
   procuration: "Procuração",
+  "other-services-contract": "Contrato de Outros Serviços",
+  "other-services-procuration": "Procuração de Outros Serviços",
 }
 
 export const DEFAULT_DOCUMENT_TEMPLATES: Record<DocumentTemplateKind, string> = {
@@ -63,6 +65,44 @@ OUTORGANTE: {{qualificacaoCliente}}.
 OUTORGADO: ADRIANA MELLO RODRIGUES MENDES, portadora da OAB/RJ 213525, com escritório na Praça Olavo Bilac nº 28 sala 1906 e 1816, Centro - Rio de Janeiro - RJ, CEP: 20041-010.
 
 PODERES: Para representar o(a) OUTORGANTE perante qualquer Repartição Pública Federal, Estadual ou Municipal, Empresas Públicas, Autarquias, Polícia Rodoviária Federal, Departamento de Trânsito do Estado do Rio de Janeiro (DETRAN/RJ), Departamento Nacional de Infraestrutura de Transportes (DNIT), Conselho Estadual de Trânsito do Rio de Janeiro (CETRAN/RJ) e qualquer órgão municipal com competência de aplicação do Código Nacional de Trânsito, com a finalidade de elaborar, interpor e acompanhar recursos administrativos de trânsito, podendo tudo assinar, requerer, solicitar nada consta, auto de infração, avisos de recebimento, histórico de multas e processos administrativos, propor e praticar os demais atos necessários ao fiel desempenho do presente mandato, inclusive substabelecer com reserva.
+
+Rio de Janeiro, {{dataHoje}}.
+
+--------------------------------------------------------
+OUTORGANTE
+
+{{nomeCliente}}`,
+  "other-services-contract": `CONTRATO - OUTROS SERVIÇOS
+
+CONTRATADA: CABRICOP SERVIÇOS E ASSUNTOS DE TRÂNSITO LTDA. ME, inscrita no CNPJ sob o nº 16.513.797/0001-60, com sede na Pça Olavo Bilac, 28, sala 1816, Centro, Rio de Janeiro - RJ, CEP 20.041-010.
+
+CONTRATANTE: {{qualificacaoCliente}}.
+
+Tipo do Serviço
+{{tipoOutroServico}}
+
+Objeto e Poderes
+{{poderesOutroServico}}
+
+Pela prestação dos serviços, a CONTRATANTE pagará o valor total de {{valorTotal}}, por {{formaPagamento}}.
+
+Rio de Janeiro, {{dataHoje}}.
+
+CABRICOP SERVIÇOS E ASSUNTOS DE TRÂNSITO - CONTRATADA
+
+{{nomeCliente}}
+CONTRATANTE
+
+Consultor: {{consultor}}`,
+  "other-services-procuration": `PROCURAÇÃO - OUTROS SERVIÇOS
+
+OUTORGANTE: {{qualificacaoCliente}}.
+
+OUTORGADO: ADRIANA MELLO RODRIGUES MENDES, portadora da OAB/RJ 213525, com escritório na Praça Olavo Bilac nº 28 sala 1906 e 1816, Centro - Rio de Janeiro - RJ, CEP: 20041-010.
+
+TIPO DO SERVIÇO: {{tipoOutroServico}}.
+
+PODERES: {{poderesOutroServico}}.
 
 Rio de Janeiro, {{dataHoje}}.
 
@@ -211,6 +251,8 @@ function buildPlaceholderValues(values: FichaFormValues) {
     placas: [...new Set(placas)].join(", ") || "-",
     dataHoje: formatToday(),
     consultor: values.nomeConsultor || "-",
+    tipoOutroServico: values.tipoOutroServico || "-",
+    poderesOutroServico: values.poderesOutroServico || "-",
   }
 }
 
@@ -240,6 +282,13 @@ export function getDocumentFilename(kind: DocumentTemplateKind, values: FichaFor
     .replace(/\s+/g, "_")
     .replace(/[^\w-]/g, "")
 
-  return `${kind === "contract" ? "contrato" : "procuracao"}-${safeName}.pdf`
+  const prefixByKind: Record<DocumentTemplateKind, string> = {
+    contract: "contrato",
+    procuration: "procuracao",
+    "other-services-contract": "contrato-outros-servicos",
+    "other-services-procuration": "procuracao-outros-servicos",
+  }
+
+  return `${prefixByKind[kind]}-${safeName}.pdf`
 }
 

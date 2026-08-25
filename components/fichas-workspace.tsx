@@ -71,6 +71,8 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{banco}}",
   "{{processosResumo}}",
   "{{multasResumo}}",
+  "{{tipoOutroServico}}",
+  "{{poderesOutroServico}}",
   "{{placas}}",
   "{{dataHoje}}",
   "{{consultor}}",
@@ -121,6 +123,8 @@ const DOCUMENT_TEMPLATE_PREVIEW_VALUES: FichaFormValues = {
   autoDetran: "I53552418",
   placa: "RIQ1E09",
   prazoMulta: "2026-05-30",
+  tipoOutroServico: "Regularização documental",
+  poderesOutroServico: "Representar o cliente perante os órgãos competentes e praticar os atos necessários ao serviço.",
 }
 
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
@@ -1833,6 +1837,34 @@ export default function FichasWorkspace() {
                                 </span>
                               </span>
                             </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("other-services-contract")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Contrato - Outros Serviços</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar contrato específico de outros serviços
+                                </span>
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("other-services-procuration")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Procuração - Outros Serviços</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar procuração específica de outros serviços
+                                </span>
+                              </span>
+                            </Button>
                           </div>
                         </div>
                       ) : null}
@@ -2327,6 +2359,12 @@ export default function FichasWorkspace() {
                             </Button>
                             <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("procuration")}>
                               {documentLoading === "procuration" ? "Gerando procuração..." : "🖨️ PROCURAÇÃO"}
+                            </Button>
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("other-services-contract")}>
+                              {documentLoading === "other-services-contract" ? "Gerando contrato..." : "🖨️ CONTRATO OUTROS SERVIÇOS"}
+                            </Button>
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("other-services-procuration")}>
+                              {documentLoading === "other-services-procuration" ? "Gerando procuração..." : "🖨️ PROCURAÇÃO OUTROS SERVIÇOS"}
                             </Button>
                           </>
                         }

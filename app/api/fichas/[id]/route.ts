@@ -41,6 +41,8 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   observacaoValorRestante: "Observacao do Valor Restante",
   instanciaProcesso: "Instancia do Processo",
   tipoProcesso: "Tipo do Processo",
+  tipoOutroServico: "Tipo do Serviço",
+  poderesOutroServico: "Poderes",
   numeroProcesso: "No do Processo",
   prazoProcesso: "Prazo do Processo",
   vistoJuridico: "Multas do Processo",

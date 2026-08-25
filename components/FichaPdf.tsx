@@ -38,6 +38,8 @@ export type FichaPdfData = {
   prazoProcesso: string
   vistoJuridico: string
   assinaturaVistoJuridico: string
+  tipoOutroServico: string
+  poderesOutroServico: string
   instanciaMulta: string
   autoDetran: string
   autoRenainf: string
@@ -426,6 +428,13 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             ))}
           </>
         ))}
+
+        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
+          <>
+            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
+            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
+          </>
+        )) : null}
 
         {section("MULTAS", (
           <>

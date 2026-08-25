@@ -20,7 +20,12 @@ export function hasMeaningfulDocumentTemplateContent(value: unknown) {
 }
 
 export function parseDocumentTemplateKind(value: unknown): DocumentTemplateKind | null {
-  if (value === "contract" || value === "procuration") return value
+  if (
+    value === "contract" ||
+    value === "procuration" ||
+    value === "other-services-contract" ||
+    value === "other-services-procuration"
+  ) return value
   return null
 }
 
