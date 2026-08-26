@@ -71,9 +71,12 @@ test("workspace resolves potential duplicate clients before definitive creation"
 test("workspace places template editing and preview side by side on wide screens", async () => {
   const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
 
-  assert.match(source, /xl:max-w-\[1500px\]/)
+  assert.match(source, /h-\[calc\(100dvh-1rem\)\]/)
+  assert.match(source, /w-\[calc\(100vw-1rem\)\]/)
+  assert.match(source, /sm:max-w-none/)
   assert.match(source, /grid-cols-1[^\"]*xl:grid-cols-2/)
   assert.match(source, />Conteúdo do modelo</)
   assert.match(source, />Preview do documento</)
   assert.match(source, /h-\[60vh\][^\"]*overflow-y-auto/)
+  assert.match(source, /xl:min-h-0[^\"]*xl:flex-1/)
 })

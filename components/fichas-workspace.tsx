@@ -2481,13 +2481,13 @@ export default function FichasWorkspace() {
             }
           }}
         >
-          <DialogContent className="flex max-h-[94vh] w-[96vw] flex-col overflow-hidden sm:max-w-[96vw] xl:max-w-[1500px]">
+          <DialogContent className="flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-h-none max-w-none flex-col overflow-hidden p-4 sm:max-w-none">
             <DialogHeader>
               <DialogTitle>
                 Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
               </DialogTitle>
             </DialogHeader>
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 xl:overflow-hidden">
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
@@ -2754,8 +2754,8 @@ export default function FichasWorkspace() {
                   </div>
                 </div>
               ) : null}
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <div className="min-w-0 space-y-2">
+              <div className="grid grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-2">
+                <div className="min-w-0 space-y-2 xl:flex xl:min-h-0 xl:flex-col">
                   <p className="text-sm font-medium text-foreground">Conteúdo do modelo</p>
                   <div
                     key={templateEditorKind ?? "template-editor"}
@@ -2798,13 +2798,13 @@ export default function FichasWorkspace() {
                     }}
                     aria-label="Conteudo do modelo de documento"
                     style={{ fontFamily: "Arial, sans-serif" }}
-                    className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none"
+                    className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none xl:h-auto xl:min-h-0 xl:flex-1"
                   />
                 </div>
                 {templateEditorKind && templatePreviewContent ? (
-                  <div className="min-w-0 space-y-2">
+                  <div className="min-w-0 space-y-2 xl:flex xl:min-h-0 xl:flex-col">
                     <p className="text-sm font-medium text-foreground">Preview do documento</p>
-                    <div className="h-[60vh] min-h-[420px] overflow-auto rounded-md border border-border bg-muted/20 p-3">
+                    <div className="h-[60vh] min-h-[420px] overflow-auto rounded-md border border-border bg-muted/20 p-3 xl:h-auto xl:min-h-0 xl:flex-1">
                       <div style={{ minWidth: "620px" }}>
                         <div
                           style={{
