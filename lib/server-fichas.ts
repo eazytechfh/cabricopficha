@@ -140,6 +140,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     tipo_processo: normalizedData.tipoProcesso || null,
     numero_processo: normalizedData.numeroProcesso || null,
     prazo_processo: toDatabaseDate(firstLine(normalizedData.prazoProcesso)),
+    prazos_processo_texto: normalizedData.prazoProcesso || null,
     visto_juridico: normalizedData.vistoJuridico || null,
     assinatura_visto_juridico: normalizedData.prazoProcesso || null,
     tipo_outro_servico: normalizedData.tipoOutroServico || null,
@@ -154,6 +155,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     cpf_proprietario: normalizedData.cpfProprietario || null,
     renavam: normalizedData.renavam || null,
     prazo_multa: toDatabaseDate(normalizedData.prazoMulta),
+    prazos_multa_texto: normalizedData.prazoMulta || null,
     visto_juridico_multa: normalizedData.vistoJuridicoMulta || null,
     processo_vinculado_multa: normalizedData.vistoJuridicoMulta || null,
     observacoes: normalizedData.observacoes || null,
@@ -178,7 +180,7 @@ function getMissingSchemaColumn(payload: Record<string, unknown>) {
 }
 
 function canRetryWithoutColumn(column: string) {
-  return column !== "cpf_proprietario"
+  return !["prazos_processo_texto", "prazos_multa_texto", "cpf_proprietario"].includes(column)
 }
 
 async function parseSupabasePayload(response: Response) {
@@ -226,8 +228,8 @@ async function sendFichaMutation(url: string, method: "POST" | "PATCH", payload:
 
 function fromRow(row: Record<string, unknown>): FichaRecord {
   const address = readAddressFields(row)
-  const prazoProcesso = String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo)
-  const prazoMulta = fromDatabaseDate(row.prazo_multa)
+  const prazoProcesso = String(row.prazos_processo_texto ?? row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo)
+  const prazoMulta = String(row.prazos_multa_texto ?? "") || fromDatabaseDate(row.prazo_multa)
   const pagamentos = parsePaymentEntries(row.pagamentos, {
     formaPagamento: String(row.forma_pagamento ?? ""),
     banco: String(row.banco ?? ""),

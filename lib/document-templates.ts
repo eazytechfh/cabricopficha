@@ -1,5 +1,6 @@
 ﻿import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatFichaCreatedDate } from "@/lib/ficha-date"
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
@@ -214,7 +215,9 @@ function buildMultasResumo(values: FichaFormValues) {
     .join("\n")
 }
 
-function buildPlaceholderValues(values: FichaFormValues) {
+type DocumentTemplateValues = FichaFormValues & { createdAt?: string }
+
+function buildPlaceholderValues(values: DocumentTemplateValues) {
   const payments = parsePaymentEntries(values.pagamentos, values)
   const paymentSummary = payments.map((payment) => {
     const bank = payment.banco ? ` (${payment.banco.toLocaleUpperCase("pt-BR")})` : ""
@@ -268,13 +271,14 @@ function buildPlaceholderValues(values: FichaFormValues) {
     multasResumo: buildMultasResumo(values),
     placas: [...new Set(placas)].join(", ") || "-",
     dataHoje: formatToday(),
+    dataFicha: formatFichaCreatedDate(values.createdAt || ""),
     consultor: values.nomeConsultor || "-",
     tipoOutroServico: values.tipoOutroServico || "-",
     poderesOutroServico: values.poderesOutroServico || "-",
   }
 }
 
-export function fillDocumentTemplate(template: string, values: FichaFormValues, kind: DocumentTemplateKind) {
+export function fillDocumentTemplate(template: string, values: DocumentTemplateValues, kind: DocumentTemplateKind) {
   const placeholders = buildPlaceholderValues(values)
 
   const normalizedTemplate = removeDeprecatedDocumentVariables(normalizeDocumentTemplateContent(template))

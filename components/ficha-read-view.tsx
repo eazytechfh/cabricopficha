@@ -1,7 +1,7 @@
 "use client"
 
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
+import { formatAdditionalObservations, hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
 import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries } from "@/lib/payment-details"
 import type { ReactNode } from "react"
@@ -290,7 +290,7 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
 
       {shouldShowAdditionalObservations(values.observacoes) ? (
         <ReadSection title="Observações Adicionais">
-          <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{values.observacoes}</p>
+          <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{formatAdditionalObservations(values.observacoes)}</p>
         </ReadSection>
       ) : null}
 

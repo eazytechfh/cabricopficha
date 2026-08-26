@@ -2,12 +2,14 @@ import { NextResponse } from "next/server"
 import { deleteFicha, deleteFichaFromExcel, getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha, normalizeFichaValues, toRecordValues } from "@/lib/ficha-utils"
 import { createActivityLog } from "@/lib/server-activity-logs"
+import { buildFichaChanges } from "@/lib/ficha-change-log"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 type RouteContext = {
   params: Promise<{ id: string }>
 }
 
+/* Field comparison lives in ficha-change-log so it can normalize legacy values consistently. */
 const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   dataContrato: "Data do Contrato",
   prazoServico: "Prazo",
@@ -60,30 +62,6 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   observacoes: "Observacoes",
 }
 
-function normalizeCompareValue(value: string) {
-  return String(value || "").trim().replace(/\r\n/g, "\n")
-}
-
-function buildFichaChanges(current: FichaFormValues, next: FichaFormValues) {
-  return (Object.keys(FIELD_LABELS) as Array<keyof FichaFormValues>)
-    .map((key) => {
-      const before = normalizeCompareValue(current[key])
-      const after = normalizeCompareValue(next[key])
-      if (before === after) return null
-
-      return {
-        field: FIELD_LABELS[key],
-        before: before || "-",
-        after: after || "-",
-      }
-    })
-    .filter(Boolean) as Array<{
-    field: string
-    before: string
-    after: string
-  }>
-}
-
 function summarizeFichaChanges(changes: Array<{ field: string }>) {
   if (!changes.length) return "Salvou a ficha sem alterar campos."
 
@@ -120,7 +98,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const currentValues = normalizeFichaValues(toRecordValues(current))
     const nextValues = normalizeFichaValues(data)
-    const changes = buildFichaChanges(currentValues, nextValues)
+    const changes = buildFichaChanges(currentValues, nextValues, FIELD_LABELS)
     const ficha = await updateFicha(id, data, consultor)
     await createActivityLog({
       entityType: "ficha",

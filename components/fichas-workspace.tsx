@@ -18,6 +18,7 @@ import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } 
 import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassword, resetPasswordWithPhone } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { formatFichaNumber } from "@/lib/ficha-client-name"
+import { formatFichaCreatedDate } from "@/lib/ficha-date"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
@@ -77,6 +78,7 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{poderesOutroServico}}",
   "{{placas}}",
   "{{dataHoje}}",
+  "{{dataFicha}}",
   "{{consultor}}",
 ]
 
@@ -184,22 +186,6 @@ function ClienteValue({ label, value }: { label: string; value: string }) {
 function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues; onEdit: () => void; canEdit: boolean }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
-      <div className="grid grid-cols-3 items-center border-b border-slate-300 px-4 py-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Data do contrato</p>
-          <p className="mt-1 text-base font-bold text-[#214674]">{formatDisplayDate(values.dataContrato)}</p>
-        </div>
-        <div className="flex justify-center">
-          <div className="rounded-lg bg-[#214674] px-4 py-2 shadow-sm">
-            <img src="/logo.png" alt="CABRICOP" className="h-10 w-auto object-contain brightness-0 invert" />
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Prazo</p>
-          <p className="mt-1 text-base font-bold text-[#214674]">{formatDisplayDate(values.prazoServico)}</p>
-        </div>
-      </div>
-
       <div className="relative flex items-center justify-center bg-[#214674] px-4 py-2 text-white">
         <UserPlus className="absolute left-4 size-4" />
         <h3 className="text-sm font-bold uppercase tracking-wide">Dados do Cliente</h3>
@@ -237,17 +223,19 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
         <ClienteValue label="Data da 1a CNH" value={formatDisplayDate(values.dataPrimeiraCnh)} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-3">
         <ClienteValue label="Nacionalidade" value={values.nacionalidade} />
         <ClienteValue label="Estado Civil" value={values.estadoCivil} />
         <ClienteValue label="Profissão" value={values.profissao} />
-        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-3">
+        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
         <ClienteValue label="Origem" value={values.origem} />
         <ClienteValue label="SNE" value={values.sne} />
       </div>
+
+      <ClienteValue label="Data do Contrato" value={formatDisplayDate(values.dataContrato)} />
 
     </div>
   )
@@ -592,7 +580,10 @@ export default function FichasWorkspace() {
     setDocumentLoading(kind)
 
     try {
-      await downloadFilledDocumentPdf(kind, editValues)
+      await downloadFilledDocumentPdf(kind, {
+        ...editValues,
+        createdAt: selectedFicha?.createdAt,
+      })
     } catch (error) {
       setEditMessage(error instanceof Error ? error.message : "Erro ao gerar documento.")
     } finally {
@@ -912,9 +903,9 @@ export default function FichasWorkspace() {
     return Array.from(groups.values())
   }, [timelineLogs])
 
-  const templatePreviewValues = useMemo<FichaFormValues>(() => {
+  const templatePreviewValues = useMemo<FichaFormValues & { createdAt?: string }>(() => {
     if (selectedFicha) {
-      return editValues
+      return { ...editValues, createdAt: selectedFicha.createdAt }
     }
 
     return {
@@ -2326,23 +2317,15 @@ export default function FichasWorkspace() {
                         <SelectContent>
                           {selectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
-                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)}
+                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)} · {formatFichaCreatedDate(contrato.createdAt)}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                      {selectedFicha && canEditSelectedFicha ? (
-                        <Button type="button" onClick={handleAddNovoContrato}>
-                          <Plus className="size-4" />
-                          Adicionar
-                        </Button>
-                      ) : null}
-                    </div>
                     {viewMode === "view" && selectedFicha ? (
                       <div className="text-sm font-medium text-muted-foreground lg:text-right">
-                        Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
+                        Data da ficha: <span className="font-semibold text-foreground">{formatFichaCreatedDate(selectedFicha.createdAt)}</span>
                       </div>
                     ) : null}
                   </div>
@@ -2357,6 +2340,11 @@ export default function FichasWorkspace() {
                         actions={
                           <>
                             {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
+                            {canEditSelectedFicha ? (
+                              <Button type="button" size="icon" onClick={handleAddNovoContrato} aria-label="Adicionar ficha" title="Adicionar ficha">
+                                <Plus className="size-4" />
+                              </Button>
+                            ) : null}
                             <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                               🖨️ FICHA
                             </Button>
@@ -2408,7 +2396,6 @@ export default function FichasWorkspace() {
                         submitLabel="Salvar 💾"
                         loading={editLoading}
                         loadingLabel="Atualizando..."
-                        showInlineSubmit
                         visibleSections={viewMode === "editClient" ? ["client"] : undefined}
                         onCancelEdit={() => setViewMode("view")}
                       />

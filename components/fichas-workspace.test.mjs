@@ -88,3 +88,20 @@ test("workspace moves the template log from the footer into a header popover", a
   assert.match(source, /<PopoverContent[^>]*>[\s\S]*?<LogSummary log=\{latestTemplateLog\} \/>[\s\S]*?<\/PopoverContent>/)
   assert.doesNotMatch(source, /<\/div>\s*<LogSummary log=\{latestTemplateLog\} \/>/)
 })
+
+test("consulted ficha omits the legacy header and shows creation date in its selector", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.doesNotMatch(source, /<p[^>]*>Data do contrato<\/p>[\s\S]*?<img src="\/logo\.png"[\s\S]*?<p[^>]*>Prazo<\/p>/i)
+  assert.match(source, /Data do Contrato[\s\S]*formatDisplayDate\(values\.dataContrato\)/)
+  assert.match(source, /formatFichaCreatedDate\(selectedFicha\.createdAt\)/)
+  assert.match(source, /getFichaLabel\(contrato\.numeroFicha, contrato\.nomeCliente\)[\s\S]*formatFichaCreatedDate\(contrato\.createdAt\)/)
+})
+
+test("workspace uses one final save button and a compact add action while editing", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.doesNotMatch(source, /showInlineSubmit/)
+  assert.match(source, /aria-label="Adicionar ficha"/)
+  assert.doesNotMatch(source, /<Plus className="size-4" \/>\s*Adicionar/)
+})

@@ -7,7 +7,7 @@ import { generatePdf } from "@/lib/generatePdf"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { getDocumentTemplate } from "@/lib/document-template-client"
 
-export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, values: FichaFormValues) {
+export async function downloadFilledDocumentPdf(kind: DocumentTemplateKind, values: FichaFormValues & { createdAt?: string }) {
   const template = await getDocumentTemplate(kind).catch(() => ({
     key: kind,
     title: DOCUMENT_TEMPLATE_LABELS[kind],

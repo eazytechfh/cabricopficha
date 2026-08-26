@@ -14,3 +14,7 @@ export function hasFilledText(values: unknown[]) {
 export function shouldShowAdditionalObservations(value: string) {
   return value.trim().length > 0
 }
+
+export function formatAdditionalObservations(value: string) {
+  return value.replace(/^\s*Data:\s*/i, "").trim()
+}
