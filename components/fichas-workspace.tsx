@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
@@ -2487,6 +2488,24 @@ export default function FichasWorkspace() {
                 Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
               </DialogTitle>
             </DialogHeader>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Visualizar log do modelo"
+                  title="Visualizar log do modelo"
+                  className="absolute right-12 top-2.5 z-10 h-8 gap-1.5 px-2.5"
+                >
+                  <Clock3 className="size-4" />
+                  <span className="hidden sm:inline">Log</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="w-[min(360px,calc(100vw-2rem))] p-2">
+                <LogSummary log={latestTemplateLog} />
+              </PopoverContent>
+            </Popover>
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 xl:overflow-hidden">
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
@@ -2825,7 +2844,6 @@ export default function FichasWorkspace() {
                   </div>
                 ) : null}
               </div>
-              <LogSummary log={latestTemplateLog} />
               {templateLoading && !templateSaving ? <p className="text-sm text-muted-foreground">Carregando modelo...</p> : null}
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>

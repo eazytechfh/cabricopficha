@@ -80,3 +80,11 @@ test("workspace places template editing and preview side by side on wide screens
   assert.match(source, /h-\[60vh\][^\"]*overflow-y-auto/)
   assert.match(source, /xl:min-h-0[^\"]*xl:flex-1/)
 })
+
+test("workspace moves the template log from the footer into a header popover", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.match(source, /aria-label="Visualizar log do modelo"/)
+  assert.match(source, /<PopoverContent[^>]*>[\s\S]*?<LogSummary log=\{latestTemplateLog\} \/>[\s\S]*?<\/PopoverContent>/)
+  assert.doesNotMatch(source, /<\/div>\s*<LogSummary log=\{latestTemplateLog\} \/>/)
+})
