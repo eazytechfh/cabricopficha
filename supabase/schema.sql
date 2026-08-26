@@ -3,6 +3,7 @@ create table if not exists public.fichas_venda (
   data_contrato date,
   prazo_servico date,
   nome_cliente text not null,
+  numero_ficha integer check (numero_ficha > 0),
   terceiros text,
   telefones text,
   endereco text,
@@ -63,6 +64,7 @@ create index if not exists fichas_venda_cpf_normalizado_idx
 on public.fichas_venda (cpf_normalizado);
 
 alter table public.fichas_venda
+add column if not exists numero_ficha integer,
 add column if not exists numero_endereco text,
 add column if not exists complemento_endereco text,
 add column if not exists pagamentos jsonb not null default '[]'::jsonb,
@@ -79,6 +81,53 @@ add column if not exists municipio text,
 add column if not exists uf text,
 add column if not exists tipo_outro_servico text,
 add column if not exists poderes_outro_servico text;
+
+create unique index if not exists fichas_venda_cpf_numero_ficha_uidx
+on public.fichas_venda (
+  (coalesce(nullif(cpf_normalizado, ''), nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), ''))),
+  numero_ficha
+)
+where numero_ficha is not null
+  and coalesce(nullif(cpf_normalizado, ''), nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), '')) is not null;
+
+create or replace function public.assign_ficha_number()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  cpf_key text;
+begin
+  cpf_key := coalesce(
+    nullif(new.cpf_normalizado, ''),
+    nullif(regexp_replace(coalesce(new.cpf_cnpj, ''), '\D', '', 'g'), '')
+  );
+
+  if cpf_key is null then
+    new.numero_ficha := coalesce(new.numero_ficha, 1);
+    return new;
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext(cpf_key));
+
+  select coalesce(max(numero_ficha), 0) + 1
+  into new.numero_ficha
+  from public.fichas_venda
+  where coalesce(
+    nullif(cpf_normalizado, ''),
+    nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), '')
+  ) = cpf_key;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists assign_ficha_number on public.fichas_venda;
+
+create trigger assign_ficha_number
+before insert on public.fichas_venda
+for each row
+execute function public.assign_ficha_number();
 
 alter table public.fichas_venda enable row level security;
 

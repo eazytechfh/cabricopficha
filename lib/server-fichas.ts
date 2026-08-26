@@ -63,7 +63,7 @@ function firstLine(value: string) {
 }
 
 function stripIdentifierSuffix(value: string) {
-  return (value || "").trim().replace(/\s+\d{2}$/, "")
+  return (value || "").trim().replace(/\s+\d{1,2}$/, "")
 }
 
 async function getFichaSequenceByCpf(cpf: string) {
@@ -75,7 +75,9 @@ async function getFichaSequenceByCpf(cpf: string) {
   }
 
   const searchParams = new URLSearchParams({
-    select: "id",
+    select: "numero_ficha",
+    order: "numero_ficha.desc",
+    limit: "1",
     or: `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`,
   })
 
@@ -89,7 +91,9 @@ async function getFichaSequenceByCpf(cpf: string) {
     throw new Error(payload.message || payload.error || "Erro ao calcular identificador da ficha.")
   }
 
-  return (payload as Array<Record<string, unknown>>).length + 1
+  const rows = payload as Array<Record<string, unknown>>
+  const highestSequence = Number(rows[0]?.numero_ficha ?? 0)
+  return highestSequence + 1
 }
 
 function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "create" | "update") {
@@ -232,6 +236,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
 
   return {
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     dataContrato: String(row.data_contrato ?? ""),
     prazoServico: calculatePrazoServico(prazoProcesso, prazoMulta),
     nomeCliente: String(row.nome_cliente ?? ""),
@@ -299,6 +304,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   const select = [
     "id",
+    "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
     "telefones",
@@ -329,6 +335,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
@@ -354,6 +361,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   const select = [
     "id",
+    "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
     "telefones",
@@ -394,6 +402,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
@@ -500,9 +509,10 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
   const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)
   const identifiedData = {
     ...data,
-    nomeCliente: `${baseNomeCliente} ${String(sequence).padStart(2, "0")}`.trim(),
+    nomeCliente: baseNomeCliente,
   }
   const payload: Record<string, unknown> = toPayload(identifiedData, consultor, "create")
+  payload.numero_ficha = sequence
 
   const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}`, "POST", payload)
 
@@ -548,6 +558,7 @@ async function readWorkbookRows() {
 function fichaToExcelRow(ficha: FichaRecord) {
   return {
     id: ficha.id,
+    numeroFicha: ficha.numeroFicha,
     data: ficha.dataContrato,
     prazoGeral: ficha.prazoServico,
     nome: ficha.nomeCliente,

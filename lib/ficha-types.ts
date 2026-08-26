@@ -96,6 +96,7 @@ export type FichaFormValues = {
 
 export type FichaRecord = FichaFormValues & {
   id: string
+  numeroFicha: number
   cpfNormalizado: string
   createdAt: string
   updatedAt: string
@@ -107,6 +108,7 @@ export type FichaListItem = Pick<
   FichaRecord,
   | "id"
   | "nomeCliente"
+  | "numeroFicha"
   | "cpfCnpj"
   | "telefones"
   | "endereco"

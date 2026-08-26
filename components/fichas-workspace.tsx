@@ -16,6 +16,7 @@ import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassword, resetPasswordWithPhone } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
+import { formatFichaNumber } from "@/lib/ficha-client-name"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
@@ -133,10 +134,14 @@ function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   return "Comercial"
 }
 
-function getFichaLabel(nomeCliente: string) {
+function getFichaLabel(numeroFicha: number, nomeCliente: string) {
+  if (numeroFicha > 0) {
+    return `Ficha ${formatFichaNumber(numeroFicha)}`
+  }
+
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
   if (match) {
-    return `Ficha ${match[1]}`
+    return `Ficha ${formatFichaNumber(Number(match[1]))}`
   }
 
   return "Ficha"
@@ -2320,7 +2325,7 @@ export default function FichasWorkspace() {
                         <SelectContent>
                           {selectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
-                              {getFichaLabel(contrato.nomeCliente)}
+                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)}
                             </SelectItem>
                           ))}
                         </SelectContent>
