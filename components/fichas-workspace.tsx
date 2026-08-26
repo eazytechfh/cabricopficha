@@ -2481,7 +2481,7 @@ export default function FichasWorkspace() {
             }
           }}
         >
-          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
+          <DialogContent className="flex max-h-[94vh] w-[96vw] flex-col overflow-hidden sm:max-w-[96vw] xl:max-w-[1500px]">
             <DialogHeader>
               <DialogTitle>
                 Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
@@ -2754,72 +2754,77 @@ export default function FichasWorkspace() {
                   </div>
                 </div>
               ) : null}
-              <div
-                key={templateEditorKind ?? "template-editor"}
-                ref={handleTemplateEditorRef}
-                contentEditable={!templateLoading}
-                suppressContentEditableWarning
-                onInput={(event) => {
-                  templateRedoHistoryRef.current = []
-                  setTemplateContent(event.currentTarget.innerHTML)
-                  captureTemplateSelection()
-                }}
-                onFocus={captureTemplateSelection}
-                onKeyUp={captureTemplateSelection}
-                onKeyDown={(event) => {
-                  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
-                    event.preventDefault()
-                    handleTemplateCommand(event.shiftKey ? "redo" : "undo")
-                    return
-                  }
-                  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
-                    event.preventDefault()
-                    handleTemplateCommand("redo")
-                    return
-                  }
-                  if (event.key !== " ") return
-                  if (!convertEmptyListItemToSpacer(event.currentTarget)) return
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Conteúdo do modelo</p>
+                  <div
+                    key={templateEditorKind ?? "template-editor"}
+                    ref={handleTemplateEditorRef}
+                    contentEditable={!templateLoading}
+                    suppressContentEditableWarning
+                    onInput={(event) => {
+                      templateRedoHistoryRef.current = []
+                      setTemplateContent(event.currentTarget.innerHTML)
+                      captureTemplateSelection()
+                    }}
+                    onFocus={captureTemplateSelection}
+                    onKeyUp={captureTemplateSelection}
+                    onKeyDown={(event) => {
+                      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+                        event.preventDefault()
+                        handleTemplateCommand(event.shiftKey ? "redo" : "undo")
+                        return
+                      }
+                      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+                        event.preventDefault()
+                        handleTemplateCommand("redo")
+                        return
+                      }
+                      if (event.key !== " ") return
+                      if (!convertEmptyListItemToSpacer(event.currentTarget)) return
 
-                  event.preventDefault()
-                  setTemplateContent(event.currentTarget.innerHTML)
-                  captureTemplateSelection()
-                }}
-                onMouseUp={captureTemplateSelection}
-                onClick={(event) => {
-                  const target = event.target
-                  if (target instanceof HTMLImageElement) {
-                    handleSelectTemplateImage(target)
-                  } else {
-                    handleSelectTemplateImage(null)
-                  }
-                }}
-                aria-label="Conteudo do modelo de documento"
-                style={{ fontFamily: "Arial, sans-serif" }}
-                className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none"
-              />
-              {templateEditorKind && templatePreviewContent ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Preview do documento</p>
-                  <div className="max-h-[520px] overflow-auto rounded-md border border-border bg-muted/20 p-3">
-                    <div style={{ minWidth: "740px" }}>
-                      <div
-                        style={{
-                          width: "980px",
-                          height: "860px",
-                          transform: "scale(0.72)",
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <DocumentTemplatePdf
-                          title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
-                          content={templatePreviewContent}
-                          renderTitle={false}
-                        />
+                      event.preventDefault()
+                      setTemplateContent(event.currentTarget.innerHTML)
+                      captureTemplateSelection()
+                    }}
+                    onMouseUp={captureTemplateSelection}
+                    onClick={(event) => {
+                      const target = event.target
+                      if (target instanceof HTMLImageElement) {
+                        handleSelectTemplateImage(target)
+                      } else {
+                        handleSelectTemplateImage(null)
+                      }
+                    }}
+                    aria-label="Conteudo do modelo de documento"
+                    style={{ fontFamily: "Arial, sans-serif" }}
+                    className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none"
+                  />
+                </div>
+                {templateEditorKind && templatePreviewContent ? (
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-sm font-medium text-foreground">Preview do documento</p>
+                    <div className="h-[60vh] min-h-[420px] overflow-auto rounded-md border border-border bg-muted/20 p-3">
+                      <div style={{ minWidth: "620px" }}>
+                        <div
+                          style={{
+                            width: "980px",
+                            height: "860px",
+                            transform: "scale(0.62)",
+                            transformOrigin: "top left",
+                          }}
+                        >
+                          <DocumentTemplatePdf
+                            title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
+                            content={templatePreviewContent}
+                            renderTitle={false}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
               <LogSummary log={latestTemplateLog} />
               {templateLoading && !templateSaving ? <p className="text-sm text-muted-foreground">Carregando modelo...</p> : null}
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
