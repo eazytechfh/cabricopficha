@@ -1,5 +1,6 @@
 const PDF_PAGE_GAP_MM = 6
 const PDF_RENDER_SCALE = 2
+const PDF_IMAGE_QUALITY = 0.82
 const PDF_MARGIN_X_MM = 6
 const PDF_MARGIN_Y_MM = 6
 
@@ -90,9 +91,9 @@ function appendCanvasToPdf(
   widthMm: number,
   xMm: number
 ) {
-  const imageData = canvas.toDataURL("image/png")
+  const imageData = canvas.toDataURL("image/jpeg", PDF_IMAGE_QUALITY)
   const heightMm = getImageHeightMm(canvas, widthMm)
-  pdf.addImage(imageData, "PNG", xMm, yMm, widthMm, heightMm)
+  pdf.addImage(imageData, "JPEG", xMm, yMm, widthMm, heightMm, undefined, "FAST")
   return heightMm
 }
 
@@ -207,7 +208,7 @@ export async function generatePdf(element: HTMLElement, filename: string) {
   await new Promise((resolve) => setTimeout(resolve, 250))
 
   try {
-    const pdf = new jsPDF("p", "mm", "a4")
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true })
     const pageWidthMm = pdf.internal.pageSize.getWidth()
     const pageHeightMm = pdf.internal.pageSize.getHeight()
     const renderWidthMm = pageWidthMm - PDF_MARGIN_X_MM * 2

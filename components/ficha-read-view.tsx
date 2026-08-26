@@ -1,6 +1,7 @@
 "use client"
 
 import type { FichaFormValues } from "@/lib/ficha-types"
+import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
 import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries } from "@/lib/payment-details"
 import type { ReactNode } from "react"
@@ -17,10 +18,6 @@ function fallback(value: string) {
 
 function hasText(value: string) {
   return Boolean(value?.trim())
-}
-
-function hasAnyText(values: string[]) {
-  return values.some(hasText)
 }
 
 function formatDate(value: string) {
@@ -184,10 +181,10 @@ function formatMoneyValue(value: string) {
 export function FichaReadView({ values, actions, details }: FichaReadViewProps) {
   const payments = parsePaymentEntries(values.pagamentos, values)
   const processoLines = getProcessoLines(values).filter((line) =>
-    hasAnyText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
+    hasFilledText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
   )
   const multaBlocks = getMultaBlocks(values).filter((block) =>
-    hasAnyText([
+    hasFilledText([
       block.instanciaMulta,
       block.autoDetran,
       block.autoRenainf,
@@ -196,6 +193,7 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
       block.cpfProprietario,
       block.renavam,
       block.prazoMulta,
+      block.processoVinculado,
     ])
   )
 
@@ -247,7 +245,7 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         </ReadSection>
       ) : null}
 
-      {hasAnyText([values.tipoOutroServico, values.poderesOutroServico]) ? (
+      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
         <ReadSection title="Outros Serviços">
           <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
             <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
@@ -261,7 +259,7 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
           <div className="divide-y divide-slate-300">
             {multaBlocks.map((block, index) => {
               const multaLines = getMultaLines(block).filter((line) =>
-                hasAnyText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
+                hasFilledText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
               )
 
               return (
@@ -290,9 +288,11 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         </ReadSection>
       ) : null}
 
-      <ReadSection title="Observações Adicionais">
-        <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{fallback(values.observacoes)}</p>
-      </ReadSection>
+      {shouldShowAdditionalObservations(values.observacoes) ? (
+        <ReadSection title="Observações Adicionais">
+          <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{values.observacoes}</p>
+        </ReadSection>
+      ) : null}
 
       </div>
     </div>

@@ -1,4 +1,6 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
+import { formatClientDisplayName } from "@/lib/ficha-client-name"
+import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
 import { normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
@@ -344,7 +346,19 @@ function signatureField(label: string) {
 export default function FichaPdf({ data }: FichaPdfProps) {
   const paymentLines = parsePaymentEntries(data.pagamentos, { formaPagamento: data.formaPagamento, banco: data.banco, valorEntrada: String(data.valorEntrada) })
   const processoLines = getProcessoLines(data)
-  const multaBlocks = getMultaBlocks(data)
+  const multaBlocks = getMultaBlocks(data).filter((block) =>
+    hasFilledText([
+      block.instanciaMulta,
+      block.autoDetran,
+      block.autoRenainf,
+      block.tipoMulta,
+      block.placa,
+      block.cpfProprietario,
+      block.renavam,
+      block.prazoMulta,
+      block.processoVinculado,
+    ])
+  )
 
   return (
     <div style={pageStyle}>
@@ -390,7 +404,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
 
         {section("DADOS DO CLIENTE", (
           <>
-            {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
+            {gridRow("1.1fr 1fr", [field("Nome Completo", formatClientDisplayName(data.nomeCliente)), field("Terceiros", data.terceiros)])}
             {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
             {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.numeroEndereco, data.complementoEndereco, data.municipio, data.uf))])}
             {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
@@ -436,7 +450,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         )) : null}
 
-        {section("MULTAS", (
+        {multaBlocks.length > 0 ? section("MULTAS", (
           <>
             {multaBlocks.map((block, blockIndex) => (
               <div key={`multa-${blockIndex}`}>
@@ -465,9 +479,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               </div>
             ))}
           </>
-        ))}
+        )) : null}
 
-        {section("OBSERVAÇÕES ADICIONAIS", (
+        {shouldShowAdditionalObservations(data.observacoes) ? section("OBSERVAÇÕES ADICIONAIS", (
           <>
             <div
               style={{
@@ -482,7 +496,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               {fallback(data.observacoes)}
             </div>
           </>
-        ))}
+        )) : null}
 
       </div>
     </div>
