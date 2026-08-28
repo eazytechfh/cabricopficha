@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
+import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS, formatOptionInitialCaps } from "@/lib/ficha-options"
 import { validarCPF } from "@/lib/cpf-utils"
 import { updateAddressFields } from "@/lib/address-fields"
 import type { FichaFormValues } from "@/lib/ficha-types"
@@ -984,7 +984,7 @@ export function FichaForm({
                 <SelectContent>
                   {ESTADO_CIVIL_OPTIONS.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {option}
+                      {formatOptionInitialCaps(option)}
                     </SelectItem>
                   ))}
                 </SelectContent>
