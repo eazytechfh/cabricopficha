@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, Calendar, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } 
 import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassword, resetPasswordWithPhone } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
 import { formatFichaNumber } from "@/lib/ficha-client-name"
-import { formatFichaCreatedDate } from "@/lib/ficha-date"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
 import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
@@ -234,8 +233,6 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
         <ClienteValue label="Origem" value={values.origem} />
         <ClienteValue label="SNE" value={values.sne} />
       </div>
-
-      <ClienteValue label="Data do Contrato" value={formatDisplayDate(values.dataContrato)} />
 
     </div>
   )
@@ -2305,6 +2302,18 @@ export default function FichasWorkspace() {
                     <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
                   ) : null}
 
+                  {selectedFicha ? (
+                    <div className="overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
+                      <div className="flex items-center gap-2 bg-[#214674] px-4 py-2 text-white">
+                        <Calendar className="size-4" />
+                        <h3 className="text-sm font-bold uppercase tracking-wide">Data do Contrato</h3>
+                      </div>
+                      <div className="px-4 py-3 text-base font-semibold text-slate-900">
+                        {formatDisplayDate(selectedFicha.dataContrato)}
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex flex-col gap-1">
                       <Label htmlFor="listaFichas" className="leading-none">
@@ -2317,7 +2326,7 @@ export default function FichasWorkspace() {
                         <SelectContent>
                           {selectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
-                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)} · {formatFichaCreatedDate(contrato.createdAt)}
+                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)} · {formatDisplayDate(contrato.dataContrato)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -2325,7 +2334,7 @@ export default function FichasWorkspace() {
                     </div>
                     {viewMode === "view" && selectedFicha ? (
                       <div className="text-sm font-medium text-muted-foreground lg:text-right">
-                        Data da ficha: <span className="font-semibold text-foreground">{formatFichaCreatedDate(selectedFicha.createdAt)}</span>
+                        Data da ficha: <span className="font-semibold text-foreground">{formatDisplayDate(selectedFicha.dataContrato)}</span>
                       </div>
                     ) : null}
                   </div>

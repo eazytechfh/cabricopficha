@@ -89,13 +89,14 @@ test("workspace moves the template log from the footer into a header popover", a
   assert.doesNotMatch(source, /<\/div>\s*<LogSummary log=\{latestTemplateLog\} \/>/)
 })
 
-test("consulted ficha omits the legacy header and shows creation date in its selector", async () => {
+test("consulted ficha shows the contract date as the ficha date", async () => {
   const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
 
   assert.doesNotMatch(source, /<p[^>]*>Data do contrato<\/p>[\s\S]*?<img src="\/logo\.png"[\s\S]*?<p[^>]*>Prazo<\/p>/i)
-  assert.match(source, /Data do Contrato[\s\S]*formatDisplayDate\(values\.dataContrato\)/)
-  assert.match(source, /formatFichaCreatedDate\(selectedFicha\.createdAt\)/)
-  assert.match(source, /getFichaLabel\(contrato\.numeroFicha, contrato\.nomeCliente\)[\s\S]*formatFichaCreatedDate\(contrato\.createdAt\)/)
+  assert.match(source, /Data do Contrato[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
+  assert.match(source, /Data da ficha:[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
+  assert.match(source, /getFichaLabel\(contrato\.numeroFicha, contrato\.nomeCliente\)[\s\S]*formatDisplayDate\(contrato\.dataContrato\)/)
+  assert.doesNotMatch(source, /ClienteValue label="Data do Contrato"/)
 })
 
 test("workspace uses one final save button and a compact add action while editing", async () => {

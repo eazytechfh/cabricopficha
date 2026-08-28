@@ -787,7 +787,7 @@ export function FichaForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className={`order-[10] border-l-4 border-l-primary shadow-md ${shouldShowSection("contract") ? "" : "hidden"}`}>
+      <Card className={`order-[20] border-l-4 border-l-primary shadow-md ${shouldShowSection("contract") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Calendar className="w-5 h-5" />
@@ -806,7 +806,7 @@ export function FichaForm({
           </CardContent>
         </Card>
 
-      <Card className={`order-[20] border-l-4 border-l-primary shadow-md ${shouldShowSection("client") ? "" : "hidden"}`}>
+      <Card className={`order-[10] border-l-4 border-l-primary shadow-md ${shouldShowSection("client") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <User className="w-5 h-5" />
