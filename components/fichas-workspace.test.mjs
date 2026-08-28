@@ -95,8 +95,11 @@ test("consulted ficha shows the contract date as the ficha date", async () => {
   assert.doesNotMatch(source, /<p[^>]*>Data do contrato<\/p>[\s\S]*?<img src="\/logo\.png"[\s\S]*?<p[^>]*>Prazo<\/p>/i)
   assert.match(source, /Data do Contrato[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
   assert.match(source, /Data da ficha:[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
-  assert.match(source, /getFichaLabel\(contrato\.numeroFicha, contrato\.nomeCliente\)[\s\S]*formatDisplayDate\(contrato\.dataContrato\)/)
+  assert.match(source, /getFichaLabel\(selectedFichaNumbers\.get\(contrato\.id\)[\s\S]*formatDisplayDate\(contrato\.dataContrato\)/)
   assert.doesNotMatch(source, /ClienteValue label="Data do Contrato"/)
+  assert.match(source, /value\.match\(\/\^\(\\d\{4\}\)-\(\\d\{2\}\)-\(\\d\{2\}\)\//)
+  assert.match(source, /numbersAreReliable/)
+  assert.match(source, /selectedFichaNumbers\.get\(contrato\.id\)/)
 })
 
 test("workspace uses one final save button and a compact add action while editing", async () => {

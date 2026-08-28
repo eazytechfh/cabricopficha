@@ -160,9 +160,9 @@ function fallback(value: string) {
 
 function formatDisplayDate(value: string) {
   if (!value) return "-"
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return value
+  return `${match[3]}/${match[2]}/${match[1]}`
 }
 
 type ConsultaClienteGroup = {
@@ -448,6 +448,20 @@ export default function FichasWorkspace() {
     () => (clientBaseFicha ? toRecordValues(clientBaseFicha) : editValues),
     [clientBaseFicha, editValues]
   )
+
+  const selectedFichaNumbers = useMemo(() => {
+    const validNumbers = selectedContratos.map((ficha) => ficha.numeroFicha).filter((number) => number > 0)
+    const numbersAreReliable = validNumbers.length === selectedContratos.length && new Set(validNumbers).size === selectedContratos.length
+
+    if (numbersAreReliable) {
+      return new Map(selectedContratos.map((ficha) => [ficha.id, ficha.numeroFicha]))
+    }
+
+    const chronological = [...selectedContratos].sort((left, right) =>
+      `${left.dataContrato}|${left.createdAt}|${left.id}`.localeCompare(`${right.dataContrato}|${right.createdAt}|${right.id}`)
+    )
+    return new Map(chronological.map((ficha, index) => [ficha.id, index + 1]))
+  }, [selectedContratos])
 
   const consultaClienteGroups = useMemo(() => {
     const groups = new Map<string, ConsultaClienteGroup>()
@@ -2327,7 +2341,7 @@ export default function FichasWorkspace() {
                         <SelectContent>
                           {selectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
-                              {getFichaLabel(contrato.numeroFicha, contrato.nomeCliente)} · {formatDisplayDate(contrato.dataContrato)}
+                              {getFichaLabel(selectedFichaNumbers.get(contrato.id) ?? contrato.numeroFicha, contrato.nomeCliente)} · {formatDisplayDate(contrato.dataContrato)}
                             </SelectItem>
                           ))}
                         </SelectContent>
