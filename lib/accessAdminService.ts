@@ -36,6 +36,7 @@ export async function createAccessUser(
     email: string
     telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
+    password: string
     appOrigin?: string
   }
 ) {
@@ -71,6 +72,7 @@ export async function updateAccessUser(
     telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
     ativo: boolean
+    password?: string
   }
 ) {
   const response = await fetch(`/api/access-codes/${id}`, {

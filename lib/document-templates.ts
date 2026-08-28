@@ -1,7 +1,12 @@
 ﻿import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatCurrency, normalizeCpfCnpj, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatFichaCreatedDate } from "@/lib/ficha-date"
+import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
-export type DocumentTemplateKind = "contract" | "procuration"
+export { prepareDocumentTemplateContent } from "@/lib/document-template-content"
+import { removeDeprecatedDocumentVariables } from "@/lib/document-template-content"
+
+export type DocumentTemplateKind = "contract" | "procuration" | "other-services-contract" | "other-services-procuration"
 
 export type DocumentTemplateRecord = {
   key: DocumentTemplateKind
@@ -12,6 +17,8 @@ export type DocumentTemplateRecord = {
 export const DOCUMENT_TEMPLATE_LABELS: Record<DocumentTemplateKind, string> = {
   contract: "Contrato",
   procuration: "Procuração",
+  "other-services-contract": "Contrato de Outros Serviços",
+  "other-services-procuration": "Procuração de Outros Serviços",
 }
 
 export const DEFAULT_DOCUMENT_TEMPLATES: Record<DocumentTemplateKind, string> = {
@@ -27,8 +34,6 @@ Este instrumento tem como objeto a prestação de serviços de assessoria e elab
 {{processosResumo}}
 
 {{multasResumo}}
-
-{{clausulaAdicional}}
 
 REFERENTE A PLACA(S): {{placas}}
 
@@ -68,6 +73,44 @@ Rio de Janeiro, {{dataHoje}}.
 OUTORGANTE
 
 {{nomeCliente}}`,
+  "other-services-contract": `CONTRATO - OUTROS SERVIÇOS
+
+CONTRATADA: CABRICOP SERVIÇOS E ASSUNTOS DE TRÂNSITO LTDA. ME, inscrita no CNPJ sob o nº 16.513.797/0001-60, com sede na Pça Olavo Bilac, 28, sala 1816, Centro, Rio de Janeiro - RJ, CEP 20.041-010.
+
+CONTRATANTE: {{qualificacaoCliente}}.
+
+Tipo do Serviço
+{{tipoOutroServico}}
+
+Objeto e Poderes
+{{poderesOutroServico}}
+
+Pela prestação dos serviços, a CONTRATANTE pagará o valor total de {{valorTotal}}, por {{formaPagamento}}.
+
+Rio de Janeiro, {{dataHoje}}.
+
+CABRICOP SERVIÇOS E ASSUNTOS DE TRÂNSITO - CONTRATADA
+
+{{nomeCliente}}
+CONTRATANTE
+
+Consultor: {{consultor}}`,
+  "other-services-procuration": `PROCURAÇÃO - OUTROS SERVIÇOS
+
+OUTORGANTE: {{qualificacaoCliente}}.
+
+OUTORGADO: ADRIANA MELLO RODRIGUES MENDES, portadora da OAB/RJ 213525, com escritório na Praça Olavo Bilac nº 28 sala 1906 e 1816, Centro - Rio de Janeiro - RJ, CEP: 20041-010.
+
+TIPO DO SERVIÇO: {{tipoOutroServico}}.
+
+PODERES: {{poderesOutroServico}}.
+
+Rio de Janeiro, {{dataHoje}}.
+
+--------------------------------------------------------
+OUTORGANTE
+
+{{nomeCliente}}`,
 }
 
 function escapeHtml(value: string) {
@@ -94,13 +137,6 @@ function splitLines(value: string) {
   return value.split("\n")
 }
 
-function formatDate(value: string) {
-  if (!value) return "-"
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
-}
-
 function formatToday() {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -111,55 +147,87 @@ function formatToday() {
 
 function getMultaLines(values: FichaFormValues) {
   const placas = splitSerializedEntries(values.placa)
-  const autosDetran = splitSerializedEntries(values.autoDetran)
-  const autosRenainf = splitSerializedEntries(values.autoRenainf)
-  const prazos = splitSerializedEntries(values.prazoMulta)
-  const maxLength = Math.max(placas.length, autosDetran.length, autosRenainf.length, prazos.length, 1)
+  const instanciaBlocks = splitSerializedEntries(values.instanciaMulta)
+  const autoDetranBlocks = splitSerializedEntries(values.autoDetran)
+  const autoRenainfBlocks = splitSerializedEntries(values.autoRenainf)
+  const blockCount = Math.max(placas.length, instanciaBlocks.length, autoDetranBlocks.length, autoRenainfBlocks.length, 1)
 
-  return Array.from({ length: maxLength }, (_, index) => ({
-    placa: placas[index] || "",
-    auto: autosDetran[index] || autosRenainf[index] || "",
-    prazo: prazos[index] || "",
-  }))
+  return Array.from({ length: blockCount }).flatMap((_, blockIndex) => {
+    const instancias = splitLines(instanciaBlocks[blockIndex] || "")
+    const autosDetran = splitLines(autoDetranBlocks[blockIndex] || "")
+    const autosRenainf = splitLines(autoRenainfBlocks[blockIndex] || "")
+    const lineCount = Math.max(instancias.length, autosDetran.length, autosRenainf.length, 1)
+
+    return Array.from({ length: lineCount }, (_, lineIndex) => ({
+      instancia: instancias[lineIndex] || "",
+      placa: placas[blockIndex] || "",
+      autoDetran: autosDetran[lineIndex] || "",
+      autoRenainf: autosRenainf[lineIndex] || "",
+    }))
+  })
 }
 
 function getProcessoLines(values: FichaFormValues) {
+  const instancias = splitLines(values.instanciaProcesso)
   const tipos = splitLines(values.tipoProcesso)
   const numeros = splitLines(values.numeroProcesso)
-  const prazos = splitLines(values.prazoProcesso)
-  const maxLength = Math.max(tipos.length, numeros.length, prazos.length, 1)
+  const maxLength = Math.max(instancias.length, tipos.length, numeros.length, 1)
 
   return Array.from({ length: maxLength }, (_, index) => ({
+    instancia: instancias[index] || "",
     tipo: tipos[index] || "",
     numero: numeros[index] || "",
-    prazo: prazos[index] || "",
   }))
 }
 
 function buildProcessosResumo(values: FichaFormValues) {
-  const lines = getProcessoLines(values).filter((line) => line.tipo || line.numero || line.prazo)
+  const lines = getProcessoLines(values).filter((line) => line.instancia || line.tipo || line.numero)
   if (!lines.length) return "-"
 
   return lines
-    .map((line, index) => `${index + 1}. ${line.tipo || "Processo"} nº ${line.numero || "-"} - prazo ${formatDate(line.prazo)}`)
+    .map((line, index) => `${index + 1}. Instância do Processo: ${line.instancia || "-"} - Tipo do Processo: ${line.tipo || "-"} - Nº do Processo: ${line.numero || "-"}`)
     .join("\n")
+}
+
+function formatMultaInstancias(value: string) {
+  const labels = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const normalized = item.toLocaleUpperCase("pt-BR")
+      if (normalized === "DP" || normalized === "DEFESA PRÉVIA" || normalized === "DEFESA PREVIA") return "Defesa Prévia"
+      if (/^1[^À-ſ\w]?\s*INST/.test(normalized)) return "1º Instância"
+      if (/^2[^À-ſ\w]?\s*INST/.test(normalized)) return "2º Instância"
+      return item
+    })
+
+  if (labels.length <= 1) return labels[0] || "-"
+  return `${labels.slice(0, -1).join(", ")} e ${labels.at(-1)}`
 }
 
 function buildMultasResumo(values: FichaFormValues) {
-  const lines = getMultaLines(values).filter((line) => line.placa || line.auto || line.prazo)
+  const lines = getMultaLines(values).filter((line) => line.instancia || line.autoDetran || line.autoRenainf || line.placa)
   if (!lines.length) return "-"
 
   return lines
-    .map((line, index) => `${index + 1}. Auto ${line.auto || "-"} - placa ${line.placa || "-"} - prazo ${formatDate(line.prazo)}`)
+    .map((line) => `${formatMultaInstancias(line.instancia)} - Auto: ${line.autoDetran || line.autoRenainf || "-"} - Placa: ${line.placa || "-"}`)
     .join("\n")
 }
 
-function buildPlaceholderValues(values: FichaFormValues) {
+type DocumentTemplateValues = FichaFormValues & { createdAt?: string }
+
+function buildPlaceholderValues(values: DocumentTemplateValues) {
+  const payments = parsePaymentEntries(values.pagamentos, values)
+  const paymentSummary = payments.map((payment) => {
+    const bank = payment.banco ? ` (${payment.banco.toLocaleUpperCase("pt-BR")})` : ""
+    return `${payment.formaPagamento.toLocaleUpperCase("pt-BR")}${bank}: ${formatCurrency(parsePaymentAmount(payment.valor))}`
+  }).join("; ")
   const nomeCliente = (values.nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
   const placas = getMultaLines(values)
     .map((line) => line.placa.trim().toUpperCase())
     .filter(Boolean)
-  const enderecoCompleto = [values.endereco, values.municipio, values.uf]
+  const enderecoCompleto = [values.endereco, values.numeroEndereco, values.complementoEndereco, values.municipio, values.uf, values.cep?.trim() ? `CEP: ${values.cep.trim()}` : ""]
     .map((part) => (part || "").trim())
     .filter(Boolean)
     .join(" - ")
@@ -197,36 +265,27 @@ function buildPlaceholderValues(values: FichaFormValues) {
     valorEntrada: values.valorEntrada ? formatCurrency(parseCurrency(values.valorEntrada)) : "-",
     valorRestante: values.valorRestante ? formatCurrency(parseCurrency(values.valorRestante)) : "-",
     observacaoValorRestante: values.observacaoValorRestante || "-",
-    clausulaAdicional: values.clausulaAdicional?.trim() ? `Cláusula Adicional\n${values.clausulaAdicional.trim()}` : "",
-    formaPagamento: values.formaPagamento || "-",
+    formaPagamento: paymentSummary || values.formaPagamento || "-",
     banco: values.banco || "-",
     processosResumo: buildProcessosResumo(values),
     multasResumo: buildMultasResumo(values),
     placas: [...new Set(placas)].join(", ") || "-",
     dataHoje: formatToday(),
+    dataFicha: formatFichaCreatedDate(values.createdAt || ""),
     consultor: values.nomeConsultor || "-",
+    tipoOutroServico: values.tipoOutroServico || "-",
+    poderesOutroServico: values.poderesOutroServico || "-",
   }
 }
 
-export function fillDocumentTemplate(template: string, values: FichaFormValues) {
+export function fillDocumentTemplate(template: string, values: DocumentTemplateValues, kind: DocumentTemplateKind) {
   const placeholders = buildPlaceholderValues(values)
 
-  const normalizedTemplate = normalizeDocumentTemplateContent(template)
-  let templateWithClausePlaceholder = normalizedTemplate
-
-  if (placeholders.clausulaAdicional && !normalizedTemplate.includes("{{clausulaAdicional}}")) {
-    if (normalizedTemplate.includes("{{multasResumo}}")) {
-      templateWithClausePlaceholder = normalizedTemplate.replace("{{multasResumo}}", "{{clausulaAdicional}}<br /><br />{{multasResumo}}")
-    } else if (normalizedTemplate.includes("{{processosResumo}}")) {
-      templateWithClausePlaceholder = normalizedTemplate.replace("{{processosResumo}}", "{{processosResumo}}<br /><br />{{clausulaAdicional}}")
-    } else {
-      templateWithClausePlaceholder = `${normalizedTemplate}<br /><br />{{clausulaAdicional}}`
-    }
-  }
+  const normalizedTemplate = removeDeprecatedDocumentVariables(normalizeDocumentTemplateContent(template))
 
   const filledContent = Object.entries(placeholders).reduce(
     (content, [key, value]) => content.replaceAll(`{{${key}}}`, value),
-    templateWithClausePlaceholder
+    normalizedTemplate
   )
 
   return filledContent
@@ -245,6 +304,13 @@ export function getDocumentFilename(kind: DocumentTemplateKind, values: FichaFor
     .replace(/\s+/g, "_")
     .replace(/[^\w-]/g, "")
 
-  return `${kind === "contract" ? "contrato" : "procuracao"}-${safeName}.pdf`
+  const prefixByKind: Record<DocumentTemplateKind, string> = {
+    contract: "contrato",
+    procuration: "procuracao",
+    "other-services-contract": "contrato-outros-servicos",
+    "other-services-procuration": "procuracao-outros-servicos",
+  }
+
+  return `${prefixByKind[kind]}-${safeName}.pdf`
 }
 

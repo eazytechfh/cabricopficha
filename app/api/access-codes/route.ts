@@ -17,6 +17,7 @@ export async function POST(request: Request) {
         email?: string
         telefone?: string
         nivelAcesso?: AccessCodeRecord["nivelAcesso"]
+        password?: string
         appOrigin?: string
       }
     }
@@ -34,10 +35,11 @@ export async function POST(request: Request) {
       const telefone = String(payload.input?.telefone || "").trim()
       const appOrigin = String(payload.input?.appOrigin || "").trim()
       const nivelAcesso = normalizeAccessLevel(payload.input?.nivelAcesso)
+      const password = String(payload.input?.password || "")
 
-      if (!nomeResponsavel || !email || !telefone) {
+      if (!nomeResponsavel || !email || !telefone || !password) {
         return NextResponse.json(
-          { error: "Nome do responsavel, e-mail e telefone sao obrigatorios." },
+          { error: "Nome do responsavel, e-mail, telefone e senha sao obrigatorios." },
           { status: 400 }
         )
       }
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
         email,
         telefone,
         nivelAcesso,
+        password,
         appOrigin,
       })
 

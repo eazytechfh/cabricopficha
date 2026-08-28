@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import FichaPdf, { type FichaPdfData } from "@/components/FichaPdf"
 import { generatePdf } from "@/lib/generatePdf"
+import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { Calendar, User, CreditCard, FileText, AlertCircle, Plus, X, Phone, CheckCircle2, XCircle } from "lucide-react"
 
 type PhoneEntry = {
@@ -135,43 +136,58 @@ export default function SalesForm() {
 
   const buildFichaData = (formElement: HTMLFormElement): FichaPdfData => {
     const formData = new FormData(formElement)
+    const getString = (name: string) => String(formData.get(name) ?? "")
 
     return {
-      dataContrato: formData.get("dataContrato"),
-      prazoServico: formData.get("prazoServico"),
-      nomeCliente: formData.get("nomeCliente"),
-      terceiros: formData.get("terceiros"),
+      dataContrato: getString("dataContrato"),
+      prazoServico: calculatePrazoServico(getString("prazoProcesso"), getString("prazoMulta")),
+      nomeCliente: getString("nomeCliente"),
+      terceiros: getString("terceiros"),
       telefones: phones.map((p) => p.value).filter((v) => v).join(", "),
-      endereco: formData.get("endereco"),
-      cep: formData.get("cep"),
-      cpfCnpj: formData.get("cpfCnpj"),
-      cnh: formData.get("cnh"),
-      dataNascimento: formData.get("dataNascimento"),
-      dataPrimeiraCnh: formData.get("dataPrimeiraCnh"),
-      email: formData.get("email"),
-      nomeConsultor: formData.get("nomeConsultor"),
-      origem: formData.get("origem"),
-      sne: formData.get("sne"),
+      endereco: getString("endereco"),
+      numeroEndereco: getString("numeroEndereco"),
+      complementoEndereco: getString("complementoEndereco"),
+      cep: getString("cep"),
+      municipio: getString("municipio"),
+      uf: getString("uf"),
+      cpfCnpj: getString("cpfCnpj"),
+      cnh: getString("cnh"),
+      dataNascimento: getString("dataNascimento"),
+      dataPrimeiraCnh: getString("dataPrimeiraCnh"),
+      nacionalidade: getString("nacionalidade"),
+      estadoCivil: getString("estadoCivil"),
+      profissao: getString("profissao"),
+      email: getString("email"),
+      nomeConsultor: getString("nomeConsultor"),
+      origem: getString("origem"),
+      sne: getString("sne"),
       formaPagamento,
-      banco: showOutroBanco ? formData.get("outroBanco") : banco,
-      valorTotal: formData.get("valorTotal"),
-      valorEntrada: formData.get("valorEntrada"),
+      banco: showOutroBanco ? getString("outroBanco") : banco,
+      pagamentos: JSON.stringify([{ id: "legacy-form-1", formaPagamento, banco: showOutroBanco ? getString("outroBanco") : banco, valor: getString("valorEntrada") }]),
+      valorTotal: parseCurrencyInput(getString("valorTotal")),
+      valorEntrada: parseCurrencyInput(getString("valorEntrada")),
       valorRestante,
-      instanciaProcesso: formData.get("instanciaProcesso"),
-      tipoProcesso: formData.get("tipoProcesso"),
-      numeroProcesso: formData.get("numeroProcesso"),
-      prazoProcesso: formData.get("prazoProcesso"),
-      vistoJuridico: formData.get("vistoJuridico"),
-      assinaturaVistoJuridico: assinaturaVistoJuridico || null,
-      instanciaMulta: formData.get("instanciaMulta"),
-      autoDetran: formData.get("autoDetran"),
-      autoRenainf: formData.get("autoRenainf"),
-      tipoMulta: formData.get("tipoMulta"),
-      placa: formData.get("placa"),
-      renavam: formData.get("renavam"),
-      prazoMulta: formData.get("prazoMulta"),
-      vistoJuridicoMulta: formData.get("vistoJuridicoMulta"),
-    } as FichaPdfData
+      observacaoValorRestante: getString("observacaoValorRestante"),
+      instanciaProcesso: getString("instanciaProcesso"),
+      tipoProcesso: getString("tipoProcesso"),
+      tipoOutroServico: getString("tipoOutroServico"),
+      poderesOutroServico: getString("poderesOutroServico"),
+      numeroProcesso: getString("numeroProcesso"),
+      prazoProcesso: getString("prazoProcesso"),
+      vistoJuridico: getString("vistoJuridico"),
+      assinaturaVistoJuridico,
+      instanciaMulta: getString("instanciaMulta"),
+      autoDetran: getString("autoDetran"),
+      autoRenainf: getString("autoRenainf"),
+      tipoMulta: getString("tipoMulta"),
+      placa: getString("placa"),
+      placaProprietario: getString("placaProprietario"),
+      cpfProprietario: getString("cpfProprietario"),
+      renavam: getString("renavam"),
+      prazoMulta: getString("prazoMulta"),
+      vistoJuridicoMulta: getString("vistoJuridicoMulta"),
+      observacoes,
+    }
   }
 
   const buildSubmitPayload = (fichaData: FichaPdfData) => {
@@ -309,14 +325,10 @@ export default function SalesForm() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dataContrato">Data do Contrato</Label>
                   <Input type="date" id="dataContrato" name="dataContrato" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="prazoServico">Prazo</Label>
-                  <Input type="date" id="prazoServico" name="prazoServico" required />
                 </div>
               </div>
             </CardContent>

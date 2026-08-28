@@ -1,5 +1,6 @@
 const PDF_PAGE_GAP_MM = 6
 const PDF_RENDER_SCALE = 2
+const PDF_IMAGE_QUALITY = 0.82
 const PDF_MARGIN_X_MM = 6
 const PDF_MARGIN_Y_MM = 6
 
@@ -67,7 +68,7 @@ function getSectionSpacingMm(section: HTMLElement, fallbackSpacingMm: number) {
 }
 
 async function renderSectionCanvas(
-  html2canvas: typeof import("html2canvas").default,
+  html2canvas: typeof import("html2canvas-pro").default,
   section: HTMLElement
 ) {
   return html2canvas(section, {
@@ -90,9 +91,9 @@ function appendCanvasToPdf(
   widthMm: number,
   xMm: number
 ) {
-  const imageData = canvas.toDataURL("image/png")
+  const imageData = canvas.toDataURL("image/jpeg", PDF_IMAGE_QUALITY)
   const heightMm = getImageHeightMm(canvas, widthMm)
-  pdf.addImage(imageData, "PNG", xMm, yMm, widthMm, heightMm)
+  pdf.addImage(imageData, "JPEG", xMm, yMm, widthMm, heightMm, undefined, "FAST")
   return heightMm
 }
 
@@ -143,7 +144,7 @@ function appendLargeSectionToPdf(
 
 export async function generatePdf(element: HTMLElement, filename: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import("html2canvas"),
+    import("html2canvas-pro"),
     import("jspdf/dist/jspdf.es.min.js"),
   ])
 
@@ -207,7 +208,7 @@ export async function generatePdf(element: HTMLElement, filename: string) {
   await new Promise((resolve) => setTimeout(resolve, 250))
 
   try {
-    const pdf = new jsPDF("p", "mm", "a4")
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true })
     const pageWidthMm = pdf.internal.pageSize.getWidth()
     const pageHeightMm = pdf.internal.pageSize.getHeight()
     const renderWidthMm = pageWidthMm - PDF_MARGIN_X_MM * 2
@@ -218,6 +219,7 @@ export async function generatePdf(element: HTMLElement, filename: string) {
     }
 
     let currentY = PDF_MARGIN_Y_MM
+    let pageHasContent = false
 
     for (let index = 0; index < sections.length; index += 1) {
       const section = sections[index]
@@ -231,18 +233,21 @@ export async function generatePdf(element: HTMLElement, filename: string) {
       if (sectionHeightMm <= pageHeightMm - PDF_MARGIN_Y_MM * 2) {
         const remainingHeightMm = pageHeightMm - PDF_MARGIN_Y_MM - currentY
 
-        if (currentY > 0 && sectionHeightMm > remainingHeightMm) {
+        if (pageHasContent && sectionHeightMm > remainingHeightMm) {
           pdf.addPage()
           currentY = PDF_MARGIN_Y_MM
+          pageHasContent = false
         }
 
         const renderedHeightMm = appendCanvasToPdf(pdf, sectionCanvas, currentY, renderWidthMm, PDF_MARGIN_X_MM)
         currentY += renderedHeightMm
+        pageHasContent = true
 
         if (spacingMm > 0) {
           if (currentY + spacingMm > pageHeightMm - PDF_MARGIN_Y_MM) {
             pdf.addPage()
             currentY = PDF_MARGIN_Y_MM
+            pageHasContent = false
           } else {
             currentY += spacingMm
           }
@@ -251,9 +256,10 @@ export async function generatePdf(element: HTMLElement, filename: string) {
         continue
       }
 
-      if (currentY > 0) {
+      if (pageHasContent) {
         pdf.addPage()
         currentY = PDF_MARGIN_Y_MM
+        pageHasContent = false
       }
 
       currentY = appendLargeSectionToPdf(
@@ -266,11 +272,13 @@ export async function generatePdf(element: HTMLElement, filename: string) {
         PDF_MARGIN_Y_MM,
         PDF_MARGIN_Y_MM
       )
+      pageHasContent = true
 
       if (spacingMm > 0) {
         if (currentY + spacingMm > pageHeightMm - PDF_MARGIN_Y_MM) {
           pdf.addPage()
           currentY = PDF_MARGIN_Y_MM
+          pageHasContent = false
         } else {
           currentY += spacingMm
         }

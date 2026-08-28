@@ -3,9 +3,12 @@ create table if not exists public.fichas_venda (
   data_contrato date,
   prazo_servico date,
   nome_cliente text not null,
+  numero_ficha integer check (numero_ficha > 0),
   terceiros text,
   telefones text,
   endereco text,
+  numero_endereco text,
+  complemento_endereco text,
   cep text,
   municipio text,
   uf text,
@@ -23,6 +26,7 @@ create table if not exists public.fichas_venda (
   sne text,
   forma_pagamento text,
   banco text,
+  pagamentos jsonb not null default '[]'::jsonb,
   valor_total numeric(12, 2),
   valor_entrada numeric(12, 2),
   valor_restante numeric(12, 2),
@@ -32,8 +36,11 @@ create table if not exists public.fichas_venda (
   tipo_processo text,
   numero_processo text,
   prazo_processo date,
+  prazos_processo_texto text,
   visto_juridico text,
   assinatura_visto_juridico text,
+  tipo_outro_servico text,
+  poderes_outro_servico text,
   multas_processo text,
   instancia_multa text,
   auto_detran text,
@@ -44,6 +51,7 @@ create table if not exists public.fichas_venda (
   cpf_proprietario text,
   renavam text,
   prazo_multa date,
+  prazos_multa_texto text,
   visto_juridico_multa text,
   processo_vinculado_multa text,
   observacoes text,
@@ -58,6 +66,12 @@ create index if not exists fichas_venda_cpf_normalizado_idx
 on public.fichas_venda (cpf_normalizado);
 
 alter table public.fichas_venda
+add column if not exists numero_ficha integer,
+add column if not exists numero_endereco text,
+add column if not exists complemento_endereco text,
+add column if not exists pagamentos jsonb not null default '[]'::jsonb,
+add column if not exists prazos_processo_texto text,
+add column if not exists prazos_multa_texto text,
 add column if not exists placa_proprietario text,
 add column if not exists cpf_proprietario text,
 add column if not exists multas_processo text,
@@ -68,7 +82,56 @@ add column if not exists nacionalidade text,
 add column if not exists estado_civil text,
 add column if not exists profissao text,
 add column if not exists municipio text,
-add column if not exists uf text;
+add column if not exists uf text,
+add column if not exists tipo_outro_servico text,
+add column if not exists poderes_outro_servico text;
+
+create unique index if not exists fichas_venda_cpf_numero_ficha_uidx
+on public.fichas_venda (
+  (coalesce(nullif(cpf_normalizado, ''), nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), ''))),
+  numero_ficha
+)
+where numero_ficha is not null
+  and coalesce(nullif(cpf_normalizado, ''), nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), '')) is not null;
+
+create or replace function public.assign_ficha_number()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  cpf_key text;
+begin
+  cpf_key := coalesce(
+    nullif(new.cpf_normalizado, ''),
+    nullif(regexp_replace(coalesce(new.cpf_cnpj, ''), '\D', '', 'g'), '')
+  );
+
+  if cpf_key is null then
+    new.numero_ficha := coalesce(new.numero_ficha, 1);
+    return new;
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext(cpf_key));
+
+  select coalesce(max(numero_ficha), 0) + 1
+  into new.numero_ficha
+  from public.fichas_venda
+  where coalesce(
+    nullif(cpf_normalizado, ''),
+    nullif(regexp_replace(coalesce(cpf_cnpj, ''), '\D', '', 'g'), '')
+  ) = cpf_key;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists assign_ficha_number on public.fichas_venda;
+
+create trigger assign_ficha_number
+before insert on public.fichas_venda
+for each row
+execute function public.assign_ficha_number();
 
 alter table public.fichas_venda enable row level security;
 
@@ -83,6 +146,50 @@ using (true)
 with check (true);
 
 create extension if not exists pgcrypto;
+
+create table if not exists public.user_profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  nome_responsavel text not null,
+  email text not null unique,
+  telefone text not null,
+  nivel_acesso text not null check (nivel_acesso in ('admin', 'consultor', 'andamento')),
+  ativo boolean not null default true,
+  must_change_password boolean not null default false,
+  password_plain text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_login_at timestamptz
+);
+
+create or replace function public.set_user_profiles_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_user_profiles_updated_at on public.user_profiles;
+
+create trigger set_user_profiles_updated_at
+before update on public.user_profiles
+for each row
+execute function public.set_user_profiles_updated_at();
+
+alter table public.user_profiles enable row level security;
+
+drop policy if exists "service role can manage user_profiles" on public.user_profiles;
+
+create policy "service role can manage user_profiles"
+on public.user_profiles
+as permissive
+for all
+to service_role
+using (true)
+with check (true);
 
 create table if not exists public.access_codes (
   id uuid primary key default gen_random_uuid(),

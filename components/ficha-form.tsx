@@ -13,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTANCIA_PROCESSO_OPTIONS, ORIGEM_OPTIONS, SNE_OPTIONS, TIPO_PROCESSO_OPTIONS } from "@/lib/ficha-options"
 import { validarCPF } from "@/lib/cpf-utils"
+import { updateAddressFields } from "@/lib/address-fields"
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
-import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, X } from "lucide-react"
+import { appendPaymentEntry, formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
+import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, Plus, X } from "lucide-react"
 
 type MultaBlock = {
   instanciaMulta: string
@@ -271,49 +273,10 @@ function getMultaProcessoOptions(blocks: MultaBlock[]): MultaProcessoOption[] {
   })
 }
 
-function getSuggestedPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
-  const processoPrazo = processoLines
-    .map((line) => line.prazoProcesso?.trim())
-    .find((value) => value && value !== "Vencida" && value !== "VENCIDA" && value !== "Revisão de Ato")
-
-  if (processoPrazo) {
-    return processoPrazo
-  }
-
-  for (const block of multaBlocks) {
-    const multaPrazo = getMultaDetailLines(block)
-      .map((line) => line.prazoMulta?.trim())
-      .find((value) => value && value !== "Vencida" && value !== "VENCIDA" && value !== "Revisão de Ato")
-
-    if (multaPrazo) {
-      return multaPrazo
-    }
-  }
-
-  return ""
-}
-
-function isPrazoDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
-
-  const date = new Date(`${value}T00:00:00`)
-  return !Number.isNaN(date.getTime())
-}
-
-function getPrazoServicoDates(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
-  const processoPrazos = processoLines.map((line) => line.prazoProcesso?.trim() || "")
-  const multaPrazos = multaBlocks.flatMap((block) => getMultaDetailLines(block).map((line) => line.prazoMulta?.trim() || ""))
-
-  return [...processoPrazos, ...multaPrazos].filter(isPrazoDate)
-}
-
-function getNearestPrazoServico(processoLines: ProcessoLine[], multaBlocks: MultaBlock[]) {
-  return getPrazoServicoDates(processoLines, multaBlocks).sort((a, b) => a.localeCompare(b))[0] || ""
-}
-
 function getPrazoMode(value: string) {
   if (value === "Vencida" || value === "VENCIDA") return "Vencida"
   if (value === "Revisão de Ato") return "Revisão de Ato"
+  if (value === "AG Penalidade") return "AG Penalidade"
   return "DATA"
 }
 
@@ -341,7 +304,7 @@ type FichaFormProps = {
   visibleSections?: FichaFormSection[]
 }
 
-type FichaFormSection = "contract" | "client" | "payment" | "processes" | "fines" | "notes" | "clause"
+type FichaFormSection = "contract" | "client" | "payment" | "processes" | "otherServices" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -396,27 +359,8 @@ export function FichaForm({
   const lastFetchedCepRef = useRef("")
   const [cepLookupMessage, setCepLookupMessage] = useState("")
   const [cepLookupLoading, setCepLookupLoading] = useState(false)
-  const [enderecoRua, setEnderecoRua] = useState(values.endereco)
-  const [enderecoNumero, setEnderecoNumero] = useState("")
-  const [enderecoComplemento, setEnderecoComplemento] = useState("")
   const [cnhNumero, setCnhNumero] = useState("")
   const [telefoneInput, setTelefoneInput] = useState("")
-  const lastAutoPrazoServicoRef = useRef("")
-
-  useEffect(() => {
-    const enderecoAtual = values.endereco || ""
-    const numeroMatch = enderecoAtual.match(/,\s*Numero\s+([^,]+)(?=,\s*Complemento\s+|$)/i)
-    const complementoMatch = enderecoAtual.match(/,\s*Complemento\s+(.+)$/i)
-    const enderecoBase = enderecoAtual
-      .replace(/,\s*Numero\s+([^,]+)(?=,\s*Complemento\s+|$)/i, "")
-      .replace(/,\s*Complemento\s+(.+)$/i, "")
-      .trim()
-      .replace(/,\s*$/, "")
-
-    setEnderecoRua(enderecoBase)
-    setEnderecoNumero(numeroMatch?.[1]?.trim() || "")
-    setEnderecoComplemento(complementoMatch?.[1]?.trim() || "")
-  }, [values.endereco])
 
   useEffect(() => {
     const { numero } = parseCnhParts(values.cnh)
@@ -508,18 +452,13 @@ export function FichaForm({
     onChange(updateValue(values, field, value))
   }
 
-  const setEnderecoParts = (rua: string, numero: string, complemento: string) => {
-    const parts = [rua.trim()]
-
-    if (numero.trim()) {
-      parts.push(`Numero ${numero.trim()}`)
-    }
-
-    if (complemento.trim()) {
-      parts.push(`Complemento ${complemento.trim()}`)
-    }
-
-    setField("endereco", parts.filter(Boolean).join(", "))
+  const setAddressField = (field: "endereco" | "numeroEndereco" | "complementoEndereco", value: string) => {
+    if (readOnly) return
+    const address = updateAddressFields(values, field, value)
+    onChange({
+      ...values,
+      ...address,
+    })
   }
 
   const setCnhParts = (numero: string) => {
@@ -563,33 +502,35 @@ export function FichaForm({
   const processoLines = getProcessoLines(values)
   const multaBlocks = parseMultaBlocks(values)
   const multaProcessoOptions = getMultaProcessoOptions(multaBlocks)
+  const paymentLines = parsePaymentEntries(values.pagamentos, {
+    formaPagamento: values.formaPagamento,
+    banco: values.banco === "outros" ? values.bancoOutro : values.banco,
+    valorEntrada: values.valorEntrada,
+  })
+  const visiblePaymentLines = paymentLines.length > 0 ? paymentLines : [{ id: "payment-1", formaPagamento: "", banco: "", valor: "" }]
+  const paymentValidationMessage = validatePaymentEntries(values.valorTotal, paymentLines)
   const shouldShowValorRestanteObservacao = values.valorRestante.trim() !== "" && parseCurrency(values.valorRestante) > 0
 
-  useEffect(() => {
+  const setPaymentLines = (nextLines: PaymentEntry[]) => {
     if (readOnly) return
+    const totals = reconcilePaymentValues(values.valorTotal, nextLines)
+    onChange({
+      ...values,
+      pagamentos: serializePaymentEntries(nextLines),
+      formaPagamento: nextLines.map((line) => line.formaPagamento).filter(Boolean).join("\n"),
+      banco: nextLines.map((line) => line.banco).filter(Boolean).join("\n"),
+      bancoOutro: "",
+      valorEntrada: totals.paid > 0 ? formatPaymentAmount(totals.paid) : "",
+      valorRestante: totals.total > 0 ? formatPaymentAmount(totals.remaining) : "",
+      observacaoValorRestante: totals.remaining > 0 ? values.observacaoValorRestante : "",
+    })
+  }
 
-    const suggestedPrazo = getNearestPrazoServico(processoLines, multaBlocks)
-    const currentPrazo = values.prazoServico?.trim() || ""
-    const lastAutoPrazo = lastAutoPrazoServicoRef.current
-    const sourcePrazos = getPrazoServicoDates(processoLines, multaBlocks)
-
-    if (!suggestedPrazo) {
-      if (currentPrazo === lastAutoPrazo && currentPrazo !== "") {
-        lastAutoPrazoServicoRef.current = ""
-        onChange(updateValue(values, "prazoServico", ""))
-      }
-      return
-    }
-
-    if (!currentPrazo || currentPrazo === lastAutoPrazo || sourcePrazos.includes(currentPrazo)) {
-      if (currentPrazo !== suggestedPrazo) {
-        lastAutoPrazoServicoRef.current = suggestedPrazo
-        onChange(updateValue(values, "prazoServico", suggestedPrazo))
-      } else {
-        lastAutoPrazoServicoRef.current = suggestedPrazo
-      }
-    }
-  }, [multaBlocks, onChange, processoLines, readOnly, values])
+  const updatePaymentLine = (index: number, field: keyof Omit<PaymentEntry, "id">, value: string) => {
+    setPaymentLines(visiblePaymentLines.map((line, lineIndex) => lineIndex === index ? { ...line, [field]: value } : line))
+  }
+  const addPaymentLine = () => setPaymentLines(appendPaymentEntry(visiblePaymentLines, `payment-${Date.now()}`))
+  const removePaymentLine = (index: number) => setPaymentLines(visiblePaymentLines.filter((_, lineIndex) => lineIndex !== index))
 
   const setTelefones = (nextTelefones: string[]) => {
     setField("telefones", nextTelefones.join("\n"))
@@ -844,45 +785,9 @@ export function FichaForm({
     </div>
   )
 
-  const renderPrazoField = (field: "prazoProcesso" | "prazoMulta", label: string) => {
-    const selectedMode = getPrazoMode(values[field])
-    const dateDisabled = selectedMode !== "DATA"
-
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={field}>{label}</Label>
-        <div className="grid grid-cols-[150px_1fr] gap-2">
-          <Select
-            value={selectedMode}
-            onValueChange={(value) => setField(field, getPrazoValue(values[field], value))}
-            disabled={fieldDisabled}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DATA">Data</SelectItem>
-              <SelectItem value="Vencida">Vencida</SelectItem>
-              <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Input
-            id={field}
-            name={field}
-            type="date"
-            value={dateDisabled ? "" : values[field]}
-            onChange={(event) => setField(field, event.target.value)}
-            disabled={fieldDisabled || dateDisabled}
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-6">
-      <Card className={`order-[10] border-l-4 border-l-primary shadow-md ${shouldShowSection("contract") ? "" : "hidden"}`}>
+      <Card className={`order-[20] border-l-4 border-l-primary shadow-md ${shouldShowSection("contract") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <Calendar className="w-5 h-5" />
@@ -895,27 +800,13 @@ export function FichaForm({
                 <p className="text-sm font-semibold text-primary">Identificador: {identifierPreview}</p>
               </div>
             ) : null}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
-              <div className="space-y-2">
-                <Label htmlFor="prazoServico">Prazo</Label>
-                <Input
-                  id="prazoServico"
-                  name="prazoServico"
-                  type="date"
-                  value={values.prazoServico}
-                  onChange={(event) => {
-                    lastAutoPrazoServicoRef.current = ""
-                    setField("prazoServico", event.target.value)
-                  }}
-                  disabled={fieldDisabled}
-                />
-              </div>
             </div>
           </CardContent>
         </Card>
 
-      <Card className={`order-[20] border-l-4 border-l-primary shadow-md ${shouldShowSection("client") ? "" : "hidden"}`}>
+      <Card className={`order-[10] border-l-4 border-l-primary shadow-md ${shouldShowSection("client") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <User className="w-5 h-5" />
@@ -996,12 +887,8 @@ export function FichaForm({
               <Input
                 id="endereco"
                 name="endereco"
-                value={enderecoRua}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoRua(nextValue)
-                  setEnderecoParts(nextValue, enderecoNumero, enderecoComplemento)
-                }}
+                value={values.endereco}
+                onChange={(event) => setAddressField("endereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
@@ -1010,12 +897,8 @@ export function FichaForm({
               <Input
                 id="numeroEndereco"
                 name="numeroEndereco"
-                value={enderecoNumero}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoNumero(nextValue)
-                  setEnderecoParts(enderecoRua, nextValue, enderecoComplemento)
-                }}
+                value={values.numeroEndereco}
+                onChange={(event) => setAddressField("numeroEndereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
@@ -1024,12 +907,8 @@ export function FichaForm({
               <Input
                 id="complementoEndereco"
                 name="complementoEndereco"
-                value={enderecoComplemento}
-                onChange={(event) => {
-                  const nextValue = event.target.value
-                  setEnderecoComplemento(nextValue)
-                  setEnderecoParts(enderecoRua, enderecoNumero, nextValue)
-                }}
+                value={values.complementoEndereco}
+                onChange={(event) => setAddressField("complementoEndereco", event.target.value)}
                 disabled={fieldDisabled}
               />
             </div>
@@ -1174,50 +1053,45 @@ export function FichaForm({
           {renderSectionSubmit()}
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="formaPagamento">Forma de Pagamento</Label>
-              <Select value={values.formaPagamento} onValueChange={(value) => setField("formaPagamento", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="formaPagamento">
-                  <SelectValue placeholder="Selecione a forma de pagamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credito">Crédito</SelectItem>
-                  <SelectItem value="debito">Débito</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                  <SelectItem value="ted">TED</SelectItem>
-                  <SelectItem value="especie">Espécie</SelectItem>
-                  <SelectItem value="deposito">Depósito</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="banco">Banco</Label>
-              <Select value={values.banco || undefined} onValueChange={(value) => setField("banco", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="banco">
-                  <SelectValue placeholder="Selecione o banco" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asaas">ASAAS</SelectItem>
-                  <SelectItem value="rede">REDE</SelectItem>
-                  <SelectItem value="itau">ITAU</SelectItem>
-                  <SelectItem value="outros">OUTROS</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-3">
+            {visiblePaymentLines.map((payment, index) => {
+              const bankKey = payment.banco.toLowerCase()
+              const bankSelection = payment.banco ? (["asaas", "rede", "itau"].includes(bankKey) ? bankKey : "outros") : undefined
+              return (
+                <div key={payment.id} className="grid grid-cols-1 gap-3 rounded-lg border bg-slate-50/60 p-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+                  <div className="space-y-2">
+                    <Label htmlFor={`formaPagamento-${index}`}>Forma de Pagamento</Label>
+                    <Select value={payment.formaPagamento || undefined} onValueChange={(value) => updatePaymentLine(index, "formaPagamento", value)} disabled={fieldDisabled}>
+                      <SelectTrigger id={`formaPagamento-${index}`}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="credito">Crédito</SelectItem><SelectItem value="debito">Débito</SelectItem><SelectItem value="pix">PIX</SelectItem><SelectItem value="transferencia">Transferência</SelectItem><SelectItem value="ted">TED</SelectItem><SelectItem value="especie">Espécie</SelectItem><SelectItem value="deposito">Depósito</SelectItem><SelectItem value="cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`banco-${index}`}>Banco / Operadora</Label>
+                    <Select value={bankSelection} onValueChange={(value) => updatePaymentLine(index, "banco", value === "outros" ? "Outro" : value)} disabled={fieldDisabled}>
+                      <SelectTrigger id={`banco-${index}`}><SelectValue placeholder="Opcional" /></SelectTrigger>
+                      <SelectContent><SelectItem value="asaas">ASAAS</SelectItem><SelectItem value="rede">REDE</SelectItem><SelectItem value="itau">ITAÚ</SelectItem><SelectItem value="outros">OUTROS</SelectItem></SelectContent>
+                    </Select>
+                    {bankSelection === "outros" ? <Input value={payment.banco === "Outro" ? "" : payment.banco} onChange={(event) => updatePaymentLine(index, "banco", event.target.value)} placeholder="Informe o banco/operadora" disabled={fieldDisabled} /> : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`valorPagamento-${index}`}>Valor</Label>
+                    <InputGroup><InputGroupAddon><InputGroupText>R$</InputGroupText></InputGroupAddon><InputGroupInput id={`valorPagamento-${index}`} type="number" step="0.01" min="0" inputMode="decimal" value={payment.valor} onChange={(event) => updatePaymentLine(index, "valor", event.target.value)} disabled={fieldDisabled} /></InputGroup>
+                  </div>
+                  <div className="flex items-end"><Button type="button" variant="ghost" size="icon" onClick={() => removePaymentLine(index)} disabled={fieldDisabled} aria-label={`Remover pagamento ${index + 1}`}><X className="size-4" /></Button></div>
+                </div>
+              )
+            })}
+            <Button type="button" variant="outline" onClick={addPaymentLine} disabled={fieldDisabled}><Plus className="mr-2 size-4" />Adicionar forma de pagamento</Button>
           </div>
-          {values.banco === "outros" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderInput("bancoOutro", "Nome do Banco", { placeholder: "Digite o nome do banco" })}
-            </div>
-          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {renderCurrencyInput("valorTotal", "Valor Total")}
-            {renderCurrencyInput("valorEntrada", "Valor de Entrada")}
+            {renderCurrencyInput("valorEntrada", "Total Pago", { readOnly: true })}
             {renderCurrencyInput("valorRestante", "Valor Restante", { readOnly: true })}
           </div>
+          {paymentValidationMessage ? <p className="flex items-center gap-2 text-sm text-destructive"><AlertCircle className="size-4" />{paymentValidationMessage}</p> : null}
           {shouldShowValorRestanteObservacao ? (
             <div className="space-y-2">
               <Label htmlFor="observacaoValorRestante">Observacao do Valor Restante</Label>
@@ -1315,7 +1189,7 @@ export function FichaForm({
                   <Label htmlFor={`prazoProcesso-${lineIndex}`} className="flex min-h-8 items-end">
                     Prazo
                   </Label>
-                  <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
+                  <div className={getPrazoMode(line.prazoProcesso) === "DATA" ? "grid grid-cols-[110px_minmax(0,1fr)] gap-2" : "grid grid-cols-1"}>
                     <Select
                       value={getPrazoMode(line.prazoProcesso)}
                       onValueChange={(value) =>
@@ -1334,16 +1208,19 @@ export function FichaForm({
                       <SelectItem value="DATA">Data</SelectItem>
                       <SelectItem value="Vencida">Vencida</SelectItem>
                       <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
+                      <SelectItem value="AG Penalidade">AG Penalidade</SelectItem>
                     </SelectContent>
                   </Select>
 
-                    <Input
-                      id={`prazoProcesso-${lineIndex}`}
-                      type="date"
-                      value={getPrazoMode(line.prazoProcesso) === "DATA" ? line.prazoProcesso : ""}
-                      onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
-                      disabled={fieldDisabled || getPrazoMode(line.prazoProcesso) !== "DATA"}
-                    />
+                    {getPrazoMode(line.prazoProcesso) === "DATA" ? (
+                      <Input
+                        id={`prazoProcesso-${lineIndex}`}
+                        type="date"
+                        value={line.prazoProcesso}
+                        onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
+                        disabled={fieldDisabled}
+                      />
+                    ) : null}
                   </div>
                 </div>
 
@@ -1510,7 +1387,7 @@ export function FichaForm({
                         <Label htmlFor={`prazoMulta-${index}-${lineIndex}`} className="flex min-h-8 items-end">
                           Prazo
                         </Label>
-                        <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2">
+                        <div className={getPrazoMode(line.prazoMulta) === "DATA" ? "grid grid-cols-[110px_minmax(0,1fr)] gap-2" : "grid grid-cols-1"}>
                           <Select
                             value={getPrazoMode(line.prazoMulta)}
                             onValueChange={(value) =>
@@ -1530,16 +1407,19 @@ export function FichaForm({
                               <SelectItem value="DATA">Data</SelectItem>
                               <SelectItem value="Vencida">Vencida</SelectItem>
                               <SelectItem value="Revisão de Ato">Revisão de Ato</SelectItem>
+                              <SelectItem value="AG Penalidade">AG Penalidade</SelectItem>
                             </SelectContent>
                           </Select>
 
-                          <Input
-                            id={`prazoMulta-${index}-${lineIndex}`}
-                            type="date"
-                            value={getPrazoMode(line.prazoMulta) === "DATA" ? line.prazoMulta : ""}
-                            onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
-                            disabled={fieldDisabled || getPrazoMode(line.prazoMulta) !== "DATA"}
-                          />
+                          {getPrazoMode(line.prazoMulta) === "DATA" ? (
+                            <Input
+                              id={`prazoMulta-${index}-${lineIndex}`}
+                              type="date"
+                              value={line.prazoMulta}
+                              onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
+                              disabled={fieldDisabled}
+                            />
+                          ) : null}
                         </div>
                       </div>
 
@@ -1570,6 +1450,39 @@ export function FichaForm({
         </CardContent>
       </Card>
 
+      <Card className={`order-[52] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="w-5 h-5" />
+            Outros Serviços
+          </CardTitle>
+          {renderSectionSubmit()}
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="tipoOutroServico">Tipo do Serviço</Label>
+            <Input
+              id="tipoOutroServico"
+              value={values.tipoOutroServico}
+              onChange={(event) => setField("tipoOutroServico", event.target.value)}
+              disabled={fieldDisabled}
+              placeholder="Informe o tipo do serviço"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="poderesOutroServico">Poderes</Label>
+            <Textarea
+              id="poderesOutroServico"
+              value={values.poderesOutroServico}
+              onChange={(event) => setField("poderesOutroServico", event.target.value)}
+              disabled={fieldDisabled}
+              className="min-h-[96px]"
+              placeholder="Descreva os poderes concedidos"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className={`order-[60] border-l-4 border-l-muted shadow-md ${shouldShowSection("notes") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-primary">Observações Adicionais</CardTitle>
@@ -1581,24 +1494,6 @@ export function FichaForm({
             disabled={fieldDisabled}
             className="min-h-[120px]"
             placeholder="Digite observacoes adicionais sobre a venda..."
-          />
-        </CardContent>
-      </Card>
-
-      <Card className={`order-[65] border-l-4 border-l-primary shadow-md ${shouldShowSection("clause") ? "" : "hidden"}`}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-primary">Clausula Adicional</CardTitle>
-          {renderSectionSubmit()}
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            id="clausulaAdicional"
-            name="clausulaAdicional"
-            value={values.clausulaAdicional}
-            onChange={(event) => setField("clausulaAdicional", event.target.value)}
-            disabled={fieldDisabled}
-            className="min-h-[120px]"
-            placeholder="Digite uma clausula adicional para aparecer no contrato..."
           />
         </CardContent>
       </Card>

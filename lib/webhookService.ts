@@ -1,5 +1,6 @@
 import type { ConsultorSession, FichaRecord } from "@/lib/ficha-types"
 import { splitSerializedEntries } from "@/lib/ficha-utils"
+import { parsePaymentEntries } from "@/lib/payment-details"
 
 const FICHA_CREATE_WEBHOOK_URL =
   "https://n8n.cabricop.com.br/webhook/afc80212-c243-4584-b009-b3cc73a4d217"
@@ -29,6 +30,8 @@ type FichaWebhookPayloadBase = {
     telefone: string
     email: string
     endereco: string
+    numeroEndereco: string
+    complementoEndereco: string
     cep: string
     cpfCnpj: string
     cnh: string
@@ -41,6 +44,7 @@ type FichaWebhookPayloadBase = {
     origem: string
     sne: string
     pagamentos: {
+      itens: Array<{ formaPagamento: string; banco: string; valor: string }>
       formaPagamento: string
       banco: string
       valorTotal: string
@@ -55,6 +59,10 @@ type FichaWebhookPayloadBase = {
       multasProcesso: string
       prazo: string
       assinaturaVistoJuridico: string
+    }
+    outrosServicos: {
+      tipoServico: string
+      poderes: string
     }
     multas: MultaWebhookItem
     multasLista: MultaWebhookItem[]
@@ -133,6 +141,8 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
       telefone: ficha.telefones,
       email: ficha.email,
       endereco: ficha.endereco,
+      numeroEndereco: ficha.numeroEndereco,
+      complementoEndereco: ficha.complementoEndereco,
       cep: ficha.cep,
       cpfCnpj: ficha.cpfCnpj,
       cnh: ficha.cnh,
@@ -145,6 +155,7 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
       origem: ficha.origem,
       sne: ficha.sne,
       pagamentos: {
+        itens: parsePaymentEntries(ficha.pagamentos, ficha).map(({ formaPagamento, banco, valor }) => ({ formaPagamento, banco, valor })),
         formaPagamento: ficha.formaPagamento,
         banco: ficha.banco,
         valorTotal: ficha.valorTotal,
@@ -159,6 +170,10 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
         multasProcesso: ficha.vistoJuridico,
         prazo: ficha.prazoProcesso,
         assinaturaVistoJuridico: "",
+      },
+      outrosServicos: {
+        tipoServico: ficha.tipoOutroServico,
+        poderes: ficha.poderesOutroServico,
       },
       multas: multasLista[0] || {
         instancia: "",

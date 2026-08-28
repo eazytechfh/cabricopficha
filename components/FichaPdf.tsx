@@ -1,5 +1,8 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
+import { formatClientDisplayName } from "@/lib/ficha-client-name"
+import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
 import { normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
+import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export type FichaPdfData = {
   dataContrato: string
@@ -8,6 +11,8 @@ export type FichaPdfData = {
   terceiros: string
   telefones: string
   endereco: string
+  numeroEndereco: string
+  complementoEndereco: string
   cep: string
   municipio: string
   uf: string
@@ -24,17 +29,19 @@ export type FichaPdfData = {
   sne: string
   formaPagamento: string
   banco: string
+  pagamentos: string
   valorTotal: number
   valorEntrada: number
   valorRestante: number
   observacaoValorRestante: string
-  clausulaAdicional: string
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
   prazoProcesso: string
   vistoJuridico: string
   assinaturaVistoJuridico: string
+  tipoOutroServico: string
+  poderesOutroServico: string
   instanciaMulta: string
   autoDetran: string
   autoRenainf: string
@@ -75,14 +82,14 @@ const sheetStyle: CSSProperties = {
   padding: 18,
 }
 
-function fallback(value: string) {
+function fallback(value?: string) {
   return value?.trim() || "-"
 }
 
 function formatDate(value: string) {
   if (!value) return "-"
   if (value === "VENCIDA") return "Vencida"
-  if (value === "Vencida" || value === "Revisão de Ato") return value
+  if (value === "Vencida" || value === "Revisão de Ato" || value === "AG Penalidade") return value
   const [year, month, day] = value.split("-")
   if (!year || !month || !day) return value
   return `${day}/${month}/${year}`
@@ -131,8 +138,8 @@ function formatBank(value: string) {
   return labels[value] || fallback(value)
 }
 
-function formatAddress(value: string, municipio?: string, uf?: string) {
-  const parts = [fallback(value).replace(/\bNumero\b/g, "Nº"), fallback(municipio), fallback(uf)]
+function formatAddress(value: string, numero?: string, complemento?: string, municipio?: string, uf?: string) {
+  const parts = [fallback(value), fallback(numero), fallback(complemento), fallback(municipio), fallback(uf)]
     .filter((part, index) => part && part !== "-" ? true : index === 0)
   return parts.join(" - ")
 }
@@ -337,8 +344,21 @@ function signatureField(label: string) {
 }
 
 export default function FichaPdf({ data }: FichaPdfProps) {
+  const paymentLines = parsePaymentEntries(data.pagamentos, { formaPagamento: data.formaPagamento, banco: data.banco, valorEntrada: String(data.valorEntrada) })
   const processoLines = getProcessoLines(data)
-  const multaBlocks = getMultaBlocks(data)
+  const multaBlocks = getMultaBlocks(data).filter((block) =>
+    hasFilledText([
+      block.instanciaMulta,
+      block.autoDetran,
+      block.autoRenainf,
+      block.tipoMulta,
+      block.placa,
+      block.cpfProprietario,
+      block.renavam,
+      block.prazoMulta,
+      block.processoVinculado,
+    ])
+  )
 
   return (
     <div style={pageStyle}>
@@ -384,9 +404,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
 
         {section("DADOS DO CLIENTE", (
           <>
-            {gridRow("1.1fr 1fr", [field("Nome Completo", data.nomeCliente), field("Terceiros", data.terceiros)])}
+            {gridRow("1.1fr 1fr", [field("Nome Completo", formatClientDisplayName(data.nomeCliente)), field("Terceiros", data.terceiros)])}
             {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
-            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.municipio, data.uf))])}
+            {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.numeroEndereco, data.complementoEndereco, data.municipio, data.uf))])}
             {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
             {gridRow("1fr 1fr", [field("Município", data.municipio), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
@@ -397,18 +417,12 @@ export default function FichaPdf({ data }: FichaPdfProps) {
 
         {section("DADOS DO PAGAMENTO", (
           <>
-            {gridRow(
-              "1.1fr 1fr",
-              [
-                field("Forma", formatPaymentMethod(data.formaPagamento)),
-                field("Banco", formatBank(data.banco)),
-              ]
-            )}
+            {paymentLines.map((payment, index) => gridRow("1.1fr 1fr 1fr", [field(`Pagamento ${index + 1}`, formatPaymentMethod(payment.formaPagamento)), field("Banco / Operadora", formatBank(payment.banco)), field("Valor", formatCurrency(parsePaymentAmount(payment.valor)))], false))}
             {gridRow(
               "1fr 1fr 1fr",
               [
                 field("Valor Total", formatCurrency(data.valorTotal)),
-                field("Valor Entrada", formatCurrency(data.valorEntrada)),
+                field("Total Pago", formatCurrency(data.valorEntrada)),
                 field("Valor Restante", formatCurrency(data.valorRestante)),
               ],
               !data.observacaoValorRestante?.trim()
@@ -429,7 +443,14 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
-        {section("MULTAS", (
+        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
+          <>
+            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
+            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
+          </>
+        )) : null}
+
+        {multaBlocks.length > 0 ? section("MULTAS", (
           <>
             {multaBlocks.map((block, blockIndex) => (
               <div key={`multa-${blockIndex}`}>
@@ -458,9 +479,9 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               </div>
             ))}
           </>
-        ))}
+        )) : null}
 
-        {section("OBSERVAÇÕES ADICIONAIS", (
+        {shouldShowAdditionalObservations(data.observacoes) ? section("OBSERVAÇÕES ADICIONAIS", (
           <>
             <div
               style={{
@@ -475,24 +496,8 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               {fallback(data.observacoes)}
             </div>
           </>
-        ))}
+        )) : null}
 
-        {section("CLÁUSULA ADICIONAL", (
-          <>
-            <div
-              style={{
-                minHeight: 42,
-                padding: "6px 0",
-                borderBottom: `1px solid ${colors.line}`,
-                fontSize: 11.5,
-                color: data.clausulaAdicional?.trim() ? colors.text : colors.muted,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {fallback(data.clausulaAdicional)}
-            </div>
-          </>
-        ))}
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, Clock3, Eye, FileImage, FileText, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,33 +9,45 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
 import { createAccessUser, deleteAccessUser, getAccessUsers, updateAccessUser } from "@/lib/accessAdminService"
 import { getCurrentAccess, hasAdminAccess, loginWithPassword, logout, resetPassword, resetPasswordWithPhone } from "@/lib/accessService"
 import { getDefaultConsultorOption } from "@/lib/ficha-options"
+import { formatFichaNumber } from "@/lib/ficha-client-name"
 import { downloadFichaPdf } from "@/lib/ficha-pdf-client"
 import { downloadFilledDocumentPdf } from "@/lib/document-pdf-client"
-import { DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
+import { DEFAULT_DOCUMENT_TEMPLATES, DOCUMENT_TEMPLATE_LABELS, fillDocumentTemplate, normalizeDocumentTemplateContent, prepareDocumentTemplateContent, type DocumentTemplateKind } from "@/lib/document-templates"
 import { getDocumentTemplate, updateDocumentTemplate } from "@/lib/document-template-client"
-import { captureEditorSelection, runEditorCommand, syncEditableContent } from "@/lib/document-editor"
+import { captureEditorSelection, getEditorSelectionFormatting, runEditorAlignmentCommand, runEditorCommand, runEditorFontSizeCommand, syncEditableContent } from "@/lib/document-editor"
+import { convertEmptyListItemToSpacer, normalizeDocumentListSpacing } from "@/lib/document-list-spacing"
+import type { DocumentEditorFormatCommand } from "@/lib/document-editor-formats"
+import { resolveCustomEditorHistory, type DocumentEditorHistoryEntry } from "@/lib/document-editor-history"
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
-import { getFichaById, getFichas } from "@/lib/fichas-api"
+import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas, mergeFichaClients } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
+import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { shouldValidatePayments } from "@/lib/payment-validation-context"
+import { formatFichaChangeValue } from "@/lib/ficha-change-log"
 import {
   emptyFichaValues,
   type AccessCodeRecord,
   type ActivityLogRecord,
   type ConsultorSession,
+  type DuplicateResolution,
+  type FichaDuplicateMatch,
   type FichaFormValues,
   type FichaListItem,
   type FichaRecord,
 } from "@/lib/ficha-types"
 
-type ViewMode = "list" | "picker" | "view" | "edit" | "editClient" | "editClause"
+type ViewMode = "list" | "picker" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
 type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
@@ -59,13 +71,15 @@ const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{valorEntrada}}",
   "{{valorRestante}}",
   "{{observacaoValorRestante}}",
-  "{{clausulaAdicional}}",
   "{{formaPagamento}}",
   "{{banco}}",
   "{{processosResumo}}",
   "{{multasResumo}}",
+  "{{tipoOutroServico}}",
+  "{{poderesOutroServico}}",
   "{{placas}}",
   "{{dataHoje}}",
+  "{{dataFicha}}",
   "{{consultor}}",
 ]
 
@@ -81,13 +95,14 @@ const DOCUMENT_TEMPLATE_FONT_OPTIONS = [
 const MAX_TEMPLATE_IMAGE_SIZE_BYTES = 1_500_000
 
 const DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS = [
-  { label: "10", value: "1" },
-  { label: "12", value: "2" },
-  { label: "14", value: "3" },
-  { label: "18", value: "4" },
-  { label: "24", value: "5" },
-  { label: "32", value: "6" },
-  { label: "48", value: "7" },
+  "10",
+  "12",
+  "14",
+  "18",
+  "22",
+  "24",
+  "32",
+  "48",
 ]
 
 const DOCUMENT_TEMPLATE_PREVIEW_VALUES: FichaFormValues = {
@@ -107,13 +122,14 @@ const DOCUMENT_TEMPLATE_PREVIEW_VALUES: FichaFormValues = {
   valorEntrada: "R$ 100,00",
   valorRestante: "R$ 100,00",
   observacaoValorRestante: "Pagamento restante em 30 dias.",
-  clausulaAdicional: "Clausula adicional de exemplo para visualizacao do documento.",
   tipoProcesso: "SUSPENSAO",
   numeroProcesso: "53535345345435",
   prazoProcesso: "2026-05-07",
   autoDetran: "I53552418",
   placa: "RIQ1E09",
   prazoMulta: "2026-05-30",
+  tipoOutroServico: "Regularização documental",
+  poderesOutroServico: "Representar o cliente perante os órgãos competentes e praticar os atos necessários ao serviço.",
 }
 
 function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
@@ -122,10 +138,14 @@ function getAccessLevelLabel(level: AccessCodeRecord["nivelAcesso"]) {
   return "Comercial"
 }
 
-function getFichaLabel(nomeCliente: string) {
+function getFichaLabel(numeroFicha: number, nomeCliente: string) {
+  if (numeroFicha > 0) {
+    return `Ficha ${formatFichaNumber(numeroFicha)}`
+  }
+
   const match = (nomeCliente || "").trim().match(/(\d{1,2})$/)
   if (match) {
-    return `Ficha ${match[1]}`
+    return `Ficha ${formatFichaNumber(Number(match[1]))}`
   }
 
   return "Ficha"
@@ -141,9 +161,9 @@ function fallback(value: string) {
 
 function formatDisplayDate(value: string) {
   if (!value) return "-"
-  const [year, month, day] = value.split("-")
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return value
+  return `${match[3]}/${match[2]}/${match[1]}`
 }
 
 type ConsultaClienteGroup = {
@@ -157,67 +177,65 @@ type ConsultaClienteGroup = {
 
 function ClienteValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <div className="min-h-10 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-xs">
-        {fallback(value)}
-      </div>
+    <div className="min-w-0 border-b border-slate-200 px-3 py-2.5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-5 text-slate-900">{fallback(value)}</p>
     </div>
   )
 }
 
 function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues; onEdit: () => void; canEdit: boolean }) {
   return (
-    <div className="relative rounded-lg border border-border border-l-4 border-l-primary bg-background p-4 pb-16 shadow-sm">
-      <div className="mb-6 flex items-center gap-2">
-        <UserPlus className="size-5 text-primary" />
-        <h3 className="text-lg font-semibold text-primary">Dados do Cliente</h3>
+    <div className="relative overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
+      <div className="relative flex items-center justify-center bg-[#214674] px-4 py-2 text-white">
+        <UserPlus className="absolute left-4 size-4" />
+        <h3 className="text-sm font-bold uppercase tracking-wide">Dados do Cliente</h3>
+        {canEdit ? (
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="absolute right-2 h-7 text-white hover:bg-white/15 hover:text-white">
+            <Pencil className="size-3.5" />
+            Editar
+          </Button>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="Nome Completo" value={getClienteBaseName(values.nomeCliente) || values.nomeCliente} />
         <ClienteValue label="Terceiros" value={values.terceiros} />
         <ClienteValue label="Telefone(s)" value={values.telefones} />
         <ClienteValue label="E-mail" value={values.email} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[130px_1fr_130px_130px_190px_90px]">
+      <div className="grid grid-cols-1 md:grid-cols-[130px_1fr_110px_150px_180px_80px]">
         <ClienteValue label="CEP" value={values.cep} />
         <ClienteValue label="Endereco" value={values.endereco} />
-        <ClienteValue label="Numero" value="" />
-        <ClienteValue label="Complemento" value="" />
+        <ClienteValue label="Numero" value={values.numeroEndereco} />
+        <ClienteValue label="Complemento" value={values.complementoEndereco} />
         <ClienteValue label="Municipio" value={values.municipio} />
         <ClienteValue label="UF" value={values.uf} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="CPF/CNPJ" value={values.cpfCnpj} />
         <ClienteValue label="CNH" value={values.cnh} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-3">
         <ClienteValue label="Data de Nascimento" value={formatDisplayDate(values.dataNascimento)} />
         <ClienteValue label="Data da 1a CNH" value={formatDisplayDate(values.dataPrimeiraCnh)} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-3">
         <ClienteValue label="Nacionalidade" value={values.nacionalidade} />
         <ClienteValue label="Estado Civil" value={values.estadoCivil} />
         <ClienteValue label="Profissão" value={values.profissao} />
-        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-3">
+        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
         <ClienteValue label="Origem" value={values.origem} />
         <ClienteValue label="SNE" value={values.sne} />
       </div>
 
-      {canEdit ? (
-        <Button type="button" variant="outline" size="sm" onClick={onEdit} className="absolute bottom-4 right-4">
-          <Plus className="size-4" />
-          Editar
-        </Button>
-      ) : null}
     </div>
   )
 }
@@ -286,6 +304,8 @@ export default function FichasWorkspace() {
   const [createMessage, setCreateMessage] = useState("")
   const [createIdentifierPreview, setCreateIdentifierPreview] = useState("")
   const [createReturnToConsulta, setCreateReturnToConsulta] = useState(false)
+  const [duplicateMatches, setDuplicateMatches] = useState<FichaDuplicateMatch[]>([])
+  const [duplicateActionId, setDuplicateActionId] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
   const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
@@ -301,6 +321,11 @@ export default function FichasWorkspace() {
   const [viewMode, setViewMode] = useState<ViewMode>("list")
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
+  const [documentLoading, setDocumentLoading] = useState<DocumentTemplateKind | null>(null)
+  const [mergeClientKeys, setMergeClientKeys] = useState<string[]>([])
+  const [mergePrimaryKey, setMergePrimaryKey] = useState("")
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
+  const [mergeLoading, setMergeLoading] = useState(false)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("menu")
@@ -311,6 +336,8 @@ export default function FichasWorkspace() {
   const [newUserName, setNewUserName] = useState("")
   const [newUserEmail, setNewUserEmail] = useState("")
   const [newUserPhone, setNewUserPhone] = useState("")
+  const [newUserPassword, setNewUserPassword] = useState("")
+  const [newUserPasswordConfirmation, setNewUserPasswordConfirmation] = useState("")
   const [newUserLevel, setNewUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [userSaving, setUserSaving] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState("")
@@ -320,15 +347,20 @@ export default function FichasWorkspace() {
   const [editUserPhone, setEditUserPhone] = useState("")
   const [editUserLevel, setEditUserLevel] = useState<AccessCodeRecord["nivelAcesso"]>("consultor")
   const [editUserStatus, setEditUserStatus] = useState<"ativo" | "inativo">("ativo")
+  const [editUserPassword, setEditUserPassword] = useState("")
   const [userUpdating, setUserUpdating] = useState(false)
+  const [visibleUserPasswords, setVisibleUserPasswords] = useState<Record<string, boolean>>({})
   const [templateEditorKind, setTemplateEditorKind] = useState<DocumentTemplateKind | null>(null)
   const [templateContent, setTemplateContent] = useState("")
+  const templateUndoHistoryRef = useRef<DocumentEditorHistoryEntry[]>([])
+  const templateRedoHistoryRef = useRef<DocumentEditorHistoryEntry[]>([])
   const [templateFontFamily, setTemplateFontFamily] = useState("Arial")
-  const [templateFontSize, setTemplateFontSize] = useState("3")
+  const [templateFontSize, setTemplateFontSize] = useState("14")
   const [templateTextColor, setTemplateTextColor] = useState("#111827")
   const [templateHighlightColor, setTemplateHighlightColor] = useState("#fff59d")
   const [selectedTemplateImage, setSelectedTemplateImage] = useState<HTMLImageElement | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
   const [templateMessage, setTemplateMessage] = useState("")
   const [templateVariablesOpen, setTemplateVariablesOpen] = useState(false)
   const [latestFichaLog, setLatestFichaLog] = useState<ActivityLogRecord | null>(null)
@@ -422,11 +454,32 @@ export default function FichasWorkspace() {
     [clientBaseFicha, editValues]
   )
 
+  const selectedFichaNumbers = useMemo(() => {
+    const validNumbers = selectedContratos.map((ficha) => ficha.numeroFicha).filter((number) => number > 0)
+    const numbersAreReliable = validNumbers.length === selectedContratos.length && new Set(validNumbers).size === selectedContratos.length
+
+    if (numbersAreReliable) {
+      return new Map(selectedContratos.map((ficha) => [ficha.id, ficha.numeroFicha]))
+    }
+
+    const chronological = [...selectedContratos].sort((left, right) =>
+      `${left.dataContrato}|${left.createdAt}|${left.id}`.localeCompare(`${right.dataContrato}|${right.createdAt}|${right.id}`)
+    )
+    return new Map(chronological.map((ficha, index) => [ficha.id, index + 1]))
+  }, [selectedContratos])
+
+  const orderedSelectedContratos = useMemo(
+    () => [...selectedContratos].sort((left, right) =>
+      (selectedFichaNumbers.get(left.id) ?? left.numeroFicha) - (selectedFichaNumbers.get(right.id) ?? right.numeroFicha)
+    ),
+    [selectedContratos, selectedFichaNumbers]
+  )
+
   const consultaClienteGroups = useMemo(() => {
     const groups = new Map<string, ConsultaClienteGroup>()
 
     consultaItems.forEach((item) => {
-      const key = normalizeCpfCnpj(item.cpfCnpj) || getClienteBaseName(item.nomeCliente).toLowerCase() || item.id
+      const key = normalizeCpfCnpj(item.cpfCnpj) || item.id
       const existing = groups.get(key)
 
       if (existing) {
@@ -449,6 +502,11 @@ export default function FichasWorkspace() {
       contratos: [...group.contratos].sort((a, b) => a.nomeCliente.localeCompare(b.nomeCliente, "pt-BR", { numeric: true })),
     }))
   }, [consultaItems])
+
+  const selectedMergeGroups = useMemo(
+    () => consultaClienteGroups.filter((group) => mergeClientKeys.includes(group.key)),
+    [consultaClienteGroups, mergeClientKeys]
+  )
 
   const isAdmin = hasAdminAccess(consultor)
   const isAndamento = consultor?.nivelAcesso === "andamento"
@@ -548,11 +606,17 @@ export default function FichasWorkspace() {
 
   const handleDownloadDocument = async (kind: DocumentTemplateKind) => {
     setEditMessage("")
+    setDocumentLoading(kind)
 
     try {
-      await downloadFilledDocumentPdf(kind, editValues)
+      await downloadFilledDocumentPdf(kind, {
+        ...editValues,
+        createdAt: selectedFicha?.createdAt,
+      })
     } catch (error) {
       setEditMessage(error instanceof Error ? error.message : "Erro ao gerar documento.")
+    } finally {
+      setDocumentLoading(null)
     }
   }
 
@@ -562,17 +626,20 @@ export default function FichasWorkspace() {
     const requestId = ++templateLoadRequestRef.current
     templateEditorKindRef.current = kind
     setTemplateEditorKind(kind)
-    setTemplateContent("")
+    setTemplateContent(prepareDocumentTemplateContent(kind, normalizeDocumentListSpacing(DEFAULT_DOCUMENT_TEMPLATES[kind])))
     setTemplateLoading(true)
+    setTemplateSaving(false)
     setTemplateMessage("")
     setTemplateVariablesOpen(false)
     templateSelectionRef.current = null
+    templateUndoHistoryRef.current = []
+    templateRedoHistoryRef.current = []
     handleSelectTemplateImage(null)
 
     try {
       const template = await getDocumentTemplate(kind)
       if (requestId === templateLoadRequestRef.current) {
-        setTemplateContent(normalizeDocumentTemplateContent(template.content))
+        setTemplateContent(prepareDocumentTemplateContent(kind, normalizeDocumentListSpacing(template.content)))
       }
     } catch (error) {
       if (requestId === templateLoadRequestRef.current) {
@@ -589,10 +656,13 @@ export default function FichasWorkspace() {
     templateLoadRequestRef.current += 1
     templateEditorKindRef.current = null
     templateSelectionRef.current = null
+    templateUndoHistoryRef.current = []
+    templateRedoHistoryRef.current = []
     handleSelectTemplateImage(null)
     setTemplateEditorKind(null)
     setTemplateContent("")
     setTemplateLoading(false)
+    setTemplateSaving(false)
     setTemplateVariablesOpen(false)
   }
 
@@ -602,10 +672,11 @@ export default function FichasWorkspace() {
     const saveRequestId = templateLoadRequestRef.current
     const saveKind = templateEditorKind
     setTemplateLoading(true)
+    setTemplateSaving(true)
     setTemplateMessage("")
 
     try {
-      const template = await updateDocumentTemplate(saveKind, templateContent, consultor)
+      const template = await updateDocumentTemplate(saveKind, normalizeDocumentListSpacing(templateContent), consultor)
       if (saveRequestId !== templateLoadRequestRef.current || templateEditorKindRef.current !== saveKind) return
 
       setTemplateContent(normalizeDocumentTemplateContent(template.content))
@@ -621,6 +692,7 @@ export default function FichasWorkspace() {
     } finally {
       if (saveRequestId === templateLoadRequestRef.current && templateEditorKindRef.current === saveKind) {
         setTemplateLoading(false)
+        setTemplateSaving(false)
       }
     }
   }
@@ -632,6 +704,10 @@ export default function FichasWorkspace() {
     const selection = editor.ownerDocument.defaultView?.getSelection() ?? null
     const range = captureEditorSelection(editor, selection)
     if (range) templateSelectionRef.current = range
+
+    const formatting = getEditorSelectionFormatting(editor, selection)
+    if (formatting?.fontFamily) setTemplateFontFamily(formatting.fontFamily)
+    if (formatting?.fontSize) setTemplateFontSize(formatting.fontSize)
   }
 
   const runTemplateCommand = (command: string, value?: string) => {
@@ -643,26 +719,63 @@ export default function FichasWorkspace() {
     setTemplateContent(result.content)
   }
 
-  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | "justifyLeft" | "justifyCenter" | "insertUnorderedList" | "insertOrderedList") => {
+  const handleTemplateCommand = (command: "bold" | "italic" | "underline" | DocumentEditorFormatCommand) => {
+    const editor = templateEditorRef.current
+    if (!editor || templateLoading) return
+
+    if (command === "undo" || command === "redo") {
+      const source = command === "undo" ? templateUndoHistoryRef.current : templateRedoHistoryRef.current
+      const target = command === "undo" ? templateRedoHistoryRef.current : templateUndoHistoryRef.current
+      const entry = source.at(-1)
+      if (entry) {
+        const resolved = resolveCustomEditorHistory(editor.innerHTML, entry, command)
+        if (resolved.applied) {
+          source.pop()
+          target.push(entry)
+          editor.innerHTML = resolved.content
+          setTemplateContent(resolved.content)
+          templateSelectionRef.current = null
+          return
+        }
+      }
+      runTemplateCommand(command)
+      return
+    }
+
+    templateRedoHistoryRef.current = []
+    if (command === "justifyLeft" || command === "justifyCenter" || command === "justifyRight" || command === "justifyFull") {
+      const before = editor.innerHTML
+      const result = runEditorAlignmentCommand(editor, command, templateSelectionRef.current)
+      if (result.executed && result.content !== before) {
+        templateUndoHistoryRef.current.push({ before, after: result.content })
+      }
+      templateSelectionRef.current = result.selection
+      setTemplateContent(result.content)
+      return
+    }
     runTemplateCommand(command)
   }
 
   const handleTemplateFontChange = (fontFamily: string) => {
     const editor = templateEditorRef.current
-    if (!editor || templateLoading) return
+    const normalizedFontFamily = fontFamily.trim()
+    if (!editor || templateLoading || !normalizedFontFamily) return
 
-    setTemplateFontFamily(fontFamily)
+    setTemplateFontFamily(normalizedFontFamily)
     editor.ownerDocument.execCommand("styleWithCSS", false, "true")
-    runTemplateCommand("fontName", fontFamily)
+    runTemplateCommand("fontName", normalizedFontFamily)
   }
 
   const handleTemplateFontSizeChange = (fontSize: string) => {
     const editor = templateEditorRef.current
     if (!editor || templateLoading) return
 
-    setTemplateFontSize(fontSize)
-    editor.ownerDocument.execCommand("styleWithCSS", false, "true")
-    runTemplateCommand("fontSize", fontSize)
+    const result = runEditorFontSizeCommand(editor, fontSize, templateSelectionRef.current)
+    if (!result.executed) return
+
+    templateSelectionRef.current = result.selection
+    setTemplateContent(result.content)
+    setTemplateFontSize(result.fontSize)
   }
 
   const handleTemplateTextColorChange = (color: string) => {
@@ -819,9 +932,9 @@ export default function FichasWorkspace() {
     return Array.from(groups.values())
   }, [timelineLogs])
 
-  const templatePreviewValues = useMemo<FichaFormValues>(() => {
+  const templatePreviewValues = useMemo<FichaFormValues & { createdAt?: string }>(() => {
     if (selectedFicha) {
-      return editValues
+      return { ...editValues, createdAt: selectedFicha.createdAt }
     }
 
     return {
@@ -834,7 +947,7 @@ export default function FichasWorkspace() {
 
   const templatePreviewContent = useMemo(() => {
     if (!templateEditorKind || !templateContent.trim()) return ""
-    return fillDocumentTemplate(templateContent, templatePreviewValues)
+    return fillDocumentTemplate(templateContent, templatePreviewValues, templateEditorKind)
   }, [templateContent, templateEditorKind, templatePreviewValues])
 
   const handleLogin = async () => {
@@ -994,8 +1107,18 @@ export default function FichasWorkspace() {
   const handleCreateUser = async () => {
     if (!consultor) return
 
-    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPhone.trim()) {
-      setUsersError("Nome do responsavel, e-mail e telefone sao obrigatorios.")
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPhone.trim() || !newUserPassword) {
+      setUsersError("Nome do responsavel, e-mail, telefone e senha sao obrigatorios.")
+      return
+    }
+
+    if (newUserPassword.length < 6) {
+      setUsersError("A senha deve ter pelo menos 6 caracteres.")
+      return
+    }
+
+    if (newUserPassword !== newUserPasswordConfirmation) {
+      setUsersError("A confirmacao da senha nao confere.")
       return
     }
 
@@ -1009,14 +1132,17 @@ export default function FichasWorkspace() {
         email: newUserEmail.trim(),
         telefone: newUserPhone.trim(),
         nivelAcesso: newUserLevel,
+        password: newUserPassword,
         appOrigin: typeof window !== "undefined" ? window.location.origin : "",
       })
 
       setNewUserName("")
       setNewUserEmail("")
       setNewUserPhone("")
+      setNewUserPassword("")
+      setNewUserPasswordConfirmation("")
       setNewUserLevel("consultor")
-      setUsersMessage("Usuario adicionado com sucesso. Para definir a senha, o usuario pode usar 'Esqueci minha senha' na tela de acesso.")
+      setUsersMessage("Usuario adicionado com sucesso com a senha definida pelo administrador.")
       await loadAccessUsers()
     } catch (error) {
       setUsersError(error instanceof Error ? error.message : "Erro ao adicionar usuario.")
@@ -1050,6 +1176,7 @@ export default function FichasWorkspace() {
     setEditUserPhone(user.telefone)
     setEditUserLevel(user.nivelAcesso)
     setEditUserStatus(user.ativo ? "ativo" : "inativo")
+    setEditUserPassword(user.senha || "")
     setUsersError("")
     setUsersMessage("")
   }
@@ -1061,6 +1188,7 @@ export default function FichasWorkspace() {
     setEditUserPhone("")
     setEditUserLevel("consultor")
     setEditUserStatus("ativo")
+    setEditUserPassword("")
   }
 
   const handleUpdateUser = async () => {
@@ -1082,6 +1210,7 @@ export default function FichasWorkspace() {
         telefone: editUserPhone.trim(),
         nivelAcesso: editUserLevel,
         ativo: editUserStatus === "ativo",
+        password: editUserPassword || undefined,
       })
 
       setUsersMessage("Usuario atualizado com sucesso.")
@@ -1094,24 +1223,14 @@ export default function FichasWorkspace() {
     }
   }
 
-  const handleCreate = async () => {
+  const persistCreate = async (values: FichaFormValues, resolution?: DuplicateResolution) => {
     if (!consultor) return
-
-    if (!createValues.nomeCliente.trim() || !createValues.cpfCnpj.trim()) {
-      setCreateMessage("Nome Completo e CPF/CNPJ sao obrigatorios.")
-      return
-    }
-
     setCreateLoading(true)
     setCreateMessage("")
+    setDuplicateMatches([])
 
     try {
-      const values = {
-        ...createValues,
-        nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
-      }
-
-      const response = await saveFichaWithPdfAndWebhook(values, consultor)
+      const response = await saveFichaWithPdfAndWebhook(values, consultor, resolution)
       setCreateMessage(
         response.webhookSent
           ? "Ficha salva com sucesso."
@@ -1140,6 +1259,82 @@ export default function FichasWorkspace() {
       setCreateMessage(error instanceof Error ? error.message : "Erro ao salvar a ficha.")
     } finally {
       setCreateLoading(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!consultor) return
+
+    if (!createValues.nomeCliente.trim() || !createValues.cpfCnpj.trim()) {
+      setCreateMessage("Nome Completo e CPF/CNPJ sao obrigatorios.")
+      return
+    }
+
+    const paymentError = validatePaymentEntries(createValues.valorTotal, parsePaymentEntries(createValues.pagamentos, createValues))
+    if (paymentError) {
+      setCreateMessage(paymentError)
+      return
+    }
+
+    const values = {
+      ...createValues,
+      nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+    }
+
+    setCreateLoading(true)
+    setCreateMessage("")
+    try {
+      const { matches } = await checkFichaDuplicates(values)
+      if (matches.length > 0) {
+        setDuplicateMatches(matches)
+        return
+      }
+    } catch (error) {
+      setCreateMessage(error instanceof Error ? error.message : "Erro ao verificar cadastros semelhantes.")
+      return
+    } finally {
+      setCreateLoading(false)
+    }
+
+    await persistCreate(values)
+  }
+
+  const handleDuplicateResolution = async (resolution: DuplicateResolution) => {
+    if (!consultor || duplicateActionId) return
+    const values = {
+      ...createValues,
+      nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+    }
+    setDuplicateActionId(resolution.matchedFichaId || resolution.action)
+    try {
+      await persistCreate(values, resolution)
+    } finally {
+      setDuplicateActionId("")
+    }
+  }
+
+  const handleDeleteDuplicate = async (match: FichaDuplicateMatch) => {
+    if (!consultor || duplicateActionId) return
+    if (!window.confirm(`Excluir definitivamente a ficha de ${getClienteBaseName(match.nomeCliente)}? Esta ação não pode ser desfeita.`)) return
+
+    setDuplicateActionId(match.id)
+    try {
+      await deleteFicha(match.id, consultor)
+      const values = {
+        ...createValues,
+        nomeConsultor: createValues.nomeConsultor || getDefaultConsultorOption(consultor.nome),
+      }
+      const { matches } = await checkFichaDuplicates(values)
+      if (matches.length > 0) {
+        setDuplicateMatches(matches)
+        setCreateMessage("Ficha duplicada excluída. Ainda existem outras correspondências para revisar.")
+      } else {
+        await persistCreate(values)
+      }
+    } catch (error) {
+      setCreateMessage(error instanceof Error ? error.message : "Erro ao excluir a ficha duplicada.")
+    } finally {
+      setDuplicateActionId("")
     }
   }
 
@@ -1175,6 +1370,33 @@ export default function FichasWorkspace() {
     setSelectedContratos([])
     setSelectedFicha(null)
     setViewMode("list")
+  }
+
+  const handleMergeClients = async () => {
+    if (!consultor || !mergePrimaryKey || selectedMergeGroups.length < 2) return
+    const primaryGroup = selectedMergeGroups.find((group) => group.key === mergePrimaryKey)
+    const primaryFichaId = primaryGroup?.contratos[0]?.id
+    if (!primaryFichaId) return
+
+    setMergeLoading(true)
+    setConsultaError("")
+    try {
+      const fichaIds = selectedMergeGroups.flatMap((group) => group.contratos.map((ficha) => ficha.id))
+      await mergeFichaClients(primaryFichaId, fichaIds, consultor)
+      const refreshed = await getFichas({
+        cpf: tipoBusca === "nome" ? "" : normalizeCpfCnpj(cpfBusca),
+        nome: tipoBusca === "nome" ? nomeBusca.trim() : "",
+      })
+      setConsultaItems(refreshed.fichas)
+      setMergeClientKeys([])
+      setMergePrimaryKey("")
+      setMergeDialogOpen(false)
+      setConsultaError("Cadastros unidos com sucesso. Todas as fichas e históricos foram preservados.")
+    } catch (error) {
+      setConsultaError(error instanceof Error ? error.message : "Erro ao juntar cadastros.")
+    } finally {
+      setMergeLoading(false)
+    }
   }
 
   const resetConsulta = () => {
@@ -1298,6 +1520,8 @@ export default function FichasWorkspace() {
       terceiros: fichaBase.terceiros,
       telefones: fichaBase.telefones,
       endereco: fichaBase.endereco,
+      numeroEndereco: fichaBase.numeroEndereco,
+      complementoEndereco: fichaBase.complementoEndereco,
       cep: fichaBase.cep,
       municipio: fichaBase.municipio,
       uf: fichaBase.uf,
@@ -1334,6 +1558,12 @@ export default function FichasWorkspace() {
 
   const handleUpdate = async () => {
     if (!consultor || !selectedFicha) return
+
+    const paymentError = shouldValidatePayments(viewMode) ? validatePaymentEntries(editValues.valorTotal, parsePaymentEntries(editValues.pagamentos, editValues)) : ""
+    if (paymentError) {
+      setEditMessage(paymentError)
+      return
+    }
 
     setEditLoading(true)
     setEditMessage("")
@@ -1380,6 +1610,12 @@ export default function FichasWorkspace() {
           <CardHeader>
             <CardTitle>Tela de Acesso</CardTitle>
           </CardHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!resetToken && !forgotPasswordOpen && !authLoading) void handleLogin()
+            }}
+          >
           <CardContent className="space-y-4">
             {resetToken ? (
               <>
@@ -1408,28 +1644,32 @@ export default function FichasWorkspace() {
               </>
             ) : (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="emailAcesso">E-mail</Label>
-                  <Input
-                    id="emailAcesso"
-                    type="email"
-                    value={emailAcesso}
-                    onChange={(event) => setEmailAcesso(event.target.value)}
-                    placeholder="Digite seu e-mail"
-                    disabled={authLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senhaAcesso">Senha</Label>
-                  <Input
-                    id="senhaAcesso"
-                    type="password"
-                    value={senhaAcesso}
-                    onChange={(event) => setSenhaAcesso(event.target.value)}
-                    placeholder="Digite sua senha"
-                    disabled={authLoading}
-                  />
-                </div>
+                {!forgotPasswordOpen ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="emailAcesso">E-mail</Label>
+                      <Input
+                        id="emailAcesso"
+                        type="email"
+                        value={emailAcesso}
+                        onChange={(event) => setEmailAcesso(event.target.value)}
+                        placeholder="Digite seu e-mail"
+                        disabled={authLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="senhaAcesso">Senha</Label>
+                      <Input
+                        id="senhaAcesso"
+                        type="password"
+                        value={senhaAcesso}
+                        onChange={(event) => setSenhaAcesso(event.target.value)}
+                        placeholder="Digite sua senha"
+                        disabled={authLoading}
+                      />
+                    </div>
+                  </>
+                ) : null}
                 {forgotPasswordOpen ? (
                   <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
                     <div className="space-y-2">
@@ -1503,12 +1743,12 @@ export default function FichasWorkspace() {
             {authError && <p className="text-sm text-red-600">{authError}</p>}
             {resetMessage ? <p className="text-sm text-primary">{resetMessage}</p> : null}
             {resetToken ? (
-              <Button className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
+              <Button type="button" className="w-full" onClick={() => void handleResetPassword()} disabled={resetLoading}>
                 {resetLoading ? "Atualizando..." : "Salvar nova senha"}
               </Button>
-            ) : (
+            ) : !forgotPasswordOpen ? (
               <>
-                <Button className="w-full" onClick={() => void handleLogin()} disabled={authLoading}>
+                <Button type="submit" className="w-full" disabled={authLoading}>
                   {authLoading ? "Validando..." : "Entrar"}
                 </Button>
                 <Button
@@ -1516,7 +1756,7 @@ export default function FichasWorkspace() {
                   variant="link"
                   className="w-full"
                   onClick={() => {
-                    setForgotPasswordOpen((current) => !current)
+                    setForgotPasswordOpen(true)
                     setAuthError("")
                     setResetMessage("")
                     setForgotEmail("")
@@ -1528,8 +1768,9 @@ export default function FichasWorkspace() {
                   Esqueceu senha
                 </Button>
               </>
-            )}
+            ) : null}
           </CardContent>
+          </form>
         </Card>
       </div>
     )
@@ -1590,291 +1831,387 @@ export default function FichasWorkspace() {
                         </div>
                       </div>
 
-                  {settingsSection === "menu" ? (
-                    <div className="grid gap-4 px-6 pb-6 pt-5 md:grid-cols-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto justify-start gap-3 p-5 text-left"
-                        onClick={() => void handleOpenUsersSettings()}
-                      >
-                        <UserPlus className="h-5 w-5 text-primary" />
-                        <span>
-                          <span className="block font-semibold">Usuarios</span>
-                        </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-auto justify-start gap-3 p-5 text-left"
-                        onClick={() => setSettingsSection("documents")}
-                      >
-                        <FileText className="h-5 w-5 text-primary" />
-                        <span>
-                          <span className="block font-semibold">Modelos de Documentos</span>
-                        </span>
-                      </Button>
-                    </div>
-                  ) : null}
-
-                  {settingsSection === "documents" ? (
-                    <div className="space-y-4 px-6 pb-6 pt-5">
-                      {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto justify-start gap-3 p-5 text-left"
-                          onClick={() => void handleOpenTemplateEditor("contract")}
-                        >
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span>
-                            <span className="block font-semibold">Modelo de Contrato</span>
-                            <span className="block text-sm font-normal text-muted-foreground">
-                              Editar texto base do contrato
-                            </span>
-                          </span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-auto justify-start gap-3 p-5 text-left"
-                          onClick={() => void handleOpenTemplateEditor("procuration")}
-                        >
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span>
-                            <span className="block font-semibold">Modelo de Procuração</span>
-                            <span className="block text-sm font-normal text-muted-foreground">
-                              Editar texto base da procuração
-                            </span>
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {settingsSection === "users" ? (
-                  <div className="space-y-5 px-6 pb-6 pt-5">
-                    <Card className="border border-border/70 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <UserPlus className="h-4 w-4" />
-                          Adicionar novo usuario
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_220px_auto] xl:items-end">
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
-                          <Input
-                            id="novoUsuarioNome"
-                            value={newUserName}
-                            onChange={(event) => setNewUserName(event.target.value)}
-                            placeholder="Digite o nome"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioEmail">E-mail</Label>
-                          <Input
-                            id="novoUsuarioEmail"
-                            type="email"
-                            value={newUserEmail}
-                            onChange={(event) => setNewUserEmail(event.target.value)}
-                            placeholder="Digite o e-mail"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioTelefone">Telefone</Label>
-                          <Input
-                            id="novoUsuarioTelefone"
-                            value={newUserPhone}
-                            onChange={(event) => setNewUserPhone(event.target.value)}
-                            placeholder="Digite o telefone"
-                            disabled={userSaving}
-                          />
-                        </div>
-                        <div className="space-y-2 min-w-0">
-                          <Label htmlFor="novoUsuarioNivel">Nivel</Label>
-                          <Select
-                            value={newUserLevel}
-                            onValueChange={(value) => setNewUserLevel(value as AccessCodeRecord["nivelAcesso"])}
-                            disabled={userSaving}
+                      {settingsSection === "menu" ? (
+                        <div className="grid gap-4 px-6 pb-6 pt-5 md:grid-cols-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-auto justify-start gap-3 p-5 text-left"
+                            onClick={() => void handleOpenUsersSettings()}
                           >
-                            <SelectTrigger id="novoUsuarioNivel">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="consultor">Comercial</SelectItem>
-                              <SelectItem value="andamento">Andamento</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <UserPlus className="h-5 w-5 text-primary" />
+                            <span>
+                              <span className="block font-semibold">Usuarios</span>
+                            </span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-auto justify-start gap-3 p-5 text-left"
+                            onClick={() => setSettingsSection("documents")}
+                          >
+                            <FileText className="h-5 w-5 text-primary" />
+                            <span>
+                              <span className="block font-semibold">Modelos de Documentos</span>
+                            </span>
+                          </Button>
                         </div>
-                        <Button className="w-full xl:w-auto xl:min-w-[120px]" onClick={() => void handleCreateUser()} disabled={userSaving}>
-                          {userSaving ? "Salvando..." : "Adicionar"}
-                        </Button>
-                      </CardContent>
-                    </Card>
+                      ) : null}
 
-                    <Card className="border border-border/70 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {usersError && <p className="text-sm text-red-600">{usersError}</p>}
-                        {usersMessage && <p className="text-sm text-primary font-medium">{usersMessage}</p>}
-
-                        {usersLoading ? (
-                          <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {users.map((user) => (
-                              <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
-                                {editingUserId === user.id ? (
-                                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_180px_180px]">
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
-                                      <Input
-                                        id={`edit-nome-${user.id}`}
-                                        value={editUserName}
-                                        onChange={(event) => setEditUserName(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-email-${user.id}`}>E-mail</Label>
-                                      <Input
-                                        id={`edit-email-${user.id}`}
-                                        type="email"
-                                        value={editUserEmail}
-                                        onChange={(event) => setEditUserEmail(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-telefone-${user.id}`}>Telefone</Label>
-                                      <Input
-                                        id={`edit-telefone-${user.id}`}
-                                        value={editUserPhone}
-                                        onChange={(event) => setEditUserPhone(event.target.value)}
-                                        disabled={userUpdating}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0">
-                                      <Label htmlFor={`edit-nivel-${user.id}`}>Nivel</Label>
-                                      <Select
-                                        value={editUserLevel}
-                                        onValueChange={(value) => setEditUserLevel(value as AccessCodeRecord["nivelAcesso"])}
-                                        disabled={userUpdating}
-                                      >
-                                        <SelectTrigger id={`edit-nivel-${user.id}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="consultor">Comercial</SelectItem>
-                                          <SelectItem value="andamento">Andamento</SelectItem>
-                                          <SelectItem value="admin">Admin</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    <div className="space-y-2 min-w-0 xl:col-start-4">
-                                      <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
-                                      <Select
-                                        value={editUserStatus}
-                                        onValueChange={(value) => setEditUserStatus(value as "ativo" | "inativo")}
-                                        disabled={userUpdating || user.id === consultor.id}
-                                      >
-                                        <SelectTrigger id={`edit-status-${user.id}`}>
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="ativo">Ativo</SelectItem>
-                                          <SelectItem value="inativo">Inativo</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">
-                                      <Button onClick={() => void handleUpdateUser()} disabled={userUpdating}>
-                                        {userUpdating ? "Salvando..." : "Salvar edicao"}
-                                      </Button>
-                                      <Button variant="outline" onClick={cancelEditingUser} disabled={userUpdating}>
-                                        Cancelar
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,1.45fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] xl:gap-4 min-w-0">
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
-                                      <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
-                                      <p className="mt-1 text-sm break-words">{user.email}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
-                                      <p className="mt-1 text-sm break-all">{user.telefone}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
-                                      <p className="mt-1">{getAccessLevelLabel(user.nivelAcesso)}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
-                                      <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
-                                      <p className="mt-1 text-sm text-muted-foreground break-words">
-                                        {formatAccessDate(user.updatedAt || user.createdAt)}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap justify-end gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => startEditingUser(user)}
-                                      disabled={deletingUserId === user.id}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Editar
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => void handleDeleteUser(user)}
-                                      disabled={deletingUserId === user.id || user.id === consultor.id}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      {deletingUserId === user.id ? "Removendo..." : "Remover"}
-                                    </Button>
-                                  </div>
-                                </div>
-                                )}
-                              </div>
-                            ))}
-
-                            {users.length === 0 && (
-                              <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                                Nenhum usuario encontrado.
-                              </div>
-                            )}
+                      {settingsSection === "documents" ? (
+                        <div className="space-y-4 px-6 pb-6 pt-5">
+                          {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("contract")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Contrato</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar texto base do contrato
+                                </span>
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("procuration")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Procuração</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar texto base da procuração
+                                </span>
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("other-services-contract")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Contrato - Outros Serviços</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar contrato específico de outros serviços
+                                </span>
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto justify-start gap-3 p-5 text-left"
+                              onClick={() => void handleOpenTemplateEditor("other-services-procuration")}
+                            >
+                              <FileText className="h-5 w-5 text-primary" />
+                              <span>
+                                <span className="block font-semibold">Modelo de Procuração - Outros Serviços</span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  Editar procuração específica de outros serviços
+                                </span>
+                              </span>
+                            </Button>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                  ) : null}
+                        </div>
+                      ) : null}
+
+                      {settingsSection === "users" ? (
+                        <div className="space-y-5 px-6 pb-6 pt-5">
+                          <Card className="border border-border/70 shadow-sm">
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <UserPlus className="h-4 w-4" />
+                                Adicionar novo usuario
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 xl:items-end">
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioNome">Nome do responsavel</Label>
+                                <Input
+                                  id="novoUsuarioNome"
+                                  value={newUserName}
+                                  onChange={(event) => setNewUserName(event.target.value)}
+                                  placeholder="Digite o nome"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioEmail">E-mail</Label>
+                                <Input
+                                  id="novoUsuarioEmail"
+                                  type="email"
+                                  value={newUserEmail}
+                                  onChange={(event) => setNewUserEmail(event.target.value)}
+                                  placeholder="Digite o e-mail"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioTelefone">Telefone</Label>
+                                <Input
+                                  id="novoUsuarioTelefone"
+                                  value={newUserPhone}
+                                  onChange={(event) => setNewUserPhone(event.target.value)}
+                                  placeholder="Digite o telefone"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioSenha">Senha</Label>
+                                <Input
+                                  id="novoUsuarioSenha"
+                                  type="text"
+                                  value={newUserPassword}
+                                  onChange={(event) => setNewUserPassword(event.target.value)}
+                                  placeholder="Minimo de 6 caracteres"
+                                  autoComplete="new-password"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioConfirmarSenha">Confirmar senha</Label>
+                                <Input
+                                  id="novoUsuarioConfirmarSenha"
+                                  type="text"
+                                  value={newUserPasswordConfirmation}
+                                  onChange={(event) => setNewUserPasswordConfirmation(event.target.value)}
+                                  placeholder="Repita a senha"
+                                  autoComplete="new-password"
+                                  disabled={userSaving}
+                                />
+                              </div>
+                              <div className="space-y-2 min-w-0">
+                                <Label htmlFor="novoUsuarioNivel">Nivel</Label>
+                                <Select
+                                  value={newUserLevel}
+                                  onValueChange={(value) => setNewUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                                  disabled={userSaving}
+                                >
+                                  <SelectTrigger id="novoUsuarioNivel">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="consultor">Comercial</SelectItem>
+                                    <SelectItem value="andamento">Andamento</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button className="w-full xl:w-auto xl:min-w-[120px]" onClick={() => void handleCreateUser()} disabled={userSaving}>
+                                {userSaving ? "Salvando..." : "Adicionar"}
+                              </Button>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="border border-border/70 shadow-sm">
+                            <CardHeader>
+                              <CardTitle className="text-base">Usuarios cadastrados</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {usersError && <p className="text-sm text-red-600">{usersError}</p>}
+                              {usersMessage && <p className="text-sm text-primary font-medium">{usersMessage}</p>}
+
+                              {usersLoading ? (
+                                <p className="text-sm text-muted-foreground">Carregando usuarios...</p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {users.map((user) => (
+                                    <div key={user.id} className="rounded-xl border border-border bg-background/70 p-4">
+                                      {editingUserId === user.id ? (
+                                        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_180px_180px]">
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-nome-${user.id}`}>Nome</Label>
+                                            <Input
+                                              id={`edit-nome-${user.id}`}
+                                              value={editUserName}
+                                              onChange={(event) => setEditUserName(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-email-${user.id}`}>E-mail</Label>
+                                            <Input
+                                              id={`edit-email-${user.id}`}
+                                              type="email"
+                                              value={editUserEmail}
+                                              onChange={(event) => setEditUserEmail(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-telefone-${user.id}`}>Telefone</Label>
+                                            <Input
+                                              id={`edit-telefone-${user.id}`}
+                                              value={editUserPhone}
+                                              onChange={(event) => setEditUserPhone(event.target.value)}
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0">
+                                            <Label htmlFor={`edit-nivel-${user.id}`}>Nivel</Label>
+                                            <Select
+                                              value={editUserLevel}
+                                              onValueChange={(value) => setEditUserLevel(value as AccessCodeRecord["nivelAcesso"])}
+                                              disabled={userUpdating}
+                                            >
+                                              <SelectTrigger id={`edit-nivel-${user.id}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="consultor">Comercial</SelectItem>
+                                                <SelectItem value="andamento">Andamento</SelectItem>
+                                                <SelectItem value="admin">Admin</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0 xl:col-start-4">
+                                            <Label htmlFor={`edit-status-${user.id}`}>Status</Label>
+                                            <Select
+                                              value={editUserStatus}
+                                              onValueChange={(value) => setEditUserStatus(value as "ativo" | "inativo")}
+                                              disabled={userUpdating || user.id === consultor.id}
+                                            >
+                                              <SelectTrigger id={`edit-status-${user.id}`}>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="ativo">Ativo</SelectItem>
+                                                <SelectItem value="inativo">Inativo</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+
+                                          <div className="space-y-2 min-w-0 lg:col-span-2">
+                                            <Label htmlFor={`edit-senha-${user.id}`}>Senha</Label>
+                                            <Input
+                                              id={`edit-senha-${user.id}`}
+                                              type="text"
+                                              value={editUserPassword}
+                                              onChange={(event) => setEditUserPassword(event.target.value)}
+                                              placeholder="Deixe em branco para manter a senha atual"
+                                              autoComplete="new-password"
+                                              disabled={userUpdating}
+                                            />
+                                          </div>
+
+                                          <div className="flex flex-col gap-2 sm:flex-row lg:col-span-2 xl:col-span-4">
+                                            <Button onClick={() => void handleUpdateUser()} disabled={userUpdating}>
+                                              {userUpdating ? "Salvando..." : "Salvar edicao"}
+                                            </Button>
+                                            <Button variant="outline" onClick={cancelEditingUser} disabled={userUpdating}>
+                                              Cancelar
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(260px,1.45fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)] xl:gap-4 min-w-0">
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nome</p>
+                                              <p className="mt-1 font-medium break-words">{user.nomeResponsavel}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">E-mail</p>
+                                              <p className="mt-1 text-sm break-words">{user.email}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Telefone</p>
+                                              <p className="mt-1 text-sm break-all">{user.telefone}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Senha</p>
+                                              <div className="mt-1 flex items-center gap-1.5">
+                                                <p className="text-sm break-all">
+                                                  {user.senha
+                                                    ? visibleUserPasswords[user.id]
+                                                      ? user.senha
+                                                      : "•".repeat(Math.min(user.senha.length, 10))
+                                                    : "—"}
+                                                </p>
+                                                {user.senha ? (
+                                                  <button
+                                                    type="button"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                    onClick={() =>
+                                                      setVisibleUserPasswords((prev) => ({
+                                                        ...prev,
+                                                        [user.id]: !prev[user.id],
+                                                      }))
+                                                    }
+                                                    aria-label={visibleUserPasswords[user.id] ? "Ocultar senha" : "Mostrar senha"}
+                                                  >
+                                                    {visibleUserPasswords[user.id] ? (
+                                                      <EyeOff className="h-3.5 w-3.5" />
+                                                    ) : (
+                                                      <Eye className="h-3.5 w-3.5" />
+                                                    )}
+                                                  </button>
+                                                ) : null}
+                                              </div>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Nivel</p>
+                                              <p className="mt-1">{getAccessLevelLabel(user.nivelAcesso)}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                                              <p className="mt-1">{user.ativo ? "Ativo" : "Inativo"}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Atualizado em</p>
+                                              <p className="mt-1 text-sm text-muted-foreground break-words">
+                                                {formatAccessDate(user.updatedAt || user.createdAt)}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex flex-wrap justify-end gap-2">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => startEditingUser(user)}
+                                              disabled={deletingUserId === user.id}
+                                            >
+                                              <Pencil className="mr-2 h-4 w-4" />
+                                              Editar
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => void handleDeleteUser(user)}
+                                              disabled={deletingUserId === user.id || user.id === consultor.id}
+                                            >
+                                              <Trash2 className="mr-2 h-4 w-4" />
+                                              {deletingUserId === user.id ? "Removendo..." : "Remover"}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+
+                                  {users.length === 0 && (
+                                    <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
+                                      Nenhum usuario encontrado.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 )}
@@ -1924,7 +2261,14 @@ export default function FichasWorkspace() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]">
+                <form
+                  data-ficha-search="true"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    if (!consultaLoading) void handleConsultarFichas()
+                  }}
+                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]"
+                >
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
                     <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as TipoBusca)}>
@@ -1958,19 +2302,31 @@ export default function FichasWorkspace() {
                     />
                   </div>
                   <div className="flex items-end">
-                    <Button onClick={() => void handleConsultarFichas()} disabled={consultaLoading}>
+                    <Button type="submit" disabled={consultaLoading}>
                       {consultaLoading ? "Consultando..." : "Consultar"}
                     </Button>
                   </div>
-                </div>
+                </form>
                 {consultaError && <p className="text-sm text-red-600">{consultaError}</p>}
               </CardContent>
             </Card>
 
             {consultaItems.length > 0 && viewMode === "list" && (
               <Card className="shadow-md">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
                   <CardTitle>Fichas Encontradas</CardTitle>
+                  {isAdmin ? (
+                    <Button
+                      type="button"
+                      disabled={mergeClientKeys.length < 2}
+                      onClick={() => {
+                        setMergePrimaryKey(mergeClientKeys[0] || "")
+                        setMergeDialogOpen(true)
+                      }}
+                    >
+                      Juntar selecionados ({mergeClientKeys.length})
+                    </Button>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {consultaClienteGroups.map((cliente) => {
@@ -1980,6 +2336,17 @@ export default function FichasWorkspace() {
                       <div key={cliente.key} className="rounded-lg border border-border p-4">
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(180px,0.95fr)_minmax(180px,0.95fr)_minmax(180px,1fr)_auto] xl:items-start">
                           <div className="min-w-0">
+                            {isAdmin && normalizeCpfCnpj(cliente.cpfCnpj) ? (
+                              <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium">
+                                <Checkbox
+                                  checked={mergeClientKeys.includes(cliente.key)}
+                                  onCheckedChange={(checked) => setMergeClientKeys((current) =>
+                                    checked ? [...current, cliente.key] : current.filter((key) => key !== cliente.key)
+                                  )}
+                                />
+                                Selecionar para juntar
+                              </label>
+                            ) : null}
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
                             <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
                           </div>
@@ -2010,9 +2377,39 @@ export default function FichasWorkspace() {
               </Card>
             )}
 
+            <Dialog open={mergeDialogOpen} onOpenChange={(open) => !mergeLoading && setMergeDialogOpen(open)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Juntar cadastros selecionados</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  Escolha o cadastro principal. Os dados pessoais dele serão usados nos demais. Fichas, contratos, pagamentos e históricos serão preservados.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="cadastroPrincipal">Cadastro principal</Label>
+                  <Select value={mergePrimaryKey} onValueChange={setMergePrimaryKey}>
+                    <SelectTrigger id="cadastroPrincipal"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {selectedMergeGroups.map((group) => (
+                        <SelectItem key={group.key} value={group.key}>
+                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={mergeLoading}>Cancelar</Button>
+                  <Button type="button" onClick={() => void handleMergeClients()} disabled={mergeLoading || !mergePrimaryKey}>
+                    {mergeLoading ? "Juntando..." : "Confirmar junção"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             {(viewMode === "picker" || (selectedFicha && viewMode === "view")) && (
               <Card className="shadow-md">
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5 p-4 md:p-6">
                   {selectedFicha ? (
                     <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
                   ) : null}
@@ -2027,30 +2424,25 @@ export default function FichasWorkspace() {
                           <SelectValue placeholder="Selecionar ficha" />
                         </SelectTrigger>
                         <SelectContent>
-                          {selectedContratos.map((contrato) => (
+                          {orderedSelectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
-                              {getFichaLabel(contrato.nomeCliente)}
+                              {getFichaLabel(selectedFichaNumbers.get(contrato.id) ?? contrato.numeroFicha, contrato.nomeCliente)} · {formatDisplayDate(contrato.dataContrato)}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                      {selectedFicha && canEditSelectedFicha ? (
-                        <Button type="button" onClick={handleAddNovoContrato}>
-                          <Plus className="size-4" />
-                          Adicionar
-                        </Button>
-                      ) : null}
-                    </div>
                     {viewMode === "view" && selectedFicha ? (
                       <div className="text-sm font-medium text-muted-foreground lg:text-right">
-                        Data da ficha: {formatDisplayDate(selectedFicha.dataContrato)}
+                        Data de criação: <span className="font-semibold text-foreground">{formatDisplayDate(selectedFicha.dataContrato)}</span>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="space-y-4 rounded-lg border border-border p-4">
+                  <div className="space-y-4">
+                    {editMessage && viewMode === "view" ? (
+                      <p role="alert" className="text-sm font-medium text-red-600">{editMessage}</p>
+                    ) : null}
                     {viewMode === "view" && selectedFicha ? (
                       <FichaReadView
                         values={editValues}
@@ -2058,18 +2450,24 @@ export default function FichasWorkspace() {
                           <>
                             {canEditSelectedFicha ? <Button onClick={() => setViewMode("edit")}>✏️</Button> : null}
                             {canEditSelectedFicha ? (
-                              <Button type="button" variant="outline" onClick={() => setViewMode("editClause")}>
-                                Cláusula Adicional
+                              <Button type="button" size="icon" onClick={handleAddNovoContrato} aria-label="Adicionar ficha" title="Adicionar ficha">
+                                <Plus className="size-4" />
                               </Button>
                             ) : null}
                             <Button variant="outline" onClick={() => void downloadFichaPdf(editValues)}>
                               🖨️ FICHA
                             </Button>
-                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("contract")}>
-                              🖨️ CONTRATO
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("contract")}>
+                              {documentLoading === "contract" ? "Gerando contrato..." : "🖨️ CONTRATO"}
                             </Button>
-                            <Button type="button" variant="outline" onClick={() => void handleDownloadDocument("procuration")}>
-                              🖨️ PROCURAÇÃO
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("procuration")}>
+                              {documentLoading === "procuration" ? "Gerando procuração..." : "🖨️ PROCURAÇÃO"}
+                            </Button>
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("other-services-contract")}>
+                              {documentLoading === "other-services-contract" ? "Gerando contrato..." : "🖨️ CONTRATO OUTROS SERVIÇOS"}
+                            </Button>
+                            <Button type="button" variant="outline" disabled={documentLoading !== null} onClick={() => void handleDownloadDocument("other-services-procuration")}>
+                              {documentLoading === "other-services-procuration" ? "Gerando procuração..." : "🖨️ PROCURAÇÃO OUTROS SERVIÇOS"}
                             </Button>
                           </>
                         }
@@ -2085,15 +2483,13 @@ export default function FichasWorkspace() {
               </Card>
             )}
 
-            {selectedFicha && (viewMode === "edit" || viewMode === "editClient" || viewMode === "editClause") && (
+            {selectedFicha && (viewMode === "edit" || viewMode === "editClient") && (
               <Card className="shadow-md">
                 <CardHeader>
                   <CardTitle>
                     {viewMode === "editClient"
                       ? "Edicao dos Dados do Cliente"
-                      : viewMode === "editClause"
-                        ? "Edicao da Clausula Adicional"
-                        : "Edicao da Ficha"}
+                      : "Edicao da Ficha"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -2109,8 +2505,7 @@ export default function FichasWorkspace() {
                         submitLabel="Salvar 💾"
                         loading={editLoading}
                         loadingLabel="Atualizando..."
-                        showInlineSubmit
-                        visibleSections={viewMode === "editClient" ? ["client"] : viewMode === "editClause" ? ["clause"] : undefined}
+                        visibleSections={viewMode === "editClient" ? ["client"] : undefined}
                         onCancelEdit={() => setViewMode("view")}
                       />
                     </>
@@ -2120,6 +2515,61 @@ export default function FichasWorkspace() {
             )}
           </TabsContent>
         </Tabs>
+        <Dialog open={duplicateMatches.length > 0} onOpenChange={(open) => !open && !duplicateActionId && setDuplicateMatches([])}>
+          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Possível cliente já cadastrado</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Revise as correspondências antes de criar a ficha. Unificar mantém o novo contrato e reutiliza os dados cadastrais do cliente escolhido.
+            </p>
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {duplicateMatches.map((match) => (
+                <div key={match.id} className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="grid gap-2 text-sm sm:grid-cols-2">
+                    <p><span className="font-semibold">Cliente:</span> {getClienteBaseName(match.nomeCliente)}</p>
+                    <p><span className="font-semibold">CPF/CNPJ:</span> {match.cpfCnpj || "-"}</p>
+                    <p><span className="font-semibold">Telefone:</span> {match.telefones || "-"}</p>
+                    <p><span className="font-semibold">E-mail:</span> {match.email || "-"}</p>
+                    <p><span className="font-semibold">Número:</span> {match.numeroEndereco || "-"}</p>
+                    <p><span className="font-semibold">Correspondências:</span> {match.reasons.join(", ")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => void handleDuplicateResolution({ action: "merge", matchedFichaId: match.id })}
+                      disabled={Boolean(duplicateActionId)}
+                    >
+                      Unificar com este cadastro
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => void handleDeleteDuplicate(match)}
+                      disabled={Boolean(duplicateActionId)}
+                    >
+                      <Trash2 className="size-4" />
+                      Excluir duplicado
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDuplicateMatches([])} disabled={Boolean(duplicateActionId)}>
+                Voltar e revisar
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleDuplicateResolution({ action: "create_new" })}
+                disabled={Boolean(duplicateActionId)}
+              >
+                Cadastrar como novo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog
           open={Boolean(templateEditorKind)}
           onOpenChange={(open) => {
@@ -2128,13 +2578,31 @@ export default function FichasWorkspace() {
             }
           }}
         >
-          <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-4xl">
+          <DialogContent className="flex h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-h-none max-w-none flex-col overflow-hidden p-4 sm:max-w-none">
             <DialogHeader>
               <DialogTitle>
                 Editar modelo: {templateEditorKind ? DOCUMENT_TEMPLATE_LABELS[templateEditorKind] : ""}
               </DialogTitle>
             </DialogHeader>
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Visualizar log do modelo"
+                  title="Visualizar log do modelo"
+                  className="absolute right-12 top-2.5 z-10 h-8 gap-1.5 px-2.5"
+                >
+                  <Clock3 className="size-4" />
+                  <span className="hidden sm:inline">Log</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="w-[min(360px,calc(100vw-2rem))] p-2">
+                <LogSummary log={latestTemplateLog} />
+              </PopoverContent>
+            </Popover>
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 xl:overflow-hidden">
               <p className="text-sm text-muted-foreground">
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
@@ -2142,33 +2610,91 @@ export default function FichasWorkspace() {
                 className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2"
                 onPointerDown={captureTemplateSelection}
               >
-                <div className="min-w-[180px]">
-                  <Select value={templateFontFamily} onValueChange={handleTemplateFontChange} disabled={templateLoading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Fonte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex min-w-[220px] rounded-md border border-input bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                  <Input
+                    aria-label="Fonte atual"
+                    title="Fonte atual"
+                    value={templateFontFamily}
+                    onChange={(event) => setTemplateFontFamily(event.target.value)}
+                    onBlur={(event) => handleTemplateFontChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    disabled={templateLoading}
+                    className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Abrir lista de fontes"
+                        title="Abrir lista de fontes"
+                        disabled={templateLoading}
+                        className="shrink-0 rounded-l-none border-l border-input"
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[220px]">
+                      <DropdownMenuRadioGroup value={templateFontFamily} onValueChange={handleTemplateFontChange}>
+                        {DOCUMENT_TEMPLATE_FONT_OPTIONS.map((option) => (
+                          <DropdownMenuRadioItem key={option.value} value={option.value} style={{ fontFamily: option.value }}>
+                            {option.label}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <div className="min-w-[96px]">
-                  <Select value={templateFontSize} onValueChange={handleTemplateFontSizeChange} disabled={templateLoading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tamanho" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex min-w-[118px] rounded-md border border-input bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                  <Input
+                    type="number"
+                    aria-label="Tamanho atual da fonte"
+                    title="Tamanho atual da fonte em pixels"
+                    min="6"
+                    max="48"
+                    step="1"
+                    value={templateFontSize}
+                    onChange={(event) => setTemplateFontSize(event.target.value)}
+                    onBlur={(event) => handleTemplateFontSizeChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    disabled={templateLoading}
+                    className="min-w-0 flex-1 border-0 shadow-none focus-visible:ring-0"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Abrir lista de tamanhos"
+                        title="Abrir lista de tamanhos"
+                        disabled={templateLoading}
+                        className="shrink-0 rounded-l-none border-l border-input"
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[118px]">
+                      <DropdownMenuRadioGroup value={templateFontSize} onValueChange={handleTemplateFontSizeChange}>
+                        {DOCUMENT_TEMPLATE_FONT_SIZE_OPTIONS.map((option) => (
+                          <DropdownMenuRadioItem key={option} value={option}>
+                            {option}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />
@@ -2185,22 +2711,48 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyCenter")} disabled={templateLoading}>
                   <AlignCenter className="size-4" />
                 </Button>
-                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertUnorderedList")} disabled={templateLoading}>
-                  <List className="size-4" />
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyRight")} disabled={templateLoading} aria-label="Alinhar à direita" title="Alinhar à direita">
+                  <AlignRight className="size-4" />
                 </Button>
-                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("insertOrderedList")} disabled={templateLoading}>
-                  <ListOrdered className="size-4" />
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyFull")} disabled={templateLoading} aria-label="Justificar" title="Justificar">
+                  <AlignJustify className="size-4" />
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="icon-sm"
-                  onClick={() => runTemplateCommand("undo")}
+                  onClick={() => handleTemplateCommand("insertUnorderedList")}
                   disabled={templateLoading}
-                  aria-label="Desfazer ultima alteracao"
-                  title="Desfazer"
+                  aria-label="Lista com marcadores"
+                  title="Lista com marcadores"
                 >
+                  <List className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => handleTemplateCommand("insertOrderedList")}
+                  disabled={templateLoading}
+                  aria-label="Lista numerada"
+                  title="Lista numerada"
+                >
+                  <ListOrdered className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("outdent")} disabled={templateLoading} aria-label="Diminuir recuo" title="Diminuir recuo">
+                  <IndentDecrease className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("indent")} disabled={templateLoading} aria-label="Aumentar recuo" title="Aumentar recuo">
+                  <IndentIncrease className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("undo")} disabled={templateLoading} aria-label="Desfazer última alteração" title="Desfazer">
                   <Undo2 className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("redo")} disabled={templateLoading} aria-label="Refazer última alteração" title="Refazer">
+                  <Redo2 className="size-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("removeFormat")} disabled={templateLoading} aria-label="Limpar formatação" title="Limpar formatação">
+                  <RemoveFormatting className="size-4" />
                 </Button>
                 <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
                   <Palette className="size-4" />
@@ -2317,52 +2869,78 @@ export default function FichasWorkspace() {
                   </div>
                 </div>
               ) : null}
-              <div
-                key={templateEditorKind ?? "template-editor"}
-                ref={handleTemplateEditorRef}
-                contentEditable={!templateLoading}
-                suppressContentEditableWarning
-                onInput={(event) => {
-                  setTemplateContent(event.currentTarget.innerHTML)
-                  captureTemplateSelection()
-                }}
-                onFocus={captureTemplateSelection}
-                onKeyUp={captureTemplateSelection}
-                onMouseUp={captureTemplateSelection}
-                onClick={(event) => {
-                  const target = event.target
-                  if (target instanceof HTMLImageElement) {
-                    handleSelectTemplateImage(target)
-                  } else {
-                    handleSelectTemplateImage(null)
-                  }
-                }}
-                aria-label="Conteudo do modelo de documento"
-                className="h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 py-2 font-sans text-sm leading-6 outline-none"
-              />
-              {templateEditorKind && templatePreviewContent ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Preview do documento</p>
-                  <div className="max-h-[520px] overflow-auto rounded-md border border-border bg-muted/20 p-3">
-                    <div style={{ minWidth: "740px" }}>
-                      <div
-                        style={{
-                          width: "980px",
-                          height: "860px",
-                          transform: "scale(0.72)",
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <DocumentTemplatePdf
-                          title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
-                          content={templatePreviewContent}
-                        />
+              <div className="grid grid-cols-1 gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-2">
+                <div className="min-w-0 space-y-2 xl:flex xl:min-h-0 xl:flex-col">
+                  <p className="text-sm font-medium text-foreground">Conteúdo do modelo</p>
+                  <div
+                    key={templateEditorKind ?? "template-editor"}
+                    ref={handleTemplateEditorRef}
+                    contentEditable={!templateLoading}
+                    suppressContentEditableWarning
+                    onInput={(event) => {
+                      templateRedoHistoryRef.current = []
+                      setTemplateContent(event.currentTarget.innerHTML)
+                      captureTemplateSelection()
+                    }}
+                    onFocus={captureTemplateSelection}
+                    onKeyUp={captureTemplateSelection}
+                    onKeyDown={(event) => {
+                      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+                        event.preventDefault()
+                        handleTemplateCommand(event.shiftKey ? "redo" : "undo")
+                        return
+                      }
+                      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+                        event.preventDefault()
+                        handleTemplateCommand("redo")
+                        return
+                      }
+                      if (event.key !== " ") return
+                      if (!convertEmptyListItemToSpacer(event.currentTarget)) return
+
+                      event.preventDefault()
+                      setTemplateContent(event.currentTarget.innerHTML)
+                      captureTemplateSelection()
+                    }}
+                    onMouseUp={captureTemplateSelection}
+                    onClick={(event) => {
+                      const target = event.target
+                      if (target instanceof HTMLImageElement) {
+                        handleSelectTemplateImage(target)
+                      } else {
+                        handleSelectTemplateImage(null)
+                      }
+                    }}
+                    aria-label="Conteudo do modelo de documento"
+                    style={{ fontFamily: "Arial, sans-serif" }}
+                    className="document-template-editor document-rich-text h-[60vh] min-h-[420px] overflow-y-auto rounded-md border border-input bg-background px-3 pb-2 text-sm leading-6 outline-none xl:h-auto xl:min-h-0 xl:flex-1"
+                  />
+                </div>
+                {templateEditorKind && templatePreviewContent ? (
+                  <div className="min-w-0 space-y-2 xl:flex xl:min-h-0 xl:flex-col">
+                    <p className="text-sm font-medium text-foreground">Preview do documento</p>
+                    <div className="h-[60vh] min-h-[420px] overflow-auto rounded-md border border-border bg-muted/20 p-3 xl:h-auto xl:min-h-0 xl:flex-1">
+                      <div style={{ minWidth: "620px" }}>
+                        <div
+                          style={{
+                            width: "980px",
+                            height: "860px",
+                            transform: "scale(0.62)",
+                            transformOrigin: "top left",
+                          }}
+                        >
+                          <DocumentTemplatePdf
+                            title={DOCUMENT_TEMPLATE_LABELS[templateEditorKind]}
+                            content={templatePreviewContent}
+                            renderTitle={false}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
-              <LogSummary log={latestTemplateLog} />
+                ) : null}
+              </div>
+              {templateLoading && !templateSaving ? <p className="text-sm text-muted-foreground">Carregando modelo...</p> : null}
               {templateMessage ? <p className="text-sm text-primary">{templateMessage}</p> : null}
             </div>
             <DialogFooter>
@@ -2370,7 +2948,7 @@ export default function FichasWorkspace() {
                 Fechar
               </Button>
               <Button type="button" onClick={() => void handleSaveTemplate()} disabled={templateLoading}>
-                {templateLoading ? "Salvando..." : "Salvar modelo"}
+                {templateSaving ? "Salvando..." : "Salvar modelo"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2389,22 +2967,23 @@ export default function FichasWorkspace() {
               {timelineGroups.map((group) => {
                 const latestLog = group.logs[0]
                 return (
-                <div key={group.key} className="rounded-lg border border-border bg-background px-4 py-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="font-medium text-foreground">{group.entityLabel}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-muted-foreground">{formatAccessDate(latestLog?.createdAt || "")}</p>
-                      <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineGroup(group)}>
-                        <Eye className="size-4" />
-                      </Button>
+                  <div key={group.key} className="rounded-lg border border-border bg-background px-4 py-3">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-medium text-foreground">{group.entityLabel}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground">{formatAccessDate(latestLog?.createdAt || "")}</p>
+                        <Button type="button" variant="outline" size="icon-sm" onClick={() => setSelectedTimelineGroup(group)}>
+                          <Eye className="size-4" />
+                        </Button>
+                      </div>
                     </div>
+                    <p className="mt-1 text-sm text-foreground">Por: {latestLog?.actorName || "-"}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {group.logs.length > 1 ? `${group.logs.length} atualizacoes registradas.` : latestLog?.summary || "-"}
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-foreground">Por: {latestLog?.actorName || "-"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {group.logs.length > 1 ? `${group.logs.length} atualizacoes registradas.` : latestLog?.summary || "-"}
-                  </p>
-                </div>
-              )})}
+                )
+              })}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTimelineOpen(false)}>
@@ -2433,14 +3012,14 @@ export default function FichasWorkspace() {
                         <div key={`${log.id}-${index}`} className="space-y-2 rounded-md border border-border bg-muted/10 p-3">
                           <p className="font-medium text-foreground">{detail.field || "-"}</p>
                           <div className="grid gap-3 md:grid-cols-2">
-                          <div className="rounded-md border border-border bg-muted/20 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
-                          </div>
-                          <div className="rounded-md border border-border bg-muted/20 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
-                            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
-                          </div>
+                            <div className="rounded-md border border-border bg-muted/20 p-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{formatFichaChangeValue(detail.field, detail.before)}</p>
+                            </div>
+                            <div className="rounded-md border border-border bg-muted/20 p-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{formatFichaChangeValue(detail.field, detail.after)}</p>
+                            </div>
                           </div>
                         </div>
                       ))}

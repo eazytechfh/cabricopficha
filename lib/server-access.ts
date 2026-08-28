@@ -1,4 +1,3 @@
-import crypto from "node:crypto"
 import type { AccessCodeRecord, ConsultorSession } from "@/lib/ficha-types"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -12,6 +11,7 @@ type UserProfileApiRecord = {
   nivel_acesso?: string
   ativo?: boolean
   must_change_password?: boolean
+  password_plain?: string
   last_login_at?: string
   created_at?: string
   updated_at?: string
@@ -65,6 +65,7 @@ function mapAccessCodeRecord(record: UserProfileApiRecord): AccessCodeRecord {
     telefone: String(record.telefone ?? ""),
     nivelAcesso: String(record.nivel_acesso ?? "consultor") as AccessCodeRecord["nivelAcesso"],
     ativo: Boolean(record.ativo ?? true),
+    senha: record.password_plain ?? "",
     mustChangePassword: Boolean(record.must_change_password ?? false),
     lastLoginAt: String(record.last_login_at ?? ""),
     createdAt: String(record.created_at ?? ""),
@@ -172,7 +173,7 @@ async function fetchProfileByEmail(email: string) {
   return payload[0] ?? null
 }
 
-async function clearMustChangePassword(id: string) {
+async function clearMustChangePassword(id: string, password?: string) {
   ensureConfig()
 
   await fetch(`${supabaseUrl}/rest/v1/user_profiles?id=eq.${encodeURIComponent(id)}`, {
@@ -184,6 +185,7 @@ async function clearMustChangePassword(id: string) {
     body: JSON.stringify({
       must_change_password: false,
       updated_at: new Date().toISOString(),
+      ...(password ? { password_plain: password } : {}),
     }),
   }).catch(() => null)
 }
@@ -205,7 +207,7 @@ export async function updateAuthPassword(accessToken: string, password: string) 
   const payload = await parseJsonResponse<{ id?: string; user?: { id?: string } }>(response, "Erro ao redefinir a senha.")
   const userId = String(payload.user?.id || payload.id || "")
   if (userId) {
-    await clearMustChangePassword(userId)
+    await clearMustChangePassword(userId, password)
   }
 }
 
@@ -250,7 +252,7 @@ export async function resetPasswordWithEmailAndPhone(input: {
   })
 
   await parseJsonResponse(response, "Erro ao redefinir a senha.")
-  await clearMustChangePassword(userId)
+  await clearMustChangePassword(userId, normalizedPassword)
 }
 
 export async function assertAdminAccess(consultor: ConsultorSession | null | undefined) {
@@ -271,7 +273,7 @@ export async function getAccessCodes() {
   ensureConfig()
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/user_profiles?select=id,nome_responsavel,email,telefone,nivel_acesso,ativo,must_change_password,last_login_at,created_at,updated_at&order=created_at.desc`,
+    `${supabaseUrl}/rest/v1/user_profiles?select=id,nome_responsavel,email,telefone,nivel_acesso,ativo,must_change_password,password_plain,last_login_at,created_at,updated_at&order=created_at.desc`,
     {
       headers: getHeaders(),
       cache: "no-store",
@@ -282,11 +284,7 @@ export async function getAccessCodes() {
   return payload.map(mapAccessCodeRecord)
 }
 
-function generateTemporaryPassword() {
-  return `Tmp#${crypto.randomBytes(8).toString("hex")}`
-}
-
-async function createAuthUser(email: string) {
+async function createAuthUser(email: string, password: string) {
   ensureConfig()
 
   const response = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
@@ -294,7 +292,7 @@ async function createAuthUser(email: string) {
     headers: getHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       email,
-      password: generateTemporaryPassword(),
+      password,
       email_confirm: true,
     }),
   })
@@ -302,7 +300,7 @@ async function createAuthUser(email: string) {
   return parseJsonResponse<{ id?: string; user?: AuthUserApiRecord }>(response, "Erro ao criar usuario de acesso.")
 }
 
-async function updateAuthUser(id: string, input: { email: string }) {
+async function updateAuthUser(id: string, input: { email: string; password?: string }) {
   ensureConfig()
 
   const response = await fetch(`${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(id)}`, {
@@ -311,6 +309,7 @@ async function updateAuthUser(id: string, input: { email: string }) {
     body: JSON.stringify({
       email: input.email,
       email_confirm: true,
+      ...(input.password ? { password: input.password } : {}),
     }),
   })
 
@@ -322,11 +321,16 @@ export async function createAccessCode(input: {
   email: string
   telefone: string
   nivelAcesso: AccessCodeRecord["nivelAcesso"]
+  password: string
   appOrigin?: string
 }) {
   ensureConfig()
 
-  const authPayload = await createAuthUser(input.email)
+  if (input.password.length < 6) {
+    throw new Error("A senha deve ter pelo menos 6 caracteres.")
+  }
+
+  const authPayload = await createAuthUser(input.email, input.password)
   const authUserId = String(authPayload.user?.id || authPayload.id || "")
 
   if (!authUserId) {
@@ -346,7 +350,8 @@ export async function createAccessCode(input: {
       telefone: input.telefone,
       nivel_acesso: input.nivelAcesso,
       ativo: true,
-      must_change_password: true,
+      must_change_password: false,
+      password_plain: input.password,
     }),
   })
 
@@ -390,11 +395,16 @@ export async function updateAccessCode(
     telefone: string
     nivelAcesso: AccessCodeRecord["nivelAcesso"]
     ativo: boolean
+    password?: string
   }
 ) {
   ensureConfig()
 
-  await updateAuthUser(id, { email: input.email })
+  if (input.password && input.password.length < 6) {
+    throw new Error("A nova senha deve ter pelo menos 6 caracteres.")
+  }
+
+  await updateAuthUser(id, { email: input.email, password: input.password })
 
   const response = await fetch(`${supabaseUrl}/rest/v1/user_profiles?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -409,6 +419,7 @@ export async function updateAccessCode(
       nivel_acesso: input.nivelAcesso,
       ativo: input.ativo,
       updated_at: new Date().toISOString(),
+      ...(input.password ? { password_plain: input.password } : {}),
     }),
   })
 

@@ -1,4 +1,4 @@
-import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
+import type { ConsultorSession, DuplicateResolution, FichaDuplicateMatch, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 
 async function parseResponse<T>(response: Response): Promise<T> {
   const payload = await response.json()
@@ -44,14 +44,41 @@ export async function getFichaById(id: string) {
   return parseResponse<{ ficha: FichaRecord }>(response)
 }
 
-export async function createFicha(data: FichaFormValues, consultor: ConsultorSession) {
+export async function createFicha(data: FichaFormValues, consultor: ConsultorSession, resolution?: DuplicateResolution) {
   const response = await fetch("/api/fichas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data, consultor }),
+    body: JSON.stringify({ data, consultor, resolution }),
   })
 
   return parseResponse<{ ficha: FichaRecord; excelSaved: boolean }>(response)
+}
+
+export async function checkFichaDuplicates(data: FichaFormValues) {
+  const response = await fetch("/api/fichas/duplicates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data }),
+  })
+  return parseResponse<{ matches: FichaDuplicateMatch[] }>(response)
+}
+
+export async function deleteFicha(id: string, consultor: ConsultorSession) {
+  const response = await fetch(`/api/fichas/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ consultor }),
+  })
+  return parseResponse<{ ok: boolean; excelSaved: boolean }>(response)
+}
+
+export async function mergeFichaClients(primaryFichaId: string, fichaIds: string[], consultor: ConsultorSession) {
+  const response = await fetch("/api/fichas/merge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ primaryFichaId, fichaIds, consultor }),
+  })
+  return parseResponse<{ ok: boolean; mergedCount: number }>(response)
 }
 
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession) {

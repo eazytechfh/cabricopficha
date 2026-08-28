@@ -2,8 +2,13 @@ import { mkdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import * as XLSX from "xlsx"
-import type { ConsultorSession, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
+import type { ConsultorSession, FichaDuplicateMatch, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
+import { buildAccentInsensitivePattern } from "@/lib/search-utils"
+import { readAddressFields } from "@/lib/address-fields"
+import { calculatePrazoServico } from "@/lib/prazo-servico"
+import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { findDuplicateReasons } from "@/lib/ficha-duplicates"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,6 +17,7 @@ const excelBaseDir = process.env.VERCEL ? path.join(tmpdir(), "cabricopficha") :
 const excelPath = path.join(excelBaseDir, "fichas.xlsx")
 const VENCIDA_SENTINEL_DATE = "1900-01-01"
 const REVISAO_ATO_SENTINEL_DATE = "1900-01-02"
+const AG_PENALIDADE_SENTINEL_DATE = "1900-01-03"
 
 function ensureSupabaseConfig() {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -38,6 +44,9 @@ function toDatabaseDate(value: string) {
   if (normalizedValue === "Revisão de Ato" || normalizedValue === "Revisao de Ato") {
     return REVISAO_ATO_SENTINEL_DATE
   }
+  if (normalizedValue === "AG Penalidade") {
+    return AG_PENALIDADE_SENTINEL_DATE
+  }
   return /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue) ? normalizedValue : null
 }
 
@@ -45,6 +54,7 @@ function fromDatabaseDate(value: unknown) {
   const normalizedValue = String(value ?? "")
   if (normalizedValue === VENCIDA_SENTINEL_DATE) return "Vencida"
   if (normalizedValue === REVISAO_ATO_SENTINEL_DATE) return "Revisão de Ato"
+  if (normalizedValue === AG_PENALIDADE_SENTINEL_DATE) return "AG Penalidade"
   return normalizedValue
 }
 
@@ -53,21 +63,21 @@ function firstLine(value: string) {
 }
 
 function stripIdentifierSuffix(value: string) {
-  return (value || "").trim().replace(/\s+\d{2}$/, "")
+  return (value || "").trim().replace(/\s+\d{1,2}$/, "")
 }
 
 async function getFichaSequenceByCpf(cpf: string) {
   ensureSupabaseConfig()
 
   const cpfNormalizado = normalizeCpfCnpj(cpf)
-  if (!cpfNormalizado) {
-    return 1
-  }
-
+  if (!cpfNormalizado) return 1
   const searchParams = new URLSearchParams({
-    select: "id",
-    or: `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`,
+    select: "numero_ficha",
+    order: "numero_ficha.desc",
+    limit: "1",
   })
+
+  searchParams.set("or", `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`)
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
     headers: headers(),
@@ -79,12 +89,19 @@ async function getFichaSequenceByCpf(cpf: string) {
     throw new Error(payload.message || payload.error || "Erro ao calcular identificador da ficha.")
   }
 
-  return (payload as Array<Record<string, unknown>>).length + 1
+  const rows = payload as Array<Record<string, unknown>>
+  const highestSequence = Number(rows[0]?.numero_ficha ?? 0)
+  return highestSequence + 1
 }
 
 function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "create" | "update") {
   const now = new Date().toISOString()
   const normalizedData = normalizeFichaValues(data)
+  const payments = parsePaymentEntries(normalizedData.pagamentos)
+  const paymentError = validatePaymentEntries(normalizedData.valorTotal, payments)
+  if (paymentError && (mode === "create" || reconcilePaymentValues(normalizedData.valorTotal, payments).exceedsTotal)) {
+    throw new Error(paymentError)
+  }
 
   return {
     data_contrato: toDatabaseDate(normalizedData.dataContrato),
@@ -93,6 +110,8 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     terceiros: normalizedData.terceiros || null,
     telefones: normalizedData.telefones || null,
     endereco: normalizedData.endereco || null,
+    numero_endereco: normalizedData.numeroEndereco || null,
+    complemento_endereco: normalizedData.complementoEndereco || null,
     cep: normalizedData.cep || null,
     municipio: normalizedData.municipio || null,
     uf: normalizedData.uf || null,
@@ -110,17 +129,20 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     sne: normalizedData.sne || null,
     forma_pagamento: normalizedData.formaPagamento || null,
     banco: normalizedData.banco || null,
+    pagamentos: payments,
     valor_total: normalizedData.valorTotal || null,
     valor_entrada: normalizedData.valorEntrada || null,
     valor_restante: normalizedData.valorRestante || null,
     observacao_valor_restante: parseCurrency(normalizedData.valorRestante) > 0 ? normalizedData.observacaoValorRestante || null : null,
-    clausula_adicional: normalizedData.clausulaAdicional || null,
     instancia_processo: normalizedData.instanciaProcesso || null,
     tipo_processo: normalizedData.tipoProcesso || null,
     numero_processo: normalizedData.numeroProcesso || null,
     prazo_processo: toDatabaseDate(firstLine(normalizedData.prazoProcesso)),
+    prazos_processo_texto: normalizedData.prazoProcesso || null,
     visto_juridico: normalizedData.vistoJuridico || null,
     assinatura_visto_juridico: normalizedData.prazoProcesso || null,
+    tipo_outro_servico: normalizedData.tipoOutroServico || null,
+    poderes_outro_servico: normalizedData.poderesOutroServico || null,
     multas_processo: normalizedData.vistoJuridico || null,
     instancia_multa: normalizedData.instanciaMulta || null,
     auto_detran: normalizedData.autoDetran || null,
@@ -131,6 +153,7 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     cpf_proprietario: normalizedData.cpfProprietario || null,
     renavam: normalizedData.renavam || null,
     prazo_multa: toDatabaseDate(normalizedData.prazoMulta),
+    prazos_multa_texto: normalizedData.prazoMulta || null,
     visto_juridico_multa: normalizedData.vistoJuridicoMulta || null,
     processo_vinculado_multa: normalizedData.vistoJuridicoMulta || null,
     observacoes: normalizedData.observacoes || null,
@@ -155,7 +178,7 @@ function getMissingSchemaColumn(payload: Record<string, unknown>) {
 }
 
 function canRetryWithoutColumn(column: string) {
-  return column !== "cpf_proprietario"
+  return !["prazos_processo_texto", "prazos_multa_texto", "cpf_proprietario"].includes(column)
 }
 
 async function parseSupabasePayload(response: Response) {
@@ -202,14 +225,26 @@ async function sendFichaMutation(url: string, method: "POST" | "PATCH", payload:
 }
 
 function fromRow(row: Record<string, unknown>): FichaRecord {
+  const address = readAddressFields(row)
+  const prazoProcesso = String(row.prazos_processo_texto ?? row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo)
+  const prazoMulta = String(row.prazos_multa_texto ?? "") || fromDatabaseDate(row.prazo_multa)
+  const pagamentos = parsePaymentEntries(row.pagamentos, {
+    formaPagamento: String(row.forma_pagamento ?? ""),
+    banco: String(row.banco ?? ""),
+    valorEntrada: String(row.valor_entrada ?? ""),
+  })
+
   return {
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     dataContrato: String(row.data_contrato ?? ""),
-    prazoServico: String(row.prazo_servico ?? ""),
+    prazoServico: calculatePrazoServico(prazoProcesso, prazoMulta),
     nomeCliente: String(row.nome_cliente ?? ""),
     terceiros: String(row.terceiros ?? ""),
     telefones: String(row.telefones ?? ""),
-    endereco: String(row.endereco ?? ""),
+    endereco: address.endereco,
+    numeroEndereco: address.numeroEndereco,
+    complementoEndereco: address.complementoEndereco,
     cep: String(row.cep ?? ""),
     municipio: String(row.municipio ?? ""),
     uf: String(row.uf ?? ""),
@@ -227,17 +262,20 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     sne: String(row.sne ?? ""),
     formaPagamento: String(row.forma_pagamento ?? ""),
     banco: String(row.banco ?? ""),
+    bancoOutro: "",
+    pagamentos: serializePaymentEntries(pagamentos),
     valorTotal: String(row.valor_total ?? ""),
     valorEntrada: String(row.valor_entrada ?? ""),
     valorRestante: String(row.valor_restante ?? ""),
     observacaoValorRestante: String(row.observacao_valor_restante ?? ""),
-    clausulaAdicional: String(row.clausula_adicional ?? ""),
     instanciaProcesso: String(row.instancia_processo ?? ""),
     tipoProcesso: String(row.tipo_processo ?? ""),
     numeroProcesso: String(row.numero_processo ?? ""),
-    prazoProcesso: String(row.assinatura_visto_juridico ?? "") || fromDatabaseDate(row.prazo_processo),
+    prazoProcesso,
     vistoJuridico: String(row.multas_processo ?? row.visto_juridico ?? ""),
     assinaturaVistoJuridico: String(row.assinatura_visto_juridico ?? ""),
+    tipoOutroServico: String(row.tipo_outro_servico ?? ""),
+    poderesOutroServico: String(row.poderes_outro_servico ?? ""),
     instanciaMulta: String(row.instancia_multa ?? ""),
     autoDetran: String(row.auto_detran ?? ""),
     autoRenainf: String(row.auto_renainf ?? ""),
@@ -246,7 +284,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     placaProprietario: String(row.placa_proprietario ?? ""),
     cpfProprietario: String(row.cpf_proprietario ?? ""),
     renavam: String(row.renavam ?? ""),
-    prazoMulta: fromDatabaseDate(row.prazo_multa),
+    prazoMulta,
     vistoJuridicoMulta: String(row.processo_vinculado_multa ?? row.visto_juridico_multa ?? ""),
     observacoes: String(row.observacoes ?? ""),
     createdAt: String(row.created_at ?? ""),
@@ -266,6 +304,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   const select = [
     "id",
+    "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
     "telefones",
@@ -296,6 +335,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
@@ -321,6 +361,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   const select = [
     "id",
+    "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
     "telefones",
@@ -335,7 +376,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   const searchParams = new URLSearchParams({
     select,
-    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast,id.desc",
   })
 
   if (cpfNormalizado) {
@@ -346,7 +387,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   }
 
   if (nome) {
-    searchParams.set("nome_cliente", `ilike.*${nome}*`)
+    searchParams.set("nome_cliente", `imatch.${buildAccentInsensitivePattern(nome)}`)
   }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
@@ -361,6 +402,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
@@ -393,14 +435,104 @@ export async function getFichaById(id: string): Promise<FichaRecord> {
   return fromRow(row)
 }
 
+function safeFilterValue(value: string) {
+  return String(value || "").replace(/[(),*]/g, "").trim()
+}
+
+export async function findPotentialDuplicateFichas(data: FichaFormValues): Promise<FichaDuplicateMatch[]> {
+  ensureSupabaseConfig()
+
+  const filters: string[] = []
+  const cpf = normalizeCpfCnpj(data.cpfCnpj)
+  const cnh = safeFilterValue(data.cnh).replace(/\D/g, "")
+  const email = safeFilterValue(data.email).toLowerCase()
+  const name = safeFilterValue(stripIdentifierSuffix(data.nomeCliente))
+  const phone = (data.telefones.match(/\d/g) || []).join("").slice(-4)
+
+  if (cpf) filters.push(`cpf_normalizado.eq.${cpf}`, `cpf_cnpj.eq.${cpf}`, `cpf_cnpj.eq.${cpf}.0`)
+  if (cnh) filters.push(`cnh.eq.${cnh}`, `cnh.eq.${cnh}.0`)
+  if (email) filters.push(`email.ilike.${email}`)
+  if (name) filters.push(`nome_cliente.imatch.${buildAccentInsensitivePattern(name)}`)
+  if (phone.length === 4) filters.push(`telefones.ilike.*${phone}*`)
+
+  if (!filters.length) return []
+
+  const searchParams = new URLSearchParams({
+    select: "*",
+    or: `(${filters.join(",")})`,
+    order: "updated_at.desc.nullslast,created_at.desc.nullslast",
+    limit: "200",
+  })
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
+    headers: headers(),
+    cache: "no-store",
+  })
+  const payload = await response.json()
+
+  if (!response.ok) {
+    throw new Error(payload.message || payload.error || "Erro ao verificar cadastros semelhantes.")
+  }
+
+  return (payload as Array<Record<string, unknown>>)
+    .map(fromRow)
+    .map((candidate) => ({ candidate, reasons: findDuplicateReasons(data, candidate) }))
+    .filter(({ reasons }) => reasons.length > 0)
+    .map(({ candidate, reasons }) => ({
+      id: candidate.id,
+      nomeCliente: candidate.nomeCliente,
+      cpfCnpj: candidate.cpfCnpj,
+      telefones: candidate.telefones,
+      numeroEndereco: candidate.numeroEndereco,
+      email: candidate.email,
+      cnh: candidate.cnh,
+      dataContrato: candidate.dataContrato,
+      nomeConsultor: candidate.nomeConsultor,
+      reasons,
+    }))
+}
+
+export async function deleteFicha(id: string) {
+  ensureSupabaseConfig()
+  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: headers(),
+    cache: "no-store",
+  })
+  if (!response.ok) {
+    const payload = await response.json()
+    throw new Error(payload.message || payload.error || "Erro ao excluir ficha.")
+  }
+}
+
+export async function mergeFichaClients(primaryFichaId: string, fichaIds: string[], consultor: ConsultorSession) {
+  ensureSupabaseConfig()
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/merge_ficha_clients`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      primary_ficha_id: Number(primaryFichaId),
+      selected_ficha_ids: fichaIds.map(Number),
+      actor_id_value: consultor.id,
+      actor_name_value: consultor.nome,
+    }),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.error || "Não foi possível juntar os cadastros.")
+  }
+  return Number(payload ?? 0)
+}
+
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
   const sequence = await getFichaSequenceByCpf(data.cpfCnpj)
   const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)
   const identifiedData = {
     ...data,
-    nomeCliente: `${baseNomeCliente} ${String(sequence).padStart(2, "0")}`.trim(),
+    nomeCliente: baseNomeCliente,
   }
   const payload: Record<string, unknown> = toPayload(identifiedData, consultor, "create")
+  payload.numero_ficha = sequence
 
   const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}`, "POST", payload)
 
@@ -446,6 +578,7 @@ async function readWorkbookRows() {
 function fichaToExcelRow(ficha: FichaRecord) {
   return {
     id: ficha.id,
+    numeroFicha: ficha.numeroFicha,
     data: ficha.dataContrato,
     prazoGeral: ficha.prazoServico,
     nome: ficha.nomeCliente,
@@ -454,6 +587,8 @@ function fichaToExcelRow(ficha: FichaRecord) {
     telefone: ficha.telefones,
     email: ficha.email,
     endereco: ficha.endereco,
+    numeroEndereco: ficha.numeroEndereco,
+    complementoEndereco: ficha.complementoEndereco,
     nacionalidade: ficha.nacionalidade,
     estadoCivil: ficha.estadoCivil,
     profissao: ficha.profissao,
@@ -465,14 +600,16 @@ function fichaToExcelRow(ficha: FichaRecord) {
     updatedByConsultorId: ficha.updatedByConsultorId,
     formaPagamento: ficha.formaPagamento,
     banco: ficha.banco,
+    pagamentos: ficha.pagamentos,
     valorTotal: ficha.valorTotal,
     valorEntrada: ficha.valorEntrada,
     valorRestante: ficha.valorRestante,
     observacaoValorRestante: ficha.observacaoValorRestante,
-    clausulaAdicional: ficha.clausulaAdicional,
     tipoProcesso: ficha.tipoProcesso,
     numeroProcesso: ficha.numeroProcesso,
     instanciaProcesso: ficha.instanciaProcesso,
+    tipoOutroServico: ficha.tipoOutroServico,
+    poderesOutroServico: ficha.poderesOutroServico,
     prazoProcesso: ficha.prazoProcesso,
     tipoMulta: ficha.tipoMulta,
     placa: ficha.placa,
@@ -508,5 +645,11 @@ export async function updateFichaInExcel(ficha: FichaRecord) {
   }
 
   await writeWorkbookRows(nextRows)
+  return true
+}
+
+export async function deleteFichaFromExcel(id: string) {
+  const { rows } = await readWorkbookRows()
+  await writeWorkbookRows(rows.filter((row) => String(row.id ?? "") !== id))
   return true
 }

@@ -18,6 +18,7 @@ export type AccessCodeRecord = {
   telefone: string
   nivelAcesso: AccessLevel
   ativo: boolean
+  senha?: string
   mustChangePassword?: boolean
   lastLoginAt?: string
   createdAt: string
@@ -48,6 +49,8 @@ export type FichaFormValues = {
   terceiros: string
   telefones: string
   endereco: string
+  numeroEndereco: string
+  complementoEndereco: string
   cep: string
   municipio: string
   uf: string
@@ -65,17 +68,19 @@ export type FichaFormValues = {
   formaPagamento: string
   banco: string
   bancoOutro: string
+  pagamentos: string
   valorTotal: string
   valorEntrada: string
   valorRestante: string
   observacaoValorRestante: string
-  clausulaAdicional: string
   instanciaProcesso: string
   tipoProcesso: string
   numeroProcesso: string
   prazoProcesso: string
   vistoJuridico: string
   assinaturaVistoJuridico: string
+  tipoOutroServico: string
+  poderesOutroServico: string
   instanciaMulta: string
   autoDetran: string
   autoRenainf: string
@@ -91,6 +96,7 @@ export type FichaFormValues = {
 
 export type FichaRecord = FichaFormValues & {
   id: string
+  numeroFicha: number
   cpfNormalizado: string
   createdAt: string
   updatedAt: string
@@ -102,6 +108,7 @@ export type FichaListItem = Pick<
   FichaRecord,
   | "id"
   | "nomeCliente"
+  | "numeroFicha"
   | "cpfCnpj"
   | "telefones"
   | "endereco"
@@ -113,6 +120,18 @@ export type FichaListItem = Pick<
   | "updatedByConsultorId"
 >
 
+export type FichaDuplicateMatch = Pick<
+  FichaRecord,
+  "id" | "nomeCliente" | "cpfCnpj" | "telefones" | "numeroEndereco" | "email" | "cnh" | "dataContrato" | "nomeConsultor"
+> & {
+  reasons: string[]
+}
+
+export type DuplicateResolution = {
+  action: "create_new" | "merge"
+  matchedFichaId?: string
+}
+
 export const emptyFichaValues: FichaFormValues = {
   dataContrato: "",
   prazoServico: "",
@@ -120,6 +139,8 @@ export const emptyFichaValues: FichaFormValues = {
   terceiros: "",
   telefones: "",
   endereco: "",
+  numeroEndereco: "",
+  complementoEndereco: "",
   cep: "",
   municipio: "",
   uf: "RJ",
@@ -137,17 +158,19 @@ export const emptyFichaValues: FichaFormValues = {
   formaPagamento: "",
   banco: "",
   bancoOutro: "",
+  pagamentos: "",
   valorTotal: "",
   valorEntrada: "",
   valorRestante: "",
   observacaoValorRestante: "",
-  clausulaAdicional: "",
   instanciaProcesso: "",
   tipoProcesso: "",
   numeroProcesso: "",
   prazoProcesso: "",
   vistoJuridico: "",
   assinaturaVistoJuridico: "",
+  tipoOutroServico: "",
+  poderesOutroServico: "",
   instanciaMulta: "",
   autoDetran: "",
   autoRenainf: "",

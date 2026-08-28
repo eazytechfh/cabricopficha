@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server"
-import { getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
+import { deleteFicha, deleteFichaFromExcel, getFichaById, updateFicha, updateFichaInExcel } from "@/lib/server-fichas"
 import { canEditFicha, normalizeFichaValues, toRecordValues } from "@/lib/ficha-utils"
 import { createActivityLog } from "@/lib/server-activity-logs"
+import { buildFichaChanges } from "@/lib/ficha-change-log"
 import type { ConsultorSession, FichaFormValues } from "@/lib/ficha-types"
 
 type RouteContext = {
   params: Promise<{ id: string }>
 }
 
+/* Field comparison lives in ficha-change-log so it can normalize legacy values consistently. */
 const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   dataContrato: "Data do Contrato",
   prazoServico: "Prazo",
@@ -15,6 +17,8 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   terceiros: "Terceiros",
   telefones: "Telefone(s)",
   endereco: "Endereco",
+  numeroEndereco: "Numero",
+  complementoEndereco: "Complemento",
   cep: "CEP",
   municipio: "Municipio",
   uf: "UF",
@@ -32,13 +36,15 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   formaPagamento: "Forma de Pagamento",
   banco: "Banco",
   bancoOutro: "Outro Banco",
+  pagamentos: "Pagamentos",
   valorTotal: "Valor Total",
   valorEntrada: "Valor de Entrada",
   valorRestante: "Valor Restante",
   observacaoValorRestante: "Observacao do Valor Restante",
-  clausulaAdicional: "Clausula Adicional",
   instanciaProcesso: "Instancia do Processo",
   tipoProcesso: "Tipo do Processo",
+  tipoOutroServico: "Tipo do Serviço",
+  poderesOutroServico: "Poderes",
   numeroProcesso: "No do Processo",
   prazoProcesso: "Prazo do Processo",
   vistoJuridico: "Multas do Processo",
@@ -54,30 +60,6 @@ const FIELD_LABELS: Record<keyof FichaFormValues, string> = {
   prazoMulta: "Prazo da Multa",
   vistoJuridicoMulta: "Processo Vinculado da Multa",
   observacoes: "Observacoes",
-}
-
-function normalizeCompareValue(value: string) {
-  return String(value || "").trim().replace(/\r\n/g, "\n")
-}
-
-function buildFichaChanges(current: FichaFormValues, next: FichaFormValues) {
-  return (Object.keys(FIELD_LABELS) as Array<keyof FichaFormValues>)
-    .map((key) => {
-      const before = normalizeCompareValue(current[key])
-      const after = normalizeCompareValue(next[key])
-      if (before === after) return null
-
-      return {
-        field: FIELD_LABELS[key],
-        before: before || "-",
-        after: after || "-",
-      }
-    })
-    .filter(Boolean) as Array<{
-    field: string
-    before: string
-    after: string
-  }>
 }
 
 function summarizeFichaChanges(changes: Array<{ field: string }>) {
@@ -116,7 +98,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const currentValues = normalizeFichaValues(toRecordValues(current))
     const nextValues = normalizeFichaValues(data)
-    const changes = buildFichaChanges(currentValues, nextValues)
+    const changes = buildFichaChanges(currentValues, nextValues, FIELD_LABELS)
     const ficha = await updateFicha(id, data, consultor)
     await createActivityLog({
       entityType: "ficha",
@@ -155,6 +137,46 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Erro ao atualizar ficha:", error)
     const message = error instanceof Error ? error.message : "Erro ao atualizar ficha."
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params
+    const { consultor } = (await request.json()) as { consultor: ConsultorSession }
+    const current = await getFichaById(id)
+
+    if (!canEditFicha(consultor.id, consultor.nivelAcesso, current)) {
+      return NextResponse.json({ error: "Você não tem permissão para excluir esta ficha." }, { status: 403 })
+    }
+
+    await deleteFicha(id)
+    let excelSaved = true
+    try {
+      await deleteFichaFromExcel(id)
+    } catch (error) {
+      excelSaved = false
+      console.error("Erro ao excluir ficha do Excel:", error)
+    }
+
+    try {
+      await createActivityLog({
+        entityType: "ficha",
+        entityId: id,
+        entityLabel: current.nomeCliente || `Ficha ${id}`,
+        action: "delete",
+        summary: "Excluiu uma ficha identificada como duplicada.",
+        actorId: consultor.id,
+        actorName: consultor.nome,
+      })
+    } catch (error) {
+      console.error("Ficha excluída, mas não foi possível registrar a atividade:", error)
+    }
+
+    return NextResponse.json({ ok: true, excelSaved })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao excluir ficha."
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
