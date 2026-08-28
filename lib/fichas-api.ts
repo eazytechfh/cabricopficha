@@ -72,6 +72,15 @@ export async function deleteFicha(id: string, consultor: ConsultorSession) {
   return parseResponse<{ ok: boolean; excelSaved: boolean }>(response)
 }
 
+export async function mergeFichaClients(primaryFichaId: string, fichaIds: string[], consultor: ConsultorSession) {
+  const response = await fetch("/api/fichas/merge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ primaryFichaId, fichaIds, consultor }),
+  })
+  return parseResponse<{ ok: boolean; mergedCount: number }>(response)
+}
+
 export async function updateFicha(id: string, data: FichaFormValues, consultor: ConsultorSession) {
   const response = await fetch(`/api/fichas/${id}`, {
     method: "PATCH",

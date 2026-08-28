@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
@@ -29,7 +30,7 @@ import { resolveCustomEditorHistory, type DocumentEditorHistoryEntry } from "@/l
 import { getLatestLog, getTimelineLogs } from "@/lib/activity-log-client"
 import { updateFicha } from "@/lib/fichaService"
 import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
-import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas } from "@/lib/fichas-api"
+import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas, mergeFichaClients } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 import { shouldValidatePayments } from "@/lib/payment-validation-context"
@@ -321,6 +322,10 @@ export default function FichasWorkspace() {
   const [editLoading, setEditLoading] = useState(false)
   const [editMessage, setEditMessage] = useState("")
   const [documentLoading, setDocumentLoading] = useState<DocumentTemplateKind | null>(null)
+  const [mergeClientKeys, setMergeClientKeys] = useState<string[]>([])
+  const [mergePrimaryKey, setMergePrimaryKey] = useState("")
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
+  const [mergeLoading, setMergeLoading] = useState(false)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("menu")
@@ -490,6 +495,11 @@ export default function FichasWorkspace() {
       contratos: [...group.contratos].sort((a, b) => a.nomeCliente.localeCompare(b.nomeCliente, "pt-BR", { numeric: true })),
     }))
   }, [consultaItems])
+
+  const selectedMergeGroups = useMemo(
+    () => consultaClienteGroups.filter((group) => mergeClientKeys.includes(group.key)),
+    [consultaClienteGroups, mergeClientKeys]
+  )
 
   const isAdmin = hasAdminAccess(consultor)
   const isAndamento = consultor?.nivelAcesso === "andamento"
@@ -1353,6 +1363,33 @@ export default function FichasWorkspace() {
     setSelectedContratos([])
     setSelectedFicha(null)
     setViewMode("list")
+  }
+
+  const handleMergeClients = async () => {
+    if (!consultor || !mergePrimaryKey || selectedMergeGroups.length < 2) return
+    const primaryGroup = selectedMergeGroups.find((group) => group.key === mergePrimaryKey)
+    const primaryFichaId = primaryGroup?.contratos[0]?.id
+    if (!primaryFichaId) return
+
+    setMergeLoading(true)
+    setConsultaError("")
+    try {
+      const fichaIds = selectedMergeGroups.flatMap((group) => group.contratos.map((ficha) => ficha.id))
+      await mergeFichaClients(primaryFichaId, fichaIds, consultor)
+      const refreshed = await getFichas({
+        cpf: tipoBusca === "nome" ? "" : normalizeCpfCnpj(cpfBusca),
+        nome: tipoBusca === "nome" ? nomeBusca.trim() : "",
+      })
+      setConsultaItems(refreshed.fichas)
+      setMergeClientKeys([])
+      setMergePrimaryKey("")
+      setMergeDialogOpen(false)
+      setConsultaError("Cadastros unidos com sucesso. Todas as fichas e históricos foram preservados.")
+    } catch (error) {
+      setConsultaError(error instanceof Error ? error.message : "Erro ao juntar cadastros.")
+    } finally {
+      setMergeLoading(false)
+    }
   }
 
   const resetConsulta = () => {
@@ -2269,8 +2306,20 @@ export default function FichasWorkspace() {
 
             {consultaItems.length > 0 && viewMode === "list" && (
               <Card className="shadow-md">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
                   <CardTitle>Fichas Encontradas</CardTitle>
+                  {isAdmin ? (
+                    <Button
+                      type="button"
+                      disabled={mergeClientKeys.length < 2}
+                      onClick={() => {
+                        setMergePrimaryKey(mergeClientKeys[0] || "")
+                        setMergeDialogOpen(true)
+                      }}
+                    >
+                      Juntar selecionados ({mergeClientKeys.length})
+                    </Button>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {consultaClienteGroups.map((cliente) => {
@@ -2280,6 +2329,17 @@ export default function FichasWorkspace() {
                       <div key={cliente.key} className="rounded-lg border border-border p-4">
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(180px,0.95fr)_minmax(180px,0.95fr)_minmax(180px,1fr)_auto] xl:items-start">
                           <div className="min-w-0">
+                            {isAdmin ? (
+                              <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium">
+                                <Checkbox
+                                  checked={mergeClientKeys.includes(cliente.key)}
+                                  onCheckedChange={(checked) => setMergeClientKeys((current) =>
+                                    checked ? [...current, cliente.key] : current.filter((key) => key !== cliente.key)
+                                  )}
+                                />
+                                Selecionar para juntar
+                              </label>
+                            ) : null}
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
                             <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
                           </div>
@@ -2309,6 +2369,36 @@ export default function FichasWorkspace() {
                 </CardContent>
               </Card>
             )}
+
+            <Dialog open={mergeDialogOpen} onOpenChange={(open) => !mergeLoading && setMergeDialogOpen(open)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Juntar cadastros selecionados</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">
+                  Escolha o cadastro principal. Os dados pessoais dele serão usados nos demais. Fichas, contratos, pagamentos e históricos serão preservados.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="cadastroPrincipal">Cadastro principal</Label>
+                  <Select value={mergePrimaryKey} onValueChange={setMergePrimaryKey}>
+                    <SelectTrigger id="cadastroPrincipal"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {selectedMergeGroups.map((group) => (
+                        <SelectItem key={group.key} value={group.key}>
+                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={mergeLoading}>Cancelar</Button>
+                  <Button type="button" onClick={() => void handleMergeClients()} disabled={mergeLoading || !mergePrimaryKey}>
+                    {mergeLoading ? "Juntando..." : "Confirmar junção"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {(viewMode === "picker" || (selectedFicha && viewMode === "view")) && (
               <Card className="shadow-md">

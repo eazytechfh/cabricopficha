@@ -509,6 +509,26 @@ export async function deleteFicha(id: string) {
   }
 }
 
+export async function mergeFichaClients(primaryFichaId: string, fichaIds: string[], consultor: ConsultorSession) {
+  ensureSupabaseConfig()
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/merge_ficha_clients`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      primary_ficha_id: Number(primaryFichaId),
+      selected_ficha_ids: fichaIds.map(Number),
+      actor_id_value: consultor.id,
+      actor_name_value: consultor.nome,
+    }),
+    cache: "no-store",
+  })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.error || "Não foi possível juntar os cadastros.")
+  }
+  return Number(payload ?? 0)
+}
+
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
   const sequence = await getFichaSequenceByClient(data.cpfCnpj, data.nomeCliente)
   const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)

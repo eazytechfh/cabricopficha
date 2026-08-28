@@ -109,3 +109,12 @@ test("workspace uses one final save button and a compact add action while editin
   assert.match(source, /aria-label="Adicionar ficha"/)
   assert.doesNotMatch(source, /<Plus className="size-4" \/>\s*Adicionar/)
 })
+
+test("admins can select client groups and merge them into a chosen primary record", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.match(source, /Juntar selecionados/)
+  assert.match(source, /Cadastro principal/)
+  assert.match(source, /mergeFichaClients\(primaryFichaId, fichaIds, consultor\)/)
+  assert.match(source, /Fichas, contratos, pagamentos e históricos serão preservados/)
+})
