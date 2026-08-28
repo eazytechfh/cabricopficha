@@ -461,14 +461,20 @@ export default function FichasWorkspace() {
 
   const selectedFichaNumbers = useMemo(() => {
     const validNumbers = selectedContratos.map((ficha) => ficha.numeroFicha).filter((number) => number > 0)
-    const numbersAreReliable = validNumbers.length === selectedContratos.length && new Set(validNumbers).size === selectedContratos.length
+    const orderedNumbers = [...validNumbers].sort((left, right) => left - right)
+    const numbersAreReliable =
+      validNumbers.length === selectedContratos.length &&
+      new Set(validNumbers).size === selectedContratos.length &&
+      orderedNumbers.every((number, index) => number === index + 1)
 
     if (numbersAreReliable) {
       return new Map(selectedContratos.map((ficha) => [ficha.id, ficha.numeroFicha]))
     }
 
     const chronological = [...selectedContratos].sort((left, right) =>
-      `${left.dataContrato}|${left.createdAt}|${left.id}`.localeCompare(`${right.dataContrato}|${right.createdAt}|${right.id}`)
+      `${left.dataContrato || "9999-12-31"}|${left.createdAt}|${left.id}`.localeCompare(
+        `${right.dataContrato || "9999-12-31"}|${right.createdAt}|${right.id}`
+      )
     )
     return new Map(chronological.map((ficha, index) => [ficha.id, index + 1]))
   }, [selectedContratos])
