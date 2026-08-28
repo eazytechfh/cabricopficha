@@ -328,7 +328,7 @@ export default function FichasWorkspace() {
   const [editMessage, setEditMessage] = useState("")
   const [documentLoading, setDocumentLoading] = useState<DocumentTemplateKind | null>(null)
   const [mergeClientKeys, setMergeClientKeys] = useState<string[]>([])
-  const [mergePrimaryKey, setMergePrimaryKey] = useState("")
+  const [mergePrimaryFichaId, setMergePrimaryFichaId] = useState("")
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
   const [mergeLoading, setMergeLoading] = useState(false)
 
@@ -518,9 +518,9 @@ export default function FichasWorkspace() {
     () => consultaClienteGroups.filter((group) => mergeClientKeys.includes(group.key)),
     [consultaClienteGroups, mergeClientKeys]
   )
-  const primaryMergeGroup = useMemo(
-    () => selectedMergeGroups.find((group) => group.key === mergePrimaryKey) ?? null,
-    [selectedMergeGroups, mergePrimaryKey]
+  const primaryMergeFicha = useMemo(
+    () => selectedMergeGroups.flatMap((group) => group.contratos).find((ficha) => ficha.id === mergePrimaryFichaId) ?? null,
+    [selectedMergeGroups, mergePrimaryFichaId]
   )
 
   const isAdmin = hasAdminAccess(consultor)
@@ -1388,9 +1388,8 @@ export default function FichasWorkspace() {
   }
 
   const handleMergeClients = async () => {
-    if (!consultor || !mergePrimaryKey || selectedMergeGroups.length < 2) return
-    const primaryGroup = selectedMergeGroups.find((group) => group.key === mergePrimaryKey)
-    const primaryFichaId = primaryGroup?.contratos[0]?.id
+    if (!consultor || !mergePrimaryFichaId || selectedMergeGroups.length < 2) return
+    const primaryFichaId = primaryMergeFicha?.id
     if (!primaryFichaId) return
 
     setMergeLoading(true)
@@ -1404,7 +1403,7 @@ export default function FichasWorkspace() {
       })
       setConsultaItems(refreshed.fichas)
       setMergeClientKeys([])
-      setMergePrimaryKey("")
+      setMergePrimaryFichaId("")
       setMergeDialogOpen(false)
       setConsultaError("Cadastros unidos com sucesso. Todas as fichas e históricos foram preservados.")
     } catch (error) {
@@ -2337,7 +2336,7 @@ export default function FichasWorkspace() {
                       type="button"
                       disabled={mergeClientKeys.length < 2}
                       onClick={() => {
-                        setMergePrimaryKey(mergeClientKeys[0] || "")
+                        setMergePrimaryFichaId(selectedMergeGroups[0]?.contratos[0]?.id || "")
                         setMergeDialogOpen(true)
                       }}
                     >
@@ -2404,32 +2403,32 @@ export default function FichasWorkspace() {
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor="cadastroPrincipal">Cadastro principal</Label>
-                  <Select value={mergePrimaryKey} onValueChange={setMergePrimaryKey}>
+                  <Select value={mergePrimaryFichaId} onValueChange={setMergePrimaryFichaId}>
                     <SelectTrigger id="cadastroPrincipal"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      {selectedMergeGroups.map((group) => (
-                        <SelectItem key={group.key} value={group.key}>
-                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s)
+                      {selectedMergeGroups.flatMap((group) => group.contratos.map((ficha) => (
+                        <SelectItem key={ficha.id} value={ficha.id}>
+                          {group.nomeCliente} · {getFichaLabel(ficha.numeroFicha, ficha.nomeCliente)} · {formatDisplayDate(ficha.dataContrato)}
                         </SelectItem>
-                      ))}
+                      )))}
                     </SelectContent>
                   </Select>
-                  {primaryMergeGroup ? (
+                  {primaryMergeFicha ? (
                     <div className="grid gap-3 rounded-md border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data de criação</p>
-                        <p className="mt-1 font-medium">{formatDisplayDate(primaryMergeGroup.contratos[0]?.dataContrato || "")}</p>
+                        <p className="mt-1 font-medium">{formatDisplayDate(primaryMergeFicha.dataContrato)}</p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Consultor</p>
-                        <p className="mt-1 font-medium">{primaryMergeGroup.contratos[0]?.nomeConsultor || "-"}</p>
+                        <p className="mt-1 font-medium">{primaryMergeFicha.nomeConsultor || "-"}</p>
                       </div>
                     </div>
                   ) : null}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={mergeLoading}>Cancelar</Button>
-                  <Button type="button" onClick={() => void handleMergeClients()} disabled={mergeLoading || !mergePrimaryKey}>
+                  <Button type="button" onClick={() => void handleMergeClients()} disabled={mergeLoading || !mergePrimaryFichaId}>
                     {mergeLoading ? "Juntando..." : "Confirmar junção"}
                   </Button>
                 </DialogFooter>
