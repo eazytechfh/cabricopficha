@@ -186,7 +186,7 @@ function buildProcessosResumo(values: FichaFormValues) {
 
   return lines
     .map((line, index) => `${index + 1}. Instância do Processo: ${line.instancia || "-"} - Tipo do Processo: ${line.tipo || "-"} - Nº do Processo: ${line.numero || "-"}`)
-    .join("\n")
+    .join("<br>")
 }
 
 function formatMultaInstancias(value: string) {
@@ -212,7 +212,7 @@ function buildMultasResumo(values: FichaFormValues) {
 
   return lines
     .map((line) => `${formatMultaInstancias(line.instancia)} - Auto: ${line.autoDetran || line.autoRenainf || "-"} - Placa: ${line.placa || "-"}`)
-    .join("\n")
+    .join("<br>")
 }
 
 type DocumentTemplateValues = FichaFormValues & { createdAt?: string }
