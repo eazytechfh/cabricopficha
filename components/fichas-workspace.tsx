@@ -468,6 +468,13 @@ export default function FichasWorkspace() {
     return new Map(chronological.map((ficha, index) => [ficha.id, index + 1]))
   }, [selectedContratos])
 
+  const orderedSelectedContratos = useMemo(
+    () => [...selectedContratos].sort((left, right) =>
+      (selectedFichaNumbers.get(left.id) ?? left.numeroFicha) - (selectedFichaNumbers.get(right.id) ?? right.numeroFicha)
+    ),
+    [selectedContratos, selectedFichaNumbers]
+  )
+
   const consultaClienteGroups = useMemo(() => {
     const groups = new Map<string, ConsultaClienteGroup>()
 
@@ -2417,7 +2424,7 @@ export default function FichasWorkspace() {
                           <SelectValue placeholder="Selecionar ficha" />
                         </SelectTrigger>
                         <SelectContent>
-                          {selectedContratos.map((contrato) => (
+                          {orderedSelectedContratos.map((contrato) => (
                             <SelectItem key={contrato.id} value={contrato.id}>
                               {getFichaLabel(selectedFichaNumbers.get(contrato.id) ?? contrato.numeroFicha, contrato.nomeCliente)} · {formatDisplayDate(contrato.dataContrato)}
                             </SelectItem>
@@ -2427,7 +2434,7 @@ export default function FichasWorkspace() {
                     </div>
                     {viewMode === "view" && selectedFicha ? (
                       <div className="text-sm font-medium text-muted-foreground lg:text-right">
-                        Data da ficha: <span className="font-semibold text-foreground">{formatDisplayDate(selectedFicha.dataContrato)}</span>
+                        Data de criação: <span className="font-semibold text-foreground">{formatDisplayDate(selectedFicha.dataContrato)}</span>
                       </div>
                     ) : null}
                   </div>

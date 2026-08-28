@@ -93,13 +93,15 @@ test("consulted ficha shows the contract date as the ficha date", async () => {
   const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
 
   assert.doesNotMatch(source, /<p[^>]*>Data do contrato<\/p>[\s\S]*?<img src="\/logo\.png"[\s\S]*?<p[^>]*>Prazo<\/p>/i)
-  assert.match(source, /Data da ficha:[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
+  assert.match(source, /Data de criação:[\s\S]*formatDisplayDate\(selectedFicha\.dataContrato\)/)
   assert.match(source, /getFichaLabel\(selectedFichaNumbers\.get\(contrato\.id\)[\s\S]*formatDisplayDate\(contrato\.dataContrato\)/)
   assert.doesNotMatch(source, /ClienteValue label="Data do Contrato"/)
   assert.doesNotMatch(source, /<h3[^>]*>Data do Contrato<\/h3>/)
   assert.match(source, /value\.match\(\/\^\(\\d\{4\}\)-\(\\d\{2\}\)-\(\\d\{2\}\)\//)
   assert.match(source, /numbersAreReliable/)
   assert.match(source, /selectedFichaNumbers\.get\(contrato\.id\)/)
+  assert.match(source, /orderedSelectedContratos\.map\(\(contrato\)/)
+  assert.match(source, /selectedFichaNumbers\.get\(left\.id\)[\s\S]*selectedFichaNumbers\.get\(right\.id\)/)
 })
 
 test("workspace uses one final save button and a compact add action while editing", async () => {
