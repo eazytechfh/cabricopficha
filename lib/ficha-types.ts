@@ -47,6 +47,8 @@ export type FichaFormValues = {
   prazoServico: string
   nomeCliente: string
   terceiros: string
+  telefoneTerceiros: string
+  emailTerceiros: string
   telefones: string
   endereco: string
   numeroEndereco: string
@@ -139,6 +141,8 @@ export const emptyFichaValues: FichaFormValues = {
   prazoServico: "",
   nomeCliente: "",
   terceiros: "",
+  telefoneTerceiros: "",
+  emailTerceiros: "",
   telefones: "",
   endereco: "",
   numeroEndereco: "",

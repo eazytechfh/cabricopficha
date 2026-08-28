@@ -58,6 +58,8 @@ export function findDuplicateReasons(
 const CLIENT_IDENTITY_FIELDS = [
   "nomeCliente",
   "terceiros",
+  "telefoneTerceiros",
+  "emailTerceiros",
   "telefones",
   "endereco",
   "numeroEndereco",

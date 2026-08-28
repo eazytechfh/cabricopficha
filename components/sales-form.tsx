@@ -143,6 +143,8 @@ export default function SalesForm() {
       prazoServico: calculatePrazoServico(getString("prazoProcesso"), getString("prazoMulta")),
       nomeCliente: getString("nomeCliente"),
       terceiros: getString("terceiros"),
+      telefoneTerceiros: getString("telefoneTerceiros"),
+      emailTerceiros: getString("emailTerceiros"),
       telefones: phones.map((p) => p.value).filter((v) => v).join(", "),
       endereco: getString("endereco"),
       numeroEndereco: getString("numeroEndereco"),
@@ -348,8 +350,18 @@ export default function SalesForm() {
                   <Input id="nomeCliente" name="nomeCliente" placeholder="Digite o nome completo" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="terceiros">Terceiros</Label>
+                  <Label htmlFor="terceiros">Nome Terceiros</Label>
                   <Input id="terceiros" name="terceiros" placeholder="Informar terceiros (se houver)" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="telefoneTerceiros">Telefone Terceiros</Label>
+                  <Input id="telefoneTerceiros" name="telefoneTerceiros" type="tel" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emailTerceiros">E-mail Terceiros</Label>
+                  <Input id="emailTerceiros" name="emailTerceiros" type="email" />
                 </div>
               </div>
 

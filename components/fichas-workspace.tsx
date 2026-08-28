@@ -59,6 +59,9 @@ type TimelineGroup = {
 
 const DOCUMENT_TEMPLATE_VARIABLES = [
   "{{nomeCliente}}",
+  "{{nomeTerceiros}}",
+  "{{telefoneTerceiros}}",
+  "{{emailTerceiros}}",
   "{{nacionalidade}}",
   "{{estadoCivil}}",
   "{{profissao}}",
@@ -200,7 +203,9 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
 
       <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="Nome Completo" value={getClienteBaseName(values.nomeCliente) || values.nomeCliente} />
-        <ClienteValue label="Terceiros" value={values.terceiros} />
+        <ClienteValue label="Nome Terceiros" value={values.terceiros} />
+        <ClienteValue label="Telefone Terceiros" value={values.telefoneTerceiros} />
+        <ClienteValue label="E-mail Terceiros" value={values.emailTerceiros} />
         <ClienteValue label="Telefone(s)" value={values.telefones} />
         <ClienteValue label="E-mail" value={values.email} />
       </div>
@@ -1518,6 +1523,8 @@ export default function FichasWorkspace() {
       ...emptyFichaValues,
       nomeCliente: getClienteBaseName(fichaBase.nomeCliente) || fichaBase.nomeCliente,
       terceiros: fichaBase.terceiros,
+      telefoneTerceiros: fichaBase.telefoneTerceiros,
+      emailTerceiros: fichaBase.emailTerceiros,
       telefones: fichaBase.telefones,
       endereco: fichaBase.endereco,
       numeroEndereco: fichaBase.numeroEndereco,

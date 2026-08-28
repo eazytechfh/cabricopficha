@@ -27,6 +27,8 @@ type FichaWebhookPayloadBase = {
     prazoGeral: string
     nome: string
     terceiros: string
+    telefoneTerceiros: string
+    emailTerceiros: string
     telefone: string
     email: string
     endereco: string
@@ -138,6 +140,8 @@ function buildFichaWebhookBase(ficha: FichaRecord, responsavel: ConsultorSession
       prazoGeral: ficha.prazoServico,
       nome: ficha.nomeCliente,
       terceiros: ficha.terceiros,
+      telefoneTerceiros: ficha.telefoneTerceiros,
+      emailTerceiros: ficha.emailTerceiros,
       telefone: ficha.telefones,
       email: ficha.email,
       endereco: ficha.endereco,

@@ -9,6 +9,8 @@ export type FichaPdfData = {
   prazoServico: string
   nomeCliente: string
   terceiros: string
+  telefoneTerceiros: string
+  emailTerceiros: string
   telefones: string
   endereco: string
   numeroEndereco: string
@@ -404,7 +406,8 @@ export default function FichaPdf({ data }: FichaPdfProps) {
 
         {section("DADOS DO CLIENTE", (
           <>
-            {gridRow("1.1fr 1fr", [field("Nome Completo", formatClientDisplayName(data.nomeCliente)), field("Terceiros", data.terceiros)])}
+            {gridRow("1.1fr 1fr", [field("Nome Completo", formatClientDisplayName(data.nomeCliente)), field("Nome Terceiros", data.terceiros)])}
+            {gridRow("1fr 1fr", [field("Telefone Terceiros", data.telefoneTerceiros), field("E-mail Terceiros", data.emailTerceiros)])}
             {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("E-mail", data.email)])}
             {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.numeroEndereco, data.complementoEndereco, data.municipio, data.uf))])}
             {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}

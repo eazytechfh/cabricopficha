@@ -40,6 +40,7 @@ begin
   update public.fichas_venda set
     client_group_id = group_id_value,
     nome_cliente = principal.nome_cliente, terceiros = principal.terceiros,
+    telefone_terceiros = principal.telefone_terceiros, email_terceiros = principal.email_terceiros,
     telefones = principal.telefones, endereco = principal.endereco,
     numero_endereco = principal.numero_endereco, complemento_endereco = principal.complemento_endereco,
     cep = principal.cep, municipio = principal.municipio, uf = principal.uf,

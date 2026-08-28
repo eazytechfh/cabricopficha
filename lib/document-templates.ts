@@ -252,6 +252,9 @@ function buildPlaceholderValues(values: DocumentTemplateValues) {
 
   return {
     nomeCliente: nomeCliente || values.nomeCliente || "-",
+    nomeTerceiros: values.terceiros || "-",
+    telefoneTerceiros: values.telefoneTerceiros || "-",
+    emailTerceiros: values.emailTerceiros || "-",
     nacionalidade: values.nacionalidade || "Brasileira",
     estadoCivil: values.estadoCivil || "",
     profissao: values.profissao || "",

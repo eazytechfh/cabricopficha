@@ -30,6 +30,8 @@ export async function POST(request: Request) {
       prazo_servico: calculatePrazoServico(data.prazoProcesso, data.prazoMulta) || null,
       nome_cliente: data.nomeCliente || null,
       terceiros: data.terceiros || null,
+      telefone_terceiros: data.telefoneTerceiros || null,
+      email_terceiros: data.emailTerceiros || null,
       telefones: data.telefones || null,
       endereco: data.endereco || null,
       numero_endereco: data.numeroEndereco || null,

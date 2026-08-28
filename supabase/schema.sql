@@ -5,6 +5,8 @@ create table if not exists public.fichas_venda (
   nome_cliente text not null,
   numero_ficha integer check (numero_ficha > 0),
   terceiros text,
+  telefone_terceiros text,
+  email_terceiros text,
   telefones text,
   endereco text,
   numero_endereco text,
