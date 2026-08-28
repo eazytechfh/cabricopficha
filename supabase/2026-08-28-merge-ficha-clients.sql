@@ -1,3 +1,9 @@
+alter table public.fichas_venda
+add column if not exists client_group_id uuid;
+
+create index if not exists fichas_venda_client_group_id_idx
+on public.fichas_venda (client_group_id);
+
 create or replace function public.merge_ficha_clients(
   primary_ficha_id bigint,
   selected_ficha_ids bigint[],
@@ -13,6 +19,7 @@ declare
   principal public.fichas_venda%rowtype;
   affected_count integer;
   highest_number integer;
+  group_id_value uuid;
 begin
   if primary_ficha_id is null or array_length(selected_ficha_ids, 1) < 2 or not (primary_ficha_id = any(selected_ficha_ids)) then
     raise exception 'Seleção de cadastros inválida.';
@@ -20,9 +27,8 @@ begin
 
   select * into principal from public.fichas_venda where id = primary_ficha_id for update;
   if not found then raise exception 'Cadastro principal não encontrado.'; end if;
-  if public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente) is null then
-    raise exception 'Cadastros sem CPF/CNPJ devem permanecer separados.';
-  end if;
+
+  group_id_value := coalesce(principal.client_group_id, gen_random_uuid());
 
   perform pg_advisory_xact_lock(hashtext(coalesce(public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente), principal.id::text)));
 
@@ -32,6 +38,7 @@ begin
       public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente);
 
   update public.fichas_venda set
+    client_group_id = group_id_value,
     nome_cliente = principal.nome_cliente, terceiros = principal.terceiros,
     telefones = principal.telefones, endereco = principal.endereco,
     numero_endereco = principal.numero_endereco, complemento_endereco = principal.complemento_endereco,
@@ -44,10 +51,12 @@ begin
   where id = any(selected_ficha_ids) and id <> primary_ficha_id;
   get diagnostics affected_count = row_count;
 
+  update public.fichas_venda set client_group_id = group_id_value
+  where id = primary_ficha_id;
+
   select coalesce(max(numero_ficha), 0) into highest_number
   from public.fichas_venda
-  where public.ficha_client_key(cpf_normalizado, cpf_cnpj, nome_cliente) =
-    public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente);
+  where client_group_id = group_id_value;
 
   with pending as (
     select id, row_number() over (order by data_contrato nulls last, created_at nulls last, id) as position

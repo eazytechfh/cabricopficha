@@ -236,6 +236,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
 
   return {
     id: String(row.id ?? ""),
+    clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     dataContrato: String(row.data_contrato ?? ""),
     prazoServico: calculatePrazoServico(prazoProcesso, prazoMulta),
@@ -304,6 +305,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   const select = [
     "id",
+    "client_group_id",
     "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
@@ -335,6 +337,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
@@ -361,6 +364,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   const select = [
     "id",
+    "client_group_id",
     "numero_ficha",
     "nome_cliente",
     "cpf_cnpj",
@@ -402,6 +406,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
     id: String(row.id ?? ""),
+    clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
