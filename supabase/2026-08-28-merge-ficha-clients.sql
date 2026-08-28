@@ -18,7 +18,6 @@ as $$
 declare
   principal public.fichas_venda%rowtype;
   affected_count integer;
-  highest_number integer;
   group_id_value uuid;
 begin
   if primary_ficha_id is null or array_length(selected_ficha_ids, 1) < 2 or not (primary_ficha_id = any(selected_ficha_ids)) then
@@ -55,16 +54,15 @@ begin
   update public.fichas_venda set client_group_id = group_id_value
   where id = primary_ficha_id;
 
-  select coalesce(max(numero_ficha), 0) into highest_number
-  from public.fichas_venda
+  update public.fichas_venda set numero_ficha = null
   where client_group_id = group_id_value;
 
   with pending as (
     select id, row_number() over (order by data_contrato nulls last, created_at nulls last, id) as position
     from public.fichas_venda
-    where id = any(selected_ficha_ids) and numero_ficha is null
+    where client_group_id = group_id_value
   )
-  update public.fichas_venda ficha set numero_ficha = highest_number + pending.position
+  update public.fichas_venda ficha set numero_ficha = pending.position
   from pending where ficha.id = pending.id;
 
   insert into public.activity_logs(entity_type, entity_id, entity_label, action, summary, actor_id, actor_name)

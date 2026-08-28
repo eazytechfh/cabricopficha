@@ -204,10 +204,10 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
       <div className="grid grid-cols-1 md:grid-cols-2">
         <ClienteValue label="Nome Completo" value={getClienteBaseName(values.nomeCliente) || values.nomeCliente} />
         <ClienteValue label="Nome Terceiros" value={values.terceiros} />
-        <ClienteValue label="Telefone Terceiros" value={values.telefoneTerceiros} />
-        <ClienteValue label="E-mail Terceiros" value={values.emailTerceiros} />
         <ClienteValue label="Telefone(s)" value={values.telefones} />
+        <ClienteValue label="Telefone Terceiros" value={values.telefoneTerceiros} />
         <ClienteValue label="E-mail" value={values.email} />
+        <ClienteValue label="E-mail Terceiros" value={values.emailTerceiros} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[130px_1fr_110px_150px_180px_80px]">
@@ -2399,7 +2399,7 @@ export default function FichasWorkspace() {
                     <SelectContent>
                       {selectedMergeGroups.map((group) => (
                         <SelectItem key={group.key} value={group.key}>
-                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s)
+                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s) · Data de criação: {formatDisplayDate(group.contratos[0]?.dataContrato || "")} · Consultor: {group.contratos[0]?.nomeConsultor || "-"}
                         </SelectItem>
                       ))}
                     </SelectContent>

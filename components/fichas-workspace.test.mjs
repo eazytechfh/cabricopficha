@@ -119,4 +119,6 @@ test("admins can select client groups and merge them into a chosen primary recor
   assert.match(source, /Cadastro principal/)
   assert.match(source, /mergeFichaClients\(primaryFichaId, fichaIds, consultor\)/)
   assert.match(source, /Fichas, contratos, pagamentos e históricos serão preservados/)
+  assert.match(source, /Data de criação: \{formatDisplayDate\(group\.contratos\[0\]\?\.dataContrato/)
+  assert.match(source, /Consultor: \{group\.contratos\[0\]\?\.nomeConsultor/)
 })

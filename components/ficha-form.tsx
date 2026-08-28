@@ -820,10 +820,6 @@ export function FichaForm({
             {renderInput("terceiros", "Nome Terceiros")}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("telefoneTerceiros", "Telefone Terceiros", { type: "tel" })}
-            {renderInput("emailTerceiros", "E-mail Terceiros", { type: "email" })}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="telefonesInput">Telefone(s)</Label>
               <div className="min-h-[48px] rounded-md border border-input bg-background px-3 py-2">
@@ -869,7 +865,11 @@ export function FichaForm({
                 </div>
               </div>
             </div>
+            {renderInput("telefoneTerceiros", "Telefone Terceiros", { type: "tel" })}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderInput("email", "E-mail", { type: "email" })}
+            {renderInput("emailTerceiros", "E-mail Terceiros", { type: "email" })}
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[110px_minmax(0,1.45fr)_110px_140px_minmax(0,1fr)_90px]">
             <div className="space-y-2">
