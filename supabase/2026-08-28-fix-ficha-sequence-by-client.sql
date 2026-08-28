@@ -1,10 +1,7 @@
 -- Corrige sequencias importadas e garante numeracao atomica por cliente.
 create or replace function public.ficha_client_key(cpf_normalizado_value text, cpf_cnpj_value text, nome_cliente_value text)
 returns text language sql immutable set search_path = public as $$
-  select coalesce(
-    nullif(regexp_replace(coalesce(cpf_normalizado_value, cpf_cnpj_value, ''), '\D', '', 'g'), ''),
-    nullif(lower(regexp_replace(trim(coalesce(nome_cliente_value, '')), '\s+[0-9]{1,6}\s*$', '')), '')
-  )
+  select nullif(regexp_replace(coalesce(cpf_normalizado_value, cpf_cnpj_value, ''), '\D', '', 'g'), '')
 $$;
 
 drop index if exists public.fichas_venda_cpf_numero_ficha_uidx;

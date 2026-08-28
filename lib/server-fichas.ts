@@ -66,23 +66,18 @@ function stripIdentifierSuffix(value: string) {
   return (value || "").trim().replace(/\s+\d{1,2}$/, "")
 }
 
-async function getFichaSequenceByClient(cpf: string, nomeCliente: string) {
+async function getFichaSequenceByCpf(cpf: string) {
   ensureSupabaseConfig()
 
   const cpfNormalizado = normalizeCpfCnpj(cpf)
+  if (!cpfNormalizado) return 1
   const searchParams = new URLSearchParams({
     select: "numero_ficha",
     order: "numero_ficha.desc",
     limit: "1",
   })
 
-  if (cpfNormalizado) {
-    searchParams.set("or", `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`)
-  } else {
-    const baseName = stripIdentifierSuffix(nomeCliente)
-    if (!baseName) return 1
-    searchParams.set("nome_cliente", `imatch.${buildAccentInsensitivePattern(baseName)}`)
-  }
+  searchParams.set("or", `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`)
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
     headers: headers(),
@@ -530,7 +525,7 @@ export async function mergeFichaClients(primaryFichaId: string, fichaIds: string
 }
 
 export async function createFicha(data: FichaFormValues, consultor: ConsultorSession): Promise<FichaRecord> {
-  const sequence = await getFichaSequenceByClient(data.cpfCnpj, data.nomeCliente)
+  const sequence = await getFichaSequenceByCpf(data.cpfCnpj)
   const baseNomeCliente = stripIdentifierSuffix(data.nomeCliente)
   const identifiedData = {
     ...data,

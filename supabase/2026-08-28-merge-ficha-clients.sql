@@ -20,6 +20,9 @@ begin
 
   select * into principal from public.fichas_venda where id = primary_ficha_id for update;
   if not found then raise exception 'Cadastro principal não encontrado.'; end if;
+  if public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente) is null then
+    raise exception 'Cadastros sem CPF/CNPJ devem permanecer separados.';
+  end if;
 
   perform pg_advisory_xact_lock(hashtext(coalesce(public.ficha_client_key(principal.cpf_normalizado, principal.cpf_cnpj, principal.nome_cliente), principal.id::text)));
 

@@ -472,7 +472,7 @@ export default function FichasWorkspace() {
     const groups = new Map<string, ConsultaClienteGroup>()
 
     consultaItems.forEach((item) => {
-      const key = normalizeCpfCnpj(item.cpfCnpj) || getClienteBaseName(item.nomeCliente).toLowerCase() || item.id
+      const key = normalizeCpfCnpj(item.cpfCnpj) || item.id
       const existing = groups.get(key)
 
       if (existing) {
@@ -2329,7 +2329,7 @@ export default function FichasWorkspace() {
                       <div key={cliente.key} className="rounded-lg border border-border p-4">
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.4fr)_minmax(180px,0.95fr)_minmax(180px,0.95fr)_minmax(180px,1fr)_auto] xl:items-start">
                           <div className="min-w-0">
-                            {isAdmin ? (
+                            {isAdmin && normalizeCpfCnpj(cliente.cpfCnpj) ? (
                               <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium">
                                 <Checkbox
                                   checked={mergeClientKeys.includes(cliente.key)}
