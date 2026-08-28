@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, Calendar, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -2405,18 +2405,6 @@ export default function FichasWorkspace() {
                 <CardContent className="space-y-5 p-4 md:p-6">
                   {selectedFicha ? (
                     <ClienteReadCard values={clientReadValues} onEdit={handleEditClient} canEdit={canEditSelectedFicha} />
-                  ) : null}
-
-                  {selectedFicha ? (
-                    <div className="overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
-                      <div className="flex items-center gap-2 bg-[#214674] px-4 py-2 text-white">
-                        <Calendar className="size-4" />
-                        <h3 className="text-sm font-bold uppercase tracking-wide">Data do Contrato</h3>
-                      </div>
-                      <div className="px-4 py-3 text-base font-semibold text-slate-900">
-                        {formatDisplayDate(selectedFicha.dataContrato)}
-                      </div>
-                    </div>
                   ) : null}
 
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
