@@ -33,6 +33,7 @@ import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas } from "@/li
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 import { shouldValidatePayments } from "@/lib/payment-validation-context"
+import { formatFichaChangeValue } from "@/lib/ficha-change-log"
 import {
   emptyFichaValues,
   type AccessCodeRecord,
@@ -2914,11 +2915,11 @@ export default function FichasWorkspace() {
                           <div className="grid gap-3 md:grid-cols-2">
                             <div className="rounded-md border border-border bg-muted/20 p-3">
                               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Antes</p>
-                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.before || "-"}</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{formatFichaChangeValue(detail.field, detail.before)}</p>
                             </div>
                             <div className="rounded-md border border-border bg-muted/20 p-3">
                               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Depois</p>
-                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{detail.after || "-"}</p>
+                              <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{formatFichaChangeValue(detail.field, detail.after)}</p>
                             </div>
                           </div>
                         </div>

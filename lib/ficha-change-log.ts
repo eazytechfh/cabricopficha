@@ -61,6 +61,35 @@ function normalizeCompareValue(key: string, value: unknown) {
   return normalized
 }
 
+function formatCurrency(value: string) {
+  const raw = String(value || "").trim().replace(/[^\d,.-]/g, "")
+  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw
+  const amount = Number.parseFloat(normalized)
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number.isFinite(amount) ? amount : 0)
+}
+
+export function formatFichaChangeValue(field: string, value: unknown) {
+  const text = String(value || "").trim()
+  if (!text || text === "-") return "-"
+  if (field !== "pagamentos" && field !== "Pagamentos") return text
+
+  let entries: Array<{ formaPagamento?: string; banco?: string; valor?: string }> = []
+  try {
+    const parsed = JSON.parse(text)
+    entries = Array.isArray(parsed) ? parsed : []
+  } catch {
+    return text
+  }
+  if (!entries.length) return "-"
+
+  return entries
+    .map((entry, index) => {
+      const details = [entry.formaPagamento, entry.banco, formatCurrency(entry.valor || "")].filter(Boolean)
+      return `${index + 1}. ${details.join(" | ")}`
+    })
+    .join("\n")
+}
+
 export function buildFichaChanges(
   current: object,
   next: object,
@@ -71,7 +100,11 @@ export function buildFichaChanges(
       const before = normalizeCompareValue(key, (current as Record<string, unknown>)[key])
       const after = normalizeCompareValue(key, (next as Record<string, unknown>)[key])
       if (before === after) return null
-      return { field: label, before: before || "-", after: after || "-" }
+      return {
+        field: label,
+        before: formatFichaChangeValue(key, before),
+        after: formatFichaChangeValue(key, after),
+      }
     })
     .filter((change): change is { field: string; before: string; after: string } => Boolean(change))
 }
