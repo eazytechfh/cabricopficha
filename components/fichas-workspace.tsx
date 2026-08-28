@@ -512,6 +512,10 @@ export default function FichasWorkspace() {
     () => consultaClienteGroups.filter((group) => mergeClientKeys.includes(group.key)),
     [consultaClienteGroups, mergeClientKeys]
   )
+  const primaryMergeGroup = useMemo(
+    () => selectedMergeGroups.find((group) => group.key === mergePrimaryKey) ?? null,
+    [selectedMergeGroups, mergePrimaryKey]
+  )
 
   const isAdmin = hasAdminAccess(consultor)
   const isAndamento = consultor?.nivelAcesso === "andamento"
@@ -2399,11 +2403,23 @@ export default function FichasWorkspace() {
                     <SelectContent>
                       {selectedMergeGroups.map((group) => (
                         <SelectItem key={group.key} value={group.key}>
-                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s) · Data de criação: {formatDisplayDate(group.contratos[0]?.dataContrato || "")} · Consultor: {group.contratos[0]?.nomeConsultor || "-"}
+                          {group.nomeCliente} · {group.cpfCnpj || "Sem CPF/CNPJ"} · {group.contratos.length} ficha(s)
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {primaryMergeGroup ? (
+                    <div className="grid gap-3 rounded-md border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data de criação</p>
+                        <p className="mt-1 font-medium">{formatDisplayDate(primaryMergeGroup.contratos[0]?.dataContrato || "")}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Consultor</p>
+                        <p className="mt-1 font-medium">{primaryMergeGroup.contratos[0]?.nomeConsultor || "-"}</p>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={mergeLoading}>Cancelar</Button>
