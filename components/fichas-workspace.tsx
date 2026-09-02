@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 import { FichaForm } from "@/components/ficha-form"
 import { FichaReadView } from "@/components/ficha-read-view"
 import { DocumentTemplatePdf } from "@/components/DocumentTemplatePdf"
@@ -517,6 +518,10 @@ export default function FichasWorkspace() {
   const selectedMergeGroups = useMemo(
     () => consultaClienteGroups.filter((group) => mergeClientKeys.includes(group.key)),
     [consultaClienteGroups, mergeClientKeys]
+  )
+  const mergeAllContratos = useMemo(
+    () => selectedMergeGroups.flatMap((group) => group.contratos),
+    [selectedMergeGroups]
   )
   const primaryMergeFicha = useMemo(
     () => selectedMergeGroups.flatMap((group) => group.contratos).find((ficha) => ficha.id === mergePrimaryFichaId) ?? null,
@@ -1815,18 +1820,21 @@ export default function FichasWorkspace() {
                   <Settings className="h-5 w-5" />
                 </Button>
 
-                {settingsOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 text-foreground">
-                    <div className="max-h-[88vh] w-full max-w-[1200px] overflow-x-hidden overflow-y-auto rounded-lg border bg-background shadow-lg">
+                <Dialog open={settingsOpen} onOpenChange={(open) => void handleOpenSettings(open)}>
+                  <DialogContent
+                    showCloseButton={false}
+                    className="max-h-[88vh] w-full max-w-[1200px] overflow-x-hidden overflow-y-auto p-0 text-foreground sm:max-w-[1200px]"
+                  >
+                    <div className="w-full">
                       <div className="flex items-start justify-between gap-4 px-6 pt-6">
                         <div className="space-y-2">
-                          <h2 className="text-lg font-semibold leading-none">
+                          <DialogTitle className="text-lg font-semibold leading-none">
                             {settingsSection === "users"
                               ? "Usuarios"
                               : settingsSection === "documents"
                                 ? "Modelos de Documentos"
                                 : "Configuracoes"}
-                          </h2>
+                          </DialogTitle>
                           <p className="text-sm text-muted-foreground">
                             {settingsSection === "users"
                               ? "Gerencie os acessos de administradores, comerciais e andamento."
@@ -2229,8 +2237,8 @@ export default function FichasWorkspace() {
                         </div>
                       ) : null}
                     </div>
-                  </div>
-                )}
+                  </DialogContent>
+                </Dialog>
               </>
             )}
 
@@ -2399,7 +2407,7 @@ export default function FichasWorkspace() {
                   <DialogTitle>Juntar cadastros selecionados</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-muted-foreground">
-                  Escolha o cadastro principal. Os dados pessoais dele serão usados nos demais. Fichas, contratos, pagamentos e históricos serão preservados.
+                  Você está unindo {mergeAllContratos.length} ficha(s) de {selectedMergeGroups.length} cadastro(s). Escolha o cadastro principal: os dados pessoais dele serão usados nos demais. Todas as fichas, contratos, pagamentos e históricos abaixo serão preservados sob o cadastro principal.
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor="cadastroPrincipal">Cadastro principal</Label>
@@ -2413,18 +2421,34 @@ export default function FichasWorkspace() {
                       )))}
                     </SelectContent>
                   </Select>
-                  {primaryMergeFicha ? (
-                    <div className="grid gap-3 rounded-md border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Data de criação</p>
-                        <p className="mt-1 font-medium">{formatDisplayDate(primaryMergeFicha.dataContrato)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Consultor</p>
-                        <p className="mt-1 font-medium">{primaryMergeFicha.nomeConsultor || "-"}</p>
-                      </div>
-                    </div>
-                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <Label>Resumo da junção ({mergeAllContratos.length} ficha(s) afetada(s))</Label>
+                  <div className="max-h-56 overflow-y-auto rounded-md border border-border divide-y divide-border">
+                    {mergeAllContratos.map((ficha) => {
+                      const isPrimary = ficha.id === mergePrimaryFichaId
+                      return (
+                        <div
+                          key={ficha.id}
+                          className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${isPrimary ? "bg-primary/5" : ""}`}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{ficha.nomeCliente}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {getFichaLabel(ficha.numeroFicha, ficha.nomeCliente)} · {formatDisplayDate(ficha.dataContrato)} · {ficha.nomeConsultor || "-"}
+                            </p>
+                          </div>
+                          {isPrimary ? (
+                            <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                              Principal
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-xs text-muted-foreground">Será mesclada</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setMergeDialogOpen(false)} disabled={mergeLoading}>Cancelar</Button>
@@ -2635,9 +2659,10 @@ export default function FichasWorkspace() {
                 Use placeholders como {"{{nomeCliente}}"}, {"{{cpfCnpj}}"}, {"{{processosResumo}}"} e {"{{multasResumo}}"}.
               </p>
               <div
-                className="flex flex-wrap gap-2 rounded-md border border-border bg-muted/30 p-2"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border bg-muted/30 p-2"
                 onPointerDown={captureTemplateSelection}
               >
+                <div className="flex flex-wrap items-center gap-2" aria-label="Fonte">
                 <div className="flex min-w-[220px] rounded-md border border-input bg-background shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
                   <Input
                     aria-label="Fonte atual"
@@ -2724,6 +2749,11 @@ export default function FichasWorkspace() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                </div>
+
+                <Separator orientation="vertical" className="h-6" />
+
+                <div className="flex flex-wrap items-center gap-2" aria-label="Texto">
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("bold")} disabled={templateLoading}>
                   <Bold className="size-4" />
                 </Button>
@@ -2733,6 +2763,11 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("underline")} disabled={templateLoading}>
                   <Underline className="size-4" />
                 </Button>
+                </div>
+
+                <Separator orientation="vertical" className="h-6" />
+
+                <div className="flex flex-wrap items-center gap-2" aria-label="Paragrafo">
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("justifyLeft")} disabled={templateLoading}>
                   <AlignLeft className="size-4" />
                 </Button>
@@ -2774,6 +2809,11 @@ export default function FichasWorkspace() {
                   <IndentIncrease className="size-4" />
                   <span className="hidden sm:inline">Submenu</span>
                 </Button>
+                </div>
+
+                <Separator orientation="vertical" className="h-6" />
+
+                <div className="flex flex-wrap items-center gap-2" aria-label="Historico">
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("undo")} disabled={templateLoading} aria-label="Desfazer última alteração" title="Desfazer">
                   <Undo2 className="size-4" />
                 </Button>
@@ -2783,6 +2823,11 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("removeFormat")} disabled={templateLoading} aria-label="Limpar formatação" title="Limpar formatação">
                   <RemoveFormatting className="size-4" />
                 </Button>
+                </div>
+
+                <Separator orientation="vertical" className="h-6" />
+
+                <div className="flex flex-wrap items-center gap-2" aria-label="Inserir">
                 <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs hover:bg-accent hover:text-accent-foreground">
                   <Palette className="size-4" />
                   <span>Fonte</span>
@@ -2877,6 +2922,7 @@ export default function FichasWorkspace() {
                   className="hidden"
                   onChange={(event) => void handleTemplateImageSelect(event)}
                 />
+                </div>
               </div>
               {templateVariablesOpen ? (
                 <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">

@@ -827,14 +827,14 @@ export function FichaForm({
                   {telefonesLista.map((telefone) => (
                     <span
                       key={telefone}
-                      className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-50 px-3 py-1 text-sm font-medium text-slate-700"
+                      className="inline-flex items-center gap-2 rounded-full border border-amber-400 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-900"
                     >
                       <span>{telefone}</span>
                       {!fieldDisabled ? (
                         <button
                           type="button"
                           onClick={() => removeTelefone(telefone)}
-                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 transition hover:bg-amber-100 hover:text-slate-700"
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-amber-700 transition hover:bg-amber-100 hover:text-amber-900"
                           aria-label={`Remover telefone ${telefone}`}
                         >
                           <X className="h-3.5 w-3.5" />
