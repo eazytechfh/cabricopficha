@@ -1,0 +1,32 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "arial",
+        "createdAt": "2026-09-02T16:05:54.347Z",
+        "reason": "Fonte pertence ao conteudo do documento gerado (PDF), nao a UI do app; documentado como excecao intencional no DESIGN.md"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "components/fichas-workspace.tsx"
+        ],
+        "createdAt": "2026-09-02T16:06:00.417Z",
+        "reason": "Section Accent: padrao intencional de borda colorida por tipo de secao, documentado em DESIGN.md > Components > Section Accent"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "components/ficha-form.tsx"
+        ],
+        "createdAt": "2026-09-02T16:06:00.545Z",
+        "reason": "Section Accent: padrao intencional de borda colorida por tipo de secao, documentado em DESIGN.md > Components > Section Accent"
+      }
+    ]
+  }
+}

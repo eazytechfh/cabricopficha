@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-02T16:30:00Z",
+  "title": "Design System: CABRICOP Ficha",
+  "extensions": {
+    "colorMeta": {
+      "navy-authority": { "role": "primary", "displayName": "Navy Authority", "canonical": "oklch(0.35 0.12 240)", "tonalRamp": ["oklch(0.15 0.05 240)", "oklch(0.22 0.08 240)", "oklch(0.28 0.10 240)", "oklch(0.35 0.12 240)", "oklch(0.48 0.10 240)", "oklch(0.62 0.08 240)", "oklch(0.78 0.05 240)", "oklch(0.92 0.02 240)"] },
+      "gold-seal": { "role": "secondary", "displayName": "Gold Seal", "canonical": "oklch(0.72 0.16 75)", "tonalRamp": ["oklch(0.25 0.06 75)", "oklch(0.35 0.09 75)", "oklch(0.48 0.12 75)", "oklch(0.60 0.15 75)", "oklch(0.72 0.16 75)", "oklch(0.82 0.13 75)", "oklch(0.90 0.08 75)", "oklch(0.96 0.03 75)"] },
+      "paper-neutral": { "role": "neutral", "displayName": "Paper Neutral", "canonical": "oklch(0.98 0.005 240)", "tonalRamp": ["oklch(0.15 0.02 240)", "oklch(0.30 0.02 240)", "oklch(0.45 0.02 240)", "oklch(0.60 0.015 240)", "oklch(0.75 0.01 240)", "oklch(0.88 0.005 240)", "oklch(0.95 0.005 240)", "oklch(0.98 0.005 240)"] },
+      "ink-neutral": { "role": "neutral", "displayName": "Ink Neutral", "canonical": "oklch(0.15 0.02 240)", "tonalRamp": ["oklch(0.10 0.02 240)", "oklch(0.15 0.02 240)", "oklch(0.25 0.02 240)", "oklch(0.38 0.02 240)", "oklch(0.52 0.02 240)", "oklch(0.68 0.015 240)", "oklch(0.85 0.01 240)", "oklch(0.95 0.005 240)"] },
+      "destructive-red": { "role": "error", "displayName": "Destructive Red", "canonical": "oklch(0.577 0.245 27.325)" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body / UI", "purpose": "Texto de formulário, rótulos, tabelas — a maior parte da interface." },
+      "mono": { "displayName": "Mono", "purpose": "Dados tabulares e identificadores (CPF/CNPJ, número de ficha)." }
+    },
+    "shadows": [
+      { "name": "outline-xs", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Sombra sutil apenas em controles (ex.: botão outline); não usada para simular profundidade." },
+      { "name": "section-card-md", "value": "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)", "purpose": "Única sombra pronunciada autorizada: cards de seção do formulário de ficha e cards de tela cheia (login, Consulta de Ficha)." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal de qualquer tela — salvar ficha, confirmar contrato.",
+      "html": "<button class=\"ds-btn-primary\">Salvar Ficha</button>",
+      "css": ".ds-btn-primary { background: oklch(0.35 0.12 240); color: oklch(0.98 0 0); border: none; border-radius: 0.4rem; padding: 8px 16px; font-size: 0.875rem; font-weight: 500; font-family: Geist, sans-serif; transition: background 0.15s; } .ds-btn-primary:hover { background: color-mix(in oklch, oklch(0.35 0.12 240) 90%, transparent); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.35 0.12 240 / 0.5); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ação de destaque secundária — aprovação, ênfase pontual.",
+      "html": "<button class=\"ds-btn-secondary\">Aprovar</button>",
+      "css": ".ds-btn-secondary { background: oklch(0.72 0.16 75); color: oklch(0.2 0.05 240); border: none; border-radius: 0.4rem; padding: 8px 16px; font-size: 0.875rem; font-weight: 500; font-family: Geist, sans-serif; transition: background 0.15s; } .ds-btn-secondary:hover { background: color-mix(in oklch, oklch(0.72 0.16 75) 80%, transparent); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Contêiner padrão para blocos de ficha, formulário e listas.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Dados do Cliente</div><div class=\"ds-card-body\">Conteúdo do card</div></div>",
+      "css": ".ds-card { background: oklch(1 0 0); border: 1px solid oklch(0.88 0.02 240); border-radius: 0.75rem; padding: 20px; } .ds-card-title { font-family: Geist, sans-serif; font-size: 1.05rem; font-weight: 600; color: oklch(0.15 0.02 240); margin-bottom: 8px; } .ds-card-body { font-family: Geist, sans-serif; font-size: 0.875rem; color: oklch(0.45 0.02 240); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto padrão de formulário de ficha.",
+      "html": "<input class=\"ds-input\" placeholder=\"Nome completo\" />",
+      "css": ".ds-input { background: oklch(0.98 0.005 240); border: 1px solid oklch(0.88 0.02 240); border-radius: 0.5rem; padding: 8px 12px; font-size: 0.875rem; font-family: Geist, sans-serif; color: oklch(0.15 0.02 240); } .ds-input:focus-visible { outline: none; border-color: oklch(0.35 0.12 240); box-shadow: 0 0 0 3px oklch(0.35 0.12 240 / 0.5); } .ds-input[aria-invalid='true'] { border-color: oklch(0.577 0.245 27.325); box-shadow: 0 0 0 3px oklch(0.577 0.245 27.325 / 0.2); }"
+    },
+    {
+      "name": "Section Card (Primary)",
+      "kind": "card",
+      "refersTo": "section-card",
+      "description": "Card de seção do formulário de ficha, com Section Accent colorido por tipo de seção (primary/secondary/muted) e shadow-md.",
+      "html": "<div class=\"ds-section-card ds-section-card--primary\"><div class=\"ds-section-card-title\">Dados do Cliente</div><div class=\"ds-section-card-body\">Conteúdo da seção</div></div>",
+      "css": ".ds-section-card { background: oklch(1 0 0); border: 1px solid oklch(0.88 0.02 240); border-left-width: 4px; border-radius: 0.75rem; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); } .ds-section-card--primary { border-left-color: oklch(0.35 0.12 240); } .ds-section-card--secondary { border-left-color: oklch(0.72 0.16 75); } .ds-section-card--muted { border-left-color: oklch(0.88 0.02 240); } .ds-section-card-title { font-family: Geist, sans-serif; font-size: 1.05rem; font-weight: 600; color: oklch(0.35 0.12 240); margin-bottom: 8px; } .ds-section-card-body { font-family: Geist, sans-serif; font-size: 0.875rem; color: oklch(0.45 0.02 240); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Escritório de Confiança",
+    "overview": "O sistema é uma ferramenta interna de trabalho para consultores e administradores da CABRICOP, especialista em defesas de trânsito. A identidade visual não vende para o cliente final — ela precisa transmitir seriedade institucional e confiança para quem preenche fichas, gera contratos e acompanha processos administrativos/jurídicos o dia inteiro. O azul-marinho profundo é a cor de autoridade e estabilidade; o dourado/âmbar é usado com moderação como selo de destaque — aprovação, ação principal, ou ênfase pontual — nunca como cor de fundo dominante. A base é neutra, quase editorial: papel claro, tinta escura, bordas finas, sem ruído visual competindo com os dados da ficha.",
+    "keyCharacteristics": [
+      "Azul-marinho institucional como cor de autoridade; dourado usado com raridade como selo de destaque.",
+      "Base neutra e tonal — papel claro / tinta escura, sem gradientes ou padrões decorativos.",
+      "Flat por padrão; profundidade vem de camadas de cor e borda fina, não de sombra pesada.",
+      "Cantos suavemente arredondados (0.75rem base), nunca angulares nem excessivamente arredondados.",
+      "Densidade de dashboard: prioriza escaneabilidade e ação rápida sobre atmosfera."
+    ],
+    "rules": [
+      { "name": "The One Seal Rule", "body": "O dourado (Gold Seal) nunca é usado como cor de fundo dominante de tela ou seção grande; ele marca um único ponto de ênfase por vez.", "section": "colors" },
+      { "name": "The Flat-By-Default Rule", "body": "Controles (botões, inputs, popovers, menus) ficam flat em repouso; sombra, quando existe, é discreta e serve apenas para diferenciar camada de interação.", "section": "elevation" },
+      { "name": "The Section Card Rule", "body": "Cards de seção do formulário e cards de tela cheia usam shadow-md para se destacarem como unidade de conteúdo primário — a única classe de componente autorizada a usar sombra pronunciada.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar Navy Authority como única cor de ação primária em qualquer tela nova.",
+      "Do manter o dourado (Gold Seal) raro e pontual.",
+      "Do manter controles flat, com profundidade via cor/borda, não via sombra pesada.",
+      "Do manter o código de cor do Section Accent (primary/secondary/muted) ao adicionar uma nova seção ao formulário de ficha.",
+      "Do manter texto e rótulos da UI em Geist, sem introduzir uma segunda família tipográfica de interface."
+    ],
+    "donts": [
+      "Don't usar gradientes decorativos, ilustrações ou fotografia de marketing.",
+      "Don't aumentar o raio de canto além da escala existente ou torná-lo angular sem decisão explícita do usuário.",
+      "Don't usar vermelho (destructive) fora do contexto de exclusão/erro/ação irreversível.",
+      "Don't introduzir shadow-md fora de cards de seção de formulário ou cards de tela cheia.",
+      "Don't usar texto cinza/slate sobre um fundo colorido; usar um tom mais escuro da própria família de cor do fundo."
+    ]
+  }
+}
