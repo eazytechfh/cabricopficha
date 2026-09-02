@@ -126,3 +126,10 @@ test("admins can select client groups and merge them into a chosen primary recor
   assert.match(source, /selectedMergeGroups\.flatMap\(\(group\) => group\.contratos\.map/)
   assert.doesNotMatch(source, /ficha\(s\) · Data de criação/)
 })
+
+test("workspace exposes a dedicated submenu marker control", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+
+  assert.match(source, /aria-label="Marcador de submenu"/)
+  assert.match(source, /handleTemplateCommand\("indent"\)/)
+})

@@ -2770,8 +2770,9 @@ export default function FichasWorkspace() {
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("outdent")} disabled={templateLoading} aria-label="Diminuir recuo" title="Diminuir recuo">
                   <IndentDecrease className="size-4" />
                 </Button>
-                <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("indent")} disabled={templateLoading} aria-label="Aumentar recuo" title="Aumentar recuo">
+                <Button type="button" variant="outline" size="sm" onClick={() => handleTemplateCommand("indent")} disabled={templateLoading} aria-label="Marcador de submenu" title="Marcador de submenu" className="gap-1.5">
                   <IndentIncrease className="size-4" />
+                  <span className="hidden sm:inline">Submenu</span>
                 </Button>
                 <Button type="button" variant="outline" size="icon-sm" onClick={() => handleTemplateCommand("undo")} disabled={templateLoading} aria-label="Desfazer última alteração" title="Desfazer">
                   <Undo2 className="size-4" />

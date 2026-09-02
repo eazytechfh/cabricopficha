@@ -9,6 +9,7 @@ import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
 import { findDuplicateReasons } from "@/lib/ficha-duplicates"
+import { normalizeOwnerFlags } from "@/lib/ficha-owner"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -286,7 +287,7 @@ function fromRow(row: Record<string, unknown>): FichaRecord {
     autoRenainf: String(row.auto_renainf ?? ""),
     tipoMulta: String(row.tipo_multa ?? ""),
     placa: String(row.placa ?? ""),
-    placaProprietario: String(row.placa_proprietario ?? ""),
+    placaProprietario: normalizeOwnerFlags(String(row.placa_proprietario ?? ""), String(row.cpf_proprietario ?? "")),
     cpfProprietario: String(row.cpf_proprietario ?? ""),
     renavam: String(row.renavam ?? ""),
     prazoMulta,

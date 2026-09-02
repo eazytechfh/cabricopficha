@@ -82,6 +82,21 @@ const ALIGNMENT_VALUES: Record<string, string> = {
 
 const ALIGNMENT_BLOCK_SELECTOR = "p, div, li, h1, h2, h3, h4, h5, h6, blockquote"
 
+function rangeContainsBlockContent(editor: HTMLElement, range: Range, block: HTMLElement) {
+  const blockRange = editor.ownerDocument.createRange?.()
+  if (!blockRange || typeof range.compareBoundaryPoints !== "function") {
+    try {
+      return range.intersectsNode(block)
+    } catch {
+      return false
+    }
+  }
+
+  blockRange.selectNodeContents(block)
+  return range.compareBoundaryPoints(Range.START_TO_END, blockRange) < 0
+    && range.compareBoundaryPoints(Range.END_TO_START, blockRange) > 0
+}
+
 function getCaretBlock(editor: HTMLElement, range: Range) {
   let node: Node | null = range.startContainer
 
@@ -111,13 +126,9 @@ export function runEditorAlignmentCommand(
   const alignment = ALIGNMENT_VALUES[command]
   const intersectingBlocks = !range || range.collapsed
     ? []
-    : Array.from(editor.querySelectorAll<HTMLElement>(ALIGNMENT_BLOCK_SELECTOR)).filter((block) => {
-        try {
-          return range.intersectsNode(block)
-        } catch {
-          return false
-        }
-      })
+    : Array.from(editor.querySelectorAll<HTMLElement>(ALIGNMENT_BLOCK_SELECTOR)).filter((block) =>
+        rangeContainsBlockContent(editor, range, block)
+      )
   const blocks = range?.collapsed
     ? [getCaretBlock(editor, range)].filter((block): block is HTMLElement => Boolean(block))
     : intersectingBlocks.filter((block) =>

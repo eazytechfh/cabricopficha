@@ -1,6 +1,7 @@
 import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries } from "@/lib/payment-details"
+import { normalizeOwnerFlags } from "@/lib/ficha-owner"
 
 const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
 export const MULTI_ENTRY_SEPARATOR = "||__MULTI_ENTRY__||"
@@ -129,6 +130,7 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
     vistoJuridico: normalizeMultasProcessoLabels(values.vistoJuridico),
     assinaturaVistoJuridico: values.prazoProcesso,
     vistoJuridicoMulta: values.vistoJuridicoMulta,
+    placaProprietario: normalizeOwnerFlags(values.placaProprietario, values.cpfProprietario),
     observacaoValorRestante: parseCurrency(values.valorRestante) > 0 ? values.observacaoValorRestante : "",
   }
 }

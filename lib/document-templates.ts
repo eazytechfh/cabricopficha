@@ -145,6 +145,11 @@ function formatToday() {
   }).format(new Date())
 }
 
+function formatSentenceCase(value: string) {
+  const normalized = (value || "").trim().toLocaleLowerCase("pt-BR")
+  return normalized ? normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1) : ""
+}
+
 function getMultaLines(values: FichaFormValues) {
   const placas = splitSerializedEntries(values.placa)
   const instanciaBlocks = splitSerializedEntries(values.instanciaMulta)
@@ -232,7 +237,7 @@ function buildPlaceholderValues(values: DocumentTemplateValues) {
     .filter(Boolean)
     .join(" - ")
   const cpfCnpj = normalizeCpfCnpj(values.cpfCnpj) || values.cpfCnpj || ""
-  const qualificacaoBase = [nomeCliente || values.nomeCliente, values.nacionalidade || "Brasileira", values.estadoCivil, values.profissao]
+  const qualificacaoBase = [nomeCliente || values.nomeCliente, values.nacionalidade || "Brasileira", formatSentenceCase(values.estadoCivil), values.profissao]
     .map((value) => (value || "").trim())
     .filter(Boolean)
     .join(", ")
@@ -256,7 +261,7 @@ function buildPlaceholderValues(values: DocumentTemplateValues) {
     telefoneTerceiros: values.telefoneTerceiros || "-",
     emailTerceiros: values.emailTerceiros || "-",
     nacionalidade: values.nacionalidade || "Brasileira",
-    estadoCivil: values.estadoCivil || "",
+    estadoCivil: formatSentenceCase(values.estadoCivil),
     profissao: values.profissao || "",
     cnh: values.cnh || "",
     cpfCnpj,
@@ -274,7 +279,7 @@ function buildPlaceholderValues(values: DocumentTemplateValues) {
     multasResumo: buildMultasResumo(values),
     placas: [...new Set(placas)].join(", ") || "-",
     dataHoje: formatToday(),
-    dataFicha: formatFichaCreatedDate(values.createdAt || ""),
+    dataFicha: formatFichaCreatedDate(values.dataContrato || ""),
     consultor: values.nomeConsultor || "-",
     tipoOutroServico: values.tipoOutroServico || "-",
     poderesOutroServico: values.poderesOutroServico || "-",

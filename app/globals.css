@@ -122,6 +122,13 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 @layer components {
@@ -138,7 +145,17 @@
   }
 
   .document-rich-text [data-list-spacer="true"] {
+    display: block;
+    list-style: none;
     min-height: 1.5em;
+  }
+
+  .document-rich-text :where(ul ul, ol ul) {
+    list-style-type: circle;
+  }
+
+  .document-rich-text :where(ul ul ul, ol ul ul) {
+    list-style-type: square;
   }
 
   .document-template-editor [data-document-top-space="true"] {
