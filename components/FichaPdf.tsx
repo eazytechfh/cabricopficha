@@ -347,7 +347,9 @@ function signatureField(label: string) {
 
 export default function FichaPdf({ data }: FichaPdfProps) {
   const paymentLines = parsePaymentEntries(data.pagamentos, { formaPagamento: data.formaPagamento, banco: data.banco, valorEntrada: String(data.valorEntrada) })
-  const processoLines = getProcessoLines(data)
+  const processoLines = getProcessoLines(data).filter((line) =>
+    hasFilledText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
+  )
   const multaBlocks = getMultaBlocks(data).filter((block) =>
     hasFilledText([
       block.instanciaMulta,
@@ -436,7 +438,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
-        {section("PROCESSOS", (
+        {processoLines.length > 0 ? section("PROCESSOS", (
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
@@ -444,7 +446,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
               </div>
             ))}
           </>
-        ))}
+        )) : null}
 
         {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
           <>

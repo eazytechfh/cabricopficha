@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { CurrencyField } from "@/components/ui/currency-field"
 import { DateField } from "@/components/ui/date-field"
 import { Input } from "@/components/ui/input"
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -777,30 +777,22 @@ export function FichaForm({
   const renderCurrencyInput = (
     field: "valorTotal" | "valorEntrada" | "valorRestante",
     label: string,
-    props?: React.ComponentProps<typeof InputGroupInput>
+    props?: { readOnly?: boolean }
   ) => (
     <div className="space-y-2">
       <Label htmlFor={field}>
         {label}
         {requiredFields.includes(field) ? " *" : ""}
       </Label>
-      <InputGroup>
-        <InputGroupAddon>
-          <InputGroupText>R$</InputGroupText>
-        </InputGroupAddon>
-        <InputGroupInput
-          id={field}
-          name={field}
-          type="number"
-          step="0.01"
-          min="0"
-          inputMode="decimal"
-          value={values[field]}
-          onChange={(event) => setField(field, event.target.value)}
-          disabled={fieldDisabled}
-          {...props}
-        />
-      </InputGroup>
+      <CurrencyField
+        id={field}
+        name={field}
+        value={values[field]}
+        onChange={(value) => setField(field, value)}
+        disabled={fieldDisabled}
+        required={requiredFields.includes(field)}
+        {...props}
+      />
     </div>
   )
 
@@ -1101,7 +1093,7 @@ export function FichaForm({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`valorPagamento-${index}`}>Valor</Label>
-                    <InputGroup><InputGroupAddon><InputGroupText>R$</InputGroupText></InputGroupAddon><InputGroupInput id={`valorPagamento-${index}`} type="number" step="0.01" min="0" inputMode="decimal" value={payment.valor} onChange={(event) => updatePaymentLine(index, "valor", event.target.value)} disabled={fieldDisabled} /></InputGroup>
+                    <CurrencyField id={`valorPagamento-${index}`} value={payment.valor} onChange={(value) => updatePaymentLine(index, "valor", value)} disabled={fieldDisabled} />
                   </div>
                   <div className="flex items-end"><Button type="button" variant="ghost" size="icon" onClick={() => removePaymentLine(index)} disabled={fieldDisabled} aria-label={`Remover pagamento ${index + 1}`}><X className="size-4" /></Button></div>
                 </div>
