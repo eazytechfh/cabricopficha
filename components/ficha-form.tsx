@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DateField } from "@/components/ui/date-field"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
@@ -755,6 +756,24 @@ export function FichaForm({
     </div>
   )
 
+  const renderDateInput = (field: keyof FichaFormValues, label: string) => (
+    <div className="space-y-2">
+      <Label htmlFor={field}>
+        {label}
+        {requiredFields.includes(field) ? " *" : ""}
+      </Label>
+      <DateField
+        id={field}
+        name={field}
+        value={values[field]}
+        onChange={(value) => setField(field, value)}
+        disabled={fieldDisabled}
+        required={requiredFields.includes(field)}
+        aria-required={requiredFields.includes(field)}
+      />
+    </div>
+  )
+
   const renderCurrencyInput = (
     field: "valorTotal" | "valorEntrada" | "valorRestante",
     label: string,
@@ -801,7 +820,7 @@ export function FichaForm({
               </div>
             ) : null}
             <div className="grid grid-cols-1 gap-4">
-              {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
+              {renderDateInput("dataContrato", "Data do Contrato")}
             </div>
           </CardContent>
         </Card>
@@ -970,8 +989,8 @@ export function FichaForm({
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
-            {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
+            {renderDateInput("dataNascimento", "Data de Nascimento")}
+            {renderDateInput("dataPrimeiraCnh", "Data da 1a CNH")}
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {renderInput("nacionalidade", "Nacionalidade")}
@@ -1217,11 +1236,10 @@ export function FichaForm({
                   </Select>
 
                     {getPrazoMode(line.prazoProcesso) === "DATA" ? (
-                      <Input
+                      <DateField
                         id={`prazoProcesso-${lineIndex}`}
-                        type="date"
                         value={line.prazoProcesso}
-                        onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
+                        onChange={(value) => updateProcessoLineField(lineIndex, "prazoProcesso", value)}
                         disabled={fieldDisabled}
                       />
                     ) : null}
@@ -1416,11 +1434,10 @@ export function FichaForm({
                           </Select>
 
                           {getPrazoMode(line.prazoMulta) === "DATA" ? (
-                            <Input
+                            <DateField
                               id={`prazoMulta-${index}-${lineIndex}`}
-                              type="date"
                               value={line.prazoMulta}
-                              onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
+                              onChange={(value) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", value)}
                               disabled={fieldDisabled}
                             />
                           ) : null}
