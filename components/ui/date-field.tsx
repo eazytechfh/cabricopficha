@@ -46,6 +46,17 @@ function parseTypedDate(text: string): string | null {
   return null
 }
 
+// Insere "/" automaticamente enquanto o usuário digita apenas números
+function maskDateDigits(digits: string): string {
+  const day = digits.slice(0, 2)
+  const month = digits.slice(2, 4)
+  const year = digits.slice(4, 8)
+  let masked = day
+  if (month) masked += `/${month}`
+  if (year) masked += `/${year}`
+  return masked
+}
+
 function DateField({
   id,
   name,
@@ -91,11 +102,30 @@ function DateField({
         placeholder="dd/mm/aaaa"
         inputMode="numeric"
         autoComplete="off"
+        maxLength={10}
         disabled={disabled}
         required={required}
         aria-required={ariaRequired}
         className="pr-9"
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          const raw = event.target.value
+          const isDigitsOnly = /^[\d/-]*$/.test(raw)
+
+          if (!isDigitsOnly) {
+            setText(raw)
+            return
+          }
+
+          const digits = raw.replace(/\D/g, '').slice(0, 8)
+          const masked = maskDateDigits(digits)
+          setText(masked)
+
+          if (digits.length === 8) {
+            commitText(masked)
+          } else if (digits.length === 0) {
+            onChange('')
+          }
+        }}
         onBlur={(event) => commitText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {

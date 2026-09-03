@@ -262,14 +262,14 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 hasFilledText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
               )
 
+              const showCpfProprietario = block.placaProprietario !== "sim" && hasText(block.cpfProprietario)
+
               return (
                 <div key={`multa-read-${index}`} className="bg-white">
-                  <div className="grid grid-cols-1 bg-slate-50 md:grid-cols-2 md:divide-x md:divide-slate-200">
+                  <div className={`grid grid-cols-1 bg-slate-50 md:divide-x md:divide-slate-200 ${showCpfProprietario ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                     <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
+                    {showCpfProprietario ? <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} /> : null}
                     <ValueCell label="RENAVAM" value={block.renavam} />
-                    {block.placaProprietario !== "sim" && hasText(block.cpfProprietario) ? (
-                      <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
-                    ) : null}
                   </div>
 
                   {multaLines.map((line, lineIndex) => (
