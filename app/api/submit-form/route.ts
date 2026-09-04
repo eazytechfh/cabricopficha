@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server'
 import { calculatePrazoServico } from '@/lib/prazo-servico'
-import { parsePaymentEntries, reconcilePaymentValues, validatePaymentEntries } from '@/lib/payment-details'
+import { parsePaymentAmount, parsePaymentEntries, reconcilePaymentValues, validatePaymentEntries } from '@/lib/payment-details'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const tableName = process.env.SUPABASE_TABLE_NAME || 'fichas_venda'
-
-function parseCurrency(value: string) {
-  const normalized = Number.parseFloat(String(value || '').replace(',', '.'))
-  return Number.isFinite(normalized) ? normalized : 0
-}
 
 export async function POST(request: Request) {
   if (!supabaseUrl || !serviceRoleKey) {
@@ -53,7 +48,7 @@ export async function POST(request: Request) {
       forma_pagamento: payments.map((payment) => payment.formaPagamento).filter(Boolean).join('\n') || null,
       banco: payments.map((payment) => payment.banco).filter(Boolean).join('\n') || null,
       pagamentos: payments,
-      valor_total: data.valorTotal || null,
+      valor_total: data.valorTotal ? parsePaymentAmount(String(data.valorTotal)) : null,
       valor_entrada: paymentTotals.paid || null,
       valor_restante: paymentTotals.remaining,
       instancia_processo: data.instanciaProcesso || null,
@@ -76,7 +71,7 @@ export async function POST(request: Request) {
       data_envio: data.dataEnvio || new Date().toISOString(),
     }
 
-    if (parseCurrency(data.valorRestante) > 0) {
+    if (parsePaymentAmount(String(data.valorRestante || '')) > 0) {
       payload.observacao_valor_restante = data.observacaoValorRestante || null
     }
 
