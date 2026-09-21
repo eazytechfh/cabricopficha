@@ -132,7 +132,7 @@ export type FichaDuplicateMatch = Pick<
 }
 
 export type DuplicateResolution = {
-  action: "create_new" | "merge"
+  action: "create_new" | "overwrite_client"
   matchedFichaId?: string
 }
 

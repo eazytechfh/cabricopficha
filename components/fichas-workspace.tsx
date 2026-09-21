@@ -1251,17 +1251,24 @@ export default function FichasWorkspace() {
 
     try {
       const response = await saveFichaWithPdfAndWebhook(values, consultor, resolution)
+      const clientWasUpdated = resolution?.action === "overwrite_client"
       setCreateMessage(
         response.webhookSent
-          ? "Ficha salva com sucesso."
-          : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
+          ? clientWasUpdated ? "Nova ficha salva e dados do cliente atualizados com sucesso." : "Ficha salva com sucesso."
+          : clientWasUpdated
+            ? "Nova ficha salva e dados do cliente atualizados, mas houve erro ao enviar os dados para a automacao."
+            : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
       )
       if (createReturnToConsulta && selectedFicha) {
-        const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
-        const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
+        const cpfNormalizado = clientWasUpdated
+          ? normalizeCpfCnpj(response.ficha.cpfCnpj)
+          : tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
+        const nomeNormalizado = clientWasUpdated && !cpfNormalizado
+          ? getClienteBaseName(response.ficha.nomeCliente)
+          : tipoBusca === "nome" ? nomeBusca.trim() : ""
         const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
-        const selectedCpf = normalizeCpfCnpj(selectedFicha.cpfCnpj)
-        const selectedName = getClienteBaseName(selectedFicha.nomeCliente).toLowerCase()
+        const selectedCpf = normalizeCpfCnpj(clientWasUpdated ? response.ficha.cpfCnpj : selectedFicha.cpfCnpj)
+        const selectedName = getClienteBaseName(clientWasUpdated ? response.ficha.nomeCliente : selectedFicha.nomeCliente).toLowerCase()
         const nextContratos = refreshed.fichas.filter((ficha) => {
           const sameCpf = selectedCpf && normalizeCpfCnpj(ficha.cpfCnpj) === selectedCpf
           const sameName = selectedName && getClienteBaseName(ficha.nomeCliente).toLowerCase() === selectedName
@@ -1270,6 +1277,10 @@ export default function FichasWorkspace() {
 
         setConsultaItems(refreshed.fichas)
         setSelectedContratos(nextContratos.length > 0 ? nextContratos : [response.ficha])
+        if (clientWasUpdated) {
+          if (tipoBusca === "nome") setNomeBusca(getClienteBaseName(response.ficha.nomeCliente))
+          else setCpfBusca(response.ficha.cpfCnpj)
+        }
       }
       setCreateValues({
         ...emptyFichaValues,
@@ -2573,7 +2584,7 @@ export default function FichasWorkspace() {
               <DialogTitle>Possível cliente já cadastrado</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Revise as correspondências antes de criar a ficha. Unificar mantém o novo contrato e reutiliza os dados cadastrais do cliente escolhido.
+              Revise as correspondências antes de criar a ficha. Ao escolher um cliente existente, a nova ficha será criada e somente os dados cadastrais do cliente serão atualizados nas outras fichas. Contratos, processos, multas e pagamentos serão preservados.
             </p>
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {duplicateMatches.map((match) => (
@@ -2589,10 +2600,10 @@ export default function FichasWorkspace() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
-                      onClick={() => void handleDuplicateResolution({ action: "merge", matchedFichaId: match.id })}
+                      onClick={() => void handleDuplicateResolution({ action: "overwrite_client", matchedFichaId: match.id })}
                       disabled={Boolean(duplicateActionId)}
                     >
-                      Unificar com este cadastro
+                      Atualizar dados deste cliente
                     </Button>
                     <Button
                       type="button"

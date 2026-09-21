@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server"
-import { createFicha, findPotentialDuplicateFichas, getFichaById, getFichasByFilters, saveFichaToExcel } from "@/lib/server-fichas"
-import { mergeClientIdentity } from "@/lib/ficha-duplicates"
+import {
+  createFicha,
+  deleteFicha,
+  findPotentialDuplicateFichas,
+  getFichaById,
+  getFichasByCpf,
+  getFichasByFilters,
+  mergeFichaClients,
+  saveFichaToExcel,
+  updateFichaInExcel,
+} from "@/lib/server-fichas"
 import type { ConsultorSession, DuplicateResolution, FichaFormValues } from "@/lib/ficha-types"
 
 export async function GET(request: Request) {
@@ -30,29 +39,54 @@ export async function POST(request: Request) {
     }
 
     const matches = await findPotentialDuplicateFichas(data)
-    if (resolution && resolution.action !== "create_new" && resolution.action !== "merge") {
+    if (resolution && resolution.action !== "create_new" && resolution.action !== "overwrite_client") {
       return NextResponse.json({ error: "Resolução de duplicidade inválida." }, { status: 400 })
     }
     if (matches.length > 0 && !resolution) {
       return NextResponse.json({ code: "POTENTIAL_DUPLICATE", matches, error: "Foi encontrado um possível cadastro duplicado." }, { status: 409 })
     }
 
-    let createData = data
-    if (resolution?.action === "merge") {
+    let relatedFichaIds: string[] = []
+    if (resolution?.action === "overwrite_client") {
       const selectedMatch = matches.find((match) => match.id === resolution.matchedFichaId)
       if (!selectedMatch) {
-        return NextResponse.json({ error: "O cadastro selecionado para unificação não corresponde mais aos dados informados." }, { status: 409 })
+        return NextResponse.json({ error: "O cliente selecionado não corresponde mais aos dados informados." }, { status: 409 })
       }
-      createData = mergeClientIdentity(data, await getFichaById(selectedMatch.id))
+
+      const selectedFicha = await getFichaById(selectedMatch.id)
+      const relatedFichas = selectedFicha.cpfCnpj
+        ? await getFichasByCpf(selectedFicha.cpfCnpj)
+        : selectedFicha.clientGroupId
+          ? (await getFichasByFilters({ nome: selectedFicha.nomeCliente })).filter(
+              (ficha) => ficha.clientGroupId === selectedFicha.clientGroupId
+            )
+          : []
+      relatedFichaIds = [...new Set([selectedFicha.id, ...relatedFichas.map((ficha) => ficha.id)])]
     }
 
-    const ficha = await createFicha(createData, consultor)
+    let ficha = await createFicha(data, consultor)
+
+    if (resolution?.action === "overwrite_client") {
+      try {
+        await mergeFichaClients(ficha.id, [ficha.id, ...relatedFichaIds], consultor)
+        ficha = await getFichaById(ficha.id)
+      } catch (error) {
+        await deleteFicha(ficha.id).catch(() => undefined)
+        throw error
+      }
+    }
 
     let excelSaved = true
     let excelError: string | undefined
 
     try {
-      excelSaved = await saveFichaToExcel(ficha)
+      if (resolution?.action === "overwrite_client") {
+        for (const fichaId of [ficha.id, ...relatedFichaIds]) {
+          await updateFichaInExcel(await getFichaById(fichaId))
+        }
+      } else {
+        excelSaved = await saveFichaToExcel(ficha)
+      }
     } catch (error) {
       excelSaved = false
       excelError = error instanceof Error ? error.message : "Erro ao salvar na planilha."

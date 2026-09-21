@@ -62,7 +62,8 @@ test("workspace resolves potential duplicate clients before definitive creation"
 
   assert.match(source, /checkFichaDuplicates\(values\)/)
   assert.match(source, /Cadastrar como novo/)
-  assert.match(source, /Unificar com este cadastro/)
+  assert.match(source, /Atualizar dados deste cliente/)
+  assert.match(source, /action: "overwrite_client", matchedFichaId: match\.id/)
   assert.match(source, /Excluir duplicado/)
   assert.match(source, /window\.confirm/)
   assert.match(source, /DuplicateResolution/)

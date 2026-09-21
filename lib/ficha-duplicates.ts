@@ -54,37 +54,3 @@ export function findDuplicateReasons(
 
   return reasons
 }
-
-const CLIENT_IDENTITY_FIELDS = [
-  "nomeCliente",
-  "terceiros",
-  "telefoneTerceiros",
-  "emailTerceiros",
-  "telefones",
-  "endereco",
-  "numeroEndereco",
-  "complementoEndereco",
-  "cep",
-  "municipio",
-  "uf",
-  "cpfCnpj",
-  "cnh",
-  "dataNascimento",
-  "dataPrimeiraCnh",
-  "nacionalidade",
-  "estadoCivil",
-  "profissao",
-  "email",
-] as const satisfies ReadonlyArray<keyof FichaFormValues>
-
-export function mergeClientIdentity(input: FichaFormValues, existing: FichaRecord): FichaFormValues {
-  const merged = { ...input }
-
-  for (const field of CLIENT_IDENTITY_FIELDS) {
-    merged[field] = existing[field]
-  }
-
-  merged.nomeCliente = String(existing.nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
-
-  return merged
-}
