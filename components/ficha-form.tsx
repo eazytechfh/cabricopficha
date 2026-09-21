@@ -1006,7 +1006,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[50] border-l-4 border-l-secondary shadow-md ${shouldShowSection("payment") ? "" : "hidden"}`}>
+      <Card className={`order-[40] border-l-4 border-l-secondary shadow-md ${shouldShowSection("payment") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <CreditCard className="w-5 h-5" />
@@ -1272,7 +1272,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[40] border-l-4 border-l-secondary shadow-md ${shouldShowSection("fines") ? "" : "hidden"}`}>
+      <Card className={`order-[50] border-l-4 border-l-secondary shadow-md ${shouldShowSection("fines") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />

@@ -9,10 +9,10 @@ const [formSource, readSource, pdfSource, workspaceSource] = await Promise.all([
   readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8"),
 ])
 
-test("renders ficha-specific additional data between fines and payment", () => {
-  assert.match(formSource, /order-\[40\][\s\S]*shouldShowSection\("fines"\)/)
+test("renders ficha-specific additional data in the expected section order", () => {
+  assert.match(formSource, /order-\[40\][\s\S]*shouldShowSection\("payment"\)/)
   assert.match(formSource, /order-\[45\][\s\S]*shouldShowSection\("additional"\)/)
-  assert.match(formSource, /order-\[50\][\s\S]*shouldShowSection\("payment"\)/)
+  assert.match(formSource, /order-\[50\][\s\S]*shouldShowSection\("fines"\)/)
 
   const readFines = readSource.indexOf('<ReadSection title="Multas">')
   const readAdditional = readSource.indexOf('<ReadSection title="Dados Adicionais">')
