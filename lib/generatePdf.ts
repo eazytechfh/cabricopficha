@@ -142,6 +142,61 @@ function appendLargeSectionToPdf(
   return currentY
 }
 
+function getSafeBreakOffsetsPx(section: HTMLElement, canvas: HTMLCanvasElement) {
+  const rows = Array.from(section.querySelectorAll<HTMLElement>("[data-pdf-row='true']"))
+  if (!rows.length) return []
+
+  const sectionRect = section.getBoundingClientRect()
+  const sectionHeightPx = section.scrollHeight || sectionRect.height || 1
+  const canvasScale = canvas.height / sectionHeightPx
+  const offsets = rows
+    .map((row) => Math.ceil((row.getBoundingClientRect().bottom - sectionRect.top) * canvasScale))
+    .filter((offset) => offset > 0 && offset < canvas.height)
+
+  return [...new Set([...offsets, canvas.height])].sort((left, right) => left - right)
+}
+
+function appendSectionAtSafeBreaks(
+  pdf: import("jspdf").jsPDF,
+  canvas: HTMLCanvasElement,
+  safeBreakOffsetsPx: number[],
+  startYMm: number,
+  renderWidthMm: number,
+  pageHeightMm: number,
+  marginLeftMm: number,
+  marginTopMm: number,
+  marginBottomMm: number
+) {
+  const pixelsPerMm = canvas.width / renderWidthMm
+  let offsetY = 0
+  let currentY = startYMm
+
+  while (offsetY < canvas.height) {
+    const availableHeightMm = pageHeightMm - marginBottomMm - currentY
+    const availableHeightPx = Math.max(1, Math.floor(availableHeightMm * pixelsPerMm))
+    const limitY = offsetY + availableHeightPx
+    const safeEndY = safeBreakOffsetsPx.findLast((breakY) => breakY > offsetY && breakY <= limitY)
+
+    if (!safeEndY && currentY > marginTopMm + 0.1) {
+      pdf.addPage()
+      currentY = marginTopMm
+      continue
+    }
+
+    const endY = safeEndY ?? Math.min(canvas.height, limitY)
+    const sliceCanvas = createSliceCanvas(canvas, offsetY, Math.max(1, endY - offsetY))
+    currentY += appendCanvasToPdf(pdf, sliceCanvas, currentY, renderWidthMm, marginLeftMm)
+    offsetY = endY
+
+    if (offsetY < canvas.height) {
+      pdf.addPage()
+      currentY = marginTopMm
+    }
+  }
+
+  return currentY
+}
+
 export async function generatePdf(element: HTMLElement, filename: string) {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
     import("html2canvas-pro"),
@@ -225,13 +280,42 @@ export async function generatePdf(element: HTMLElement, filename: string) {
       const section = sections[index]
       const sectionCanvas = await renderSectionCanvas(html2canvas, section)
       const sectionHeightMm = getImageHeightMm(sectionCanvas, renderWidthMm)
+      const safeBreakOffsetsPx = getSafeBreakOffsetsPx(section, sectionCanvas)
       const spacingMm =
         index === sections.length - 1
           ? 0
           : getSectionSpacingMm(section, PDF_PAGE_GAP_MM)
 
+      const remainingHeightMm = pageHeightMm - PDF_MARGIN_Y_MM - currentY
+
+      if (safeBreakOffsetsPx.length > 0 && sectionHeightMm > remainingHeightMm) {
+        currentY = appendSectionAtSafeBreaks(
+          pdf,
+          sectionCanvas,
+          safeBreakOffsetsPx,
+          currentY,
+          renderWidthMm,
+          pageHeightMm,
+          PDF_MARGIN_X_MM,
+          PDF_MARGIN_Y_MM,
+          PDF_MARGIN_Y_MM
+        )
+        pageHasContent = true
+
+        if (spacingMm > 0) {
+          if (currentY + spacingMm > pageHeightMm - PDF_MARGIN_Y_MM) {
+            pdf.addPage()
+            currentY = PDF_MARGIN_Y_MM
+            pageHasContent = false
+          } else {
+            currentY += spacingMm
+          }
+        }
+
+        continue
+      }
+
       if (sectionHeightMm <= pageHeightMm - PDF_MARGIN_Y_MM * 2) {
-        const remainingHeightMm = pageHeightMm - PDF_MARGIN_Y_MM - currentY
 
         if (pageHasContent && sectionHeightMm > remainingHeightMm) {
           pdf.addPage()

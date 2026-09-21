@@ -281,6 +281,7 @@ function section(title: string, children: ReactNode) {
 function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
   return (
     <div
+      data-pdf-row="true"
       style={{
         display: "grid",
         gridTemplateColumns: columns,
