@@ -415,26 +415,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
             {gridRow("1fr 1fr", [field("Município", data.municipio), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
-            {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)])}
-            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
-          </>
-        ))}
-
-        {section("DADOS DO PAGAMENTO", (
-          <>
-            {paymentLines.map((payment, index) => gridRow("1.1fr 1fr 1fr", [field(`Pagamento ${index + 1}`, formatPaymentMethod(payment.formaPagamento)), field("Banco / Operadora", formatBank(payment.banco)), field("Valor", formatCurrency(parsePaymentAmount(payment.valor)))], false))}
-            {gridRow(
-              "1fr 1fr 1fr",
-              [
-                field("Valor Total", formatCurrency(data.valorTotal)),
-                field("Total Pago", formatCurrency(data.valorEntrada)),
-                field("Valor Restante", formatCurrency(data.valorRestante)),
-              ],
-              !data.observacaoValorRestante?.trim()
-            )}
-            {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
-              ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
-              : null}
+            {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)], true)}
           </>
         ))}
 
@@ -485,6 +466,30 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             ))}
           </>
         )) : null}
+
+        {section("DADOS ADICIONAIS", (
+          <>
+            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
+          </>
+        ))}
+
+        {section("DADOS DO PAGAMENTO", (
+          <>
+            {paymentLines.map((payment, index) => gridRow("1.1fr 1fr 1fr", [field(`Pagamento ${index + 1}`, formatPaymentMethod(payment.formaPagamento)), field("Banco / Operadora", formatBank(payment.banco)), field("Valor", formatCurrency(parsePaymentAmount(payment.valor)))], false))}
+            {gridRow(
+              "1fr 1fr 1fr",
+              [
+                field("Valor Total", formatCurrency(data.valorTotal)),
+                field("Total Pago", formatCurrency(data.valorEntrada)),
+                field("Valor Restante", formatCurrency(data.valorRestante)),
+              ],
+              !data.observacaoValorRestante?.trim()
+            )}
+            {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
+              ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
+              : null}
+          </>
+        ))}
 
         {shouldShowAdditionalObservations(data.observacoes) ? section("OBSERVAÇÕES ADICIONAIS", (
           <>

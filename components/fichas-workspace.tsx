@@ -236,12 +236,6 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
         <ClienteValue label="Profissão" value={values.profissao} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3">
-        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
-        <ClienteValue label="Origem" value={values.origem} />
-        <ClienteValue label="SNE" value={values.sne} />
-      </div>
-
     </div>
   )
 }
@@ -1565,9 +1559,9 @@ export default function FichasWorkspace() {
       estadoCivil: fichaBase.estadoCivil,
       profissao: fichaBase.profissao,
       email: fichaBase.email,
-      nomeConsultor: fichaBase.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
-      origem: fichaBase.origem,
-      sne: fichaBase.sne,
+      nomeConsultor: consultor ? getDefaultConsultorOption(consultor.nome) : "",
+      origem: "",
+      sne: "",
     })
   }
 

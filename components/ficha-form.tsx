@@ -305,7 +305,7 @@ type FichaFormProps = {
   visibleSections?: FichaFormSection[]
 }
 
-type FichaFormSection = "contract" | "client" | "payment" | "processes" | "otherServices" | "fines" | "notes"
+type FichaFormSection = "contract" | "client" | "payment" | "additional" | "processes" | "otherServices" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -984,7 +984,7 @@ export function FichaForm({
             {renderDateInput("dataNascimento", "Data de Nascimento")}
             {renderDateInput("dataPrimeiraCnh", "Data da 1a CNH")}
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {renderInput("nacionalidade", "Nacionalidade")}
             <div className="space-y-2">
               <Label htmlFor="estadoCivil">Estado Civil</Label>
@@ -1002,64 +1002,11 @@ export function FichaForm({
               </Select>
             </div>
             {renderInput("profissao", "Profissão")}
-            <div className="space-y-2">
-              <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
-              <Select
-                value={values.nomeConsultor || undefined}
-                onValueChange={(value) => setField("nomeConsultor", value)}
-                disabled={fieldDisabled}
-              >
-                <SelectTrigger id="nomeConsultor">
-                  <SelectValue placeholder="Selecione o consultor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONSULTOR_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="origem">Origem</Label>
-              <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="origem">
-                  <SelectValue placeholder="Selecione a origem" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ORIGEM_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sne">SNE</Label>
-              <Select value={values.sne || undefined} onValueChange={(value) => setField("sne", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="sne">
-                  <SelectValue placeholder="Selecione o SNE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SNE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className={`order-[30] border-l-4 border-l-secondary shadow-md ${shouldShowSection("payment") ? "" : "hidden"}`}>
+      <Card className={`order-[50] border-l-4 border-l-secondary shadow-md ${shouldShowSection("payment") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-primary">
             <CreditCard className="w-5 h-5" />
@@ -1124,7 +1071,72 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[50] border-l-4 border-l-primary shadow-md ${shouldShowSection("processes") ? "" : "hidden"}`}>
+      <Card className={`order-[45] border-l-4 border-l-secondary shadow-md ${shouldShowSection("additional") ? "" : "hidden"}`}>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="h-5 w-5" />
+            Dados Adicionais
+          </CardTitle>
+          {renderSectionSubmit()}
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
+              <Select
+                value={values.nomeConsultor || undefined}
+                onValueChange={(value) => setField("nomeConsultor", value)}
+                disabled={fieldDisabled}
+              >
+                <SelectTrigger id="nomeConsultor">
+                  <SelectValue placeholder="Selecione o consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONSULTOR_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="origem">Origem</Label>
+              <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="origem">
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORIGEM_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sne">SNE</Label>
+              <Select value={values.sne || undefined} onValueChange={(value) => setField("sne", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="sne">
+                  <SelectValue placeholder="Selecione o SNE" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SNE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={`order-[30] border-l-4 border-l-primary shadow-md ${shouldShowSection("processes") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileText className="w-5 h-5" />
@@ -1463,7 +1475,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[52] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
+      <Card className={`order-[35] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileText className="w-5 h-5" />

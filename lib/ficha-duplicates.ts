@@ -1,4 +1,4 @@
-import type { FichaFormValues, FichaRecord } from "./ficha-types.ts"
+import type { FichaDuplicateMatch, FichaFormValues, FichaRecord } from "./ficha-types.ts"
 
 export type DuplicateReason = "CPF/CNPJ" | "CNH" | "e-mail" | "telefone" | "nome" | "número do endereço"
 
@@ -53,4 +53,25 @@ export function findDuplicateReasons(
   }
 
   return reasons
+}
+
+export function groupDuplicateMatchesByClient(matches: FichaDuplicateMatch[]): FichaDuplicateMatch[] {
+  const grouped = new Map<string, FichaDuplicateMatch>()
+
+  for (const match of matches) {
+    const key = match.clientGroupId ? `group:${match.clientGroupId}` : `ficha:${match.id}`
+    const existing = grouped.get(key)
+
+    if (!existing) {
+      grouped.set(key, match)
+      continue
+    }
+
+    grouped.set(key, {
+      ...existing,
+      reasons: [...new Set([...existing.reasons, ...match.reasons])],
+    })
+  }
+
+  return [...grouped.values()]
 }
