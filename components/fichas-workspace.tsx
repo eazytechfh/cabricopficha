@@ -1246,13 +1246,16 @@ export default function FichasWorkspace() {
     try {
       const response = await saveFichaWithPdfAndWebhook(values, consultor, resolution)
       const clientWasUpdated = resolution?.action === "overwrite_client"
-      setCreateMessage(
-        response.webhookSent
-          ? clientWasUpdated ? "Nova ficha salva e dados do cliente atualizados com sucesso." : "Ficha salva com sucesso."
-          : clientWasUpdated
-            ? "Nova ficha salva e dados do cliente atualizados, mas houve erro ao enviar os dados para a automacao."
-            : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
-      )
+      const successMessage = response.webhookSent
+        ? clientWasUpdated ? "Nova ficha salva e dados do cliente atualizados com sucesso." : "Ficha salva com sucesso."
+        : clientWasUpdated
+          ? "Nova ficha salva e dados do cliente atualizados, mas houve erro ao enviar os dados para a automacao."
+          : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
+      setCreateMessage(successMessage)
+
+      let refreshedItems: FichaListItem[] = [response.ficha]
+      let nextContratos: FichaListItem[] = [response.ficha]
+
       if (createReturnToConsulta && selectedFicha) {
         const cpfNormalizado = clientWasUpdated
           ? normalizeCpfCnpj(response.ficha.cpfCnpj)
@@ -1263,19 +1266,42 @@ export default function FichasWorkspace() {
         const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
         const selectedCpf = normalizeCpfCnpj(clientWasUpdated ? response.ficha.cpfCnpj : selectedFicha.cpfCnpj)
         const selectedName = getClienteBaseName(clientWasUpdated ? response.ficha.nomeCliente : selectedFicha.nomeCliente).toLowerCase()
-        const nextContratos = refreshed.fichas.filter((ficha) => {
+        const filtered = refreshed.fichas.filter((ficha) => {
           const sameCpf = selectedCpf && normalizeCpfCnpj(ficha.cpfCnpj) === selectedCpf
           const sameName = selectedName && getClienteBaseName(ficha.nomeCliente).toLowerCase() === selectedName
           return sameCpf || sameName
         })
 
-        setConsultaItems(refreshed.fichas)
-        setSelectedContratos(nextContratos.length > 0 ? nextContratos : [response.ficha])
+        refreshedItems = refreshed.fichas
+        nextContratos = filtered.length > 0 ? filtered : [response.ficha]
+
         if (clientWasUpdated) {
           if (tipoBusca === "nome") setNomeBusca(getClienteBaseName(response.ficha.nomeCliente))
           else setCpfBusca(response.ficha.cpfCnpj)
         }
+      } else {
+        const cpfNormalizado = normalizeCpfCnpj(response.ficha.cpfCnpj)
+        const refreshed = await getFichas({ cpf: cpfNormalizado })
+        refreshedItems = refreshed.fichas.length > 0 ? refreshed.fichas : [response.ficha]
+        nextContratos = refreshedItems
+        setTipoBusca("cpf")
+        setCpfBusca(response.ficha.cpfCnpj)
+        setNomeBusca("")
       }
+
+      setConsultaError("")
+      setConsultaItems(refreshedItems)
+      setSelectedContratos(nextContratos)
+      setSelectedFicha(response.ficha)
+      setEditValues(toRecordValues(response.ficha))
+      setEditMessage(successMessage)
+      setViewMode("view")
+      setCreateReturnToConsulta(false)
+      setActiveTab("consultar")
+      window.setTimeout(() => {
+        consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 0)
+
       setCreateValues({
         ...emptyFichaValues,
         nomeConsultor: getDefaultConsultorOption(consultor.nome),
