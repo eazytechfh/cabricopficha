@@ -203,6 +203,40 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
       {details}
 
       <div className="overflow-hidden rounded-lg border border-slate-300 shadow-sm">
+      <ReadSection title="Dados do Pagamento">
+        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
+          <ValueCell label="Valor Total" value={formatMoneyValue(values.valorTotal)} />
+          <ValueCell label="Total Pago" value={formatMoneyValue(values.valorEntrada)} />
+          <ValueCell label="Valor Restante" value={formatMoneyValue(values.valorRestante)} />
+        </div>
+        {payments.length > 0 ? (
+          <div className="divide-y divide-slate-200 border-t border-slate-300">
+            {payments.map((payment, index) => (
+              <div key={payment.id} className="grid grid-cols-1 md:grid-cols-3 md:divide-x md:divide-slate-200">
+                <ValueCell label={`Pagamento ${index + 1}`} value={formatPaymentMethod(payment.formaPagamento)} />
+                <ValueCell label="Banco / Operadora" value={formatBank(payment.banco)} />
+                <ValueCell label="Valor" value={formatMoneyValue(payment.valor)} />
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div>
+          {parseCurrency(values.valorRestante) > 0 && hasText(values.observacaoValorRestante) ? (
+            <div className="border-t border-slate-200">
+              <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
+            </div>
+          ) : null}
+        </div>
+      </ReadSection>
+
+      <ReadSection title="Dados Adicionais">
+        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
+          <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
+          <ValueCell label="Origem" value={values.origem} />
+          <ValueCell label="SNE" value={values.sne} />
+        </div>
+      </ReadSection>
+
       {processoLines.length > 0 ? (
         <ReadSection title="Processos">
           <div className="divide-y divide-slate-300">
@@ -215,15 +249,6 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
             ))}
-          </div>
-        </ReadSection>
-      ) : null}
-
-      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
-        <ReadSection title="Outros Serviços">
-          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
-            <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
-            <ValueCell label="Poderes" value={values.poderesOutroServico} />
           </div>
         </ReadSection>
       ) : null}
@@ -262,39 +287,14 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         </ReadSection>
       ) : null}
 
-      <ReadSection title="Dados Adicionais">
-        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
-          <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
-          <ValueCell label="Origem" value={values.origem} />
-          <ValueCell label="SNE" value={values.sne} />
-        </div>
-      </ReadSection>
-
-      <ReadSection title="Dados do Pagamento">
-        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
-          <ValueCell label="Valor Total" value={formatMoneyValue(values.valorTotal)} />
-          <ValueCell label="Total Pago" value={formatMoneyValue(values.valorEntrada)} />
-          <ValueCell label="Valor Restante" value={formatMoneyValue(values.valorRestante)} />
-        </div>
-        {payments.length > 0 ? (
-          <div className="divide-y divide-slate-200 border-t border-slate-300">
-            {payments.map((payment, index) => (
-              <div key={payment.id} className="grid grid-cols-1 md:grid-cols-3 md:divide-x md:divide-slate-200">
-                <ValueCell label={`Pagamento ${index + 1}`} value={formatPaymentMethod(payment.formaPagamento)} />
-                <ValueCell label="Banco / Operadora" value={formatBank(payment.banco)} />
-                <ValueCell label="Valor" value={formatMoneyValue(payment.valor)} />
-              </div>
-            ))}
+      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
+        <ReadSection title="Outros Serviços">
+          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
+            <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
+            <ValueCell label="Poderes" value={values.poderesOutroServico} />
           </div>
-        ) : null}
-        <div>
-          {parseCurrency(values.valorRestante) > 0 && hasText(values.observacaoValorRestante) ? (
-            <div className="border-t border-slate-200">
-              <ValueCell label="Observacao do Valor Restante" value={values.observacaoValorRestante} />
-            </div>
-          ) : null}
-        </div>
-      </ReadSection>
+        </ReadSection>
+      ) : null}
 
       {shouldShowAdditionalObservations(values.observacoes) ? (
         <ReadSection title="Observações Adicionais">

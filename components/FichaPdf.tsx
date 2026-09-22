@@ -420,6 +420,30 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
+        {section("DADOS DO PAGAMENTO", (
+          <>
+            {paymentLines.map((payment, index) => gridRow("1.1fr 1fr 1fr", [field(`Pagamento ${index + 1}`, formatPaymentMethod(payment.formaPagamento)), field("Banco / Operadora", formatBank(payment.banco)), field("Valor", formatCurrency(parsePaymentAmount(payment.valor)))], false))}
+            {gridRow(
+              "1fr 1fr 1fr",
+              [
+                field("Valor Total", formatCurrency(data.valorTotal)),
+                field("Total Pago", formatCurrency(data.valorEntrada)),
+                field("Valor Restante", formatCurrency(data.valorRestante)),
+              ],
+              !data.observacaoValorRestante?.trim()
+            )}
+            {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
+              ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
+              : null}
+          </>
+        ))}
+
+        {section("DADOS ADICIONAIS", (
+          <>
+            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
+          </>
+        ))}
+
         {processoLines.length > 0 ? section("PROCESSOS", (
           <>
             {processoLines.map((line, index) => (
@@ -427,13 +451,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 {gridRow("1.15fr 1fr 0.95fr 1fr 0.72fr 0.72fr", [nowrapField("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), field("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
-          </>
-        )) : null}
-
-        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
-          <>
-            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
-            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
           </>
         )) : null}
 
@@ -468,29 +485,12 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         )) : null}
 
-        {section("DADOS ADICIONAIS", (
+        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
           <>
-            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
+            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
+            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
           </>
-        ))}
-
-        {section("DADOS DO PAGAMENTO", (
-          <>
-            {paymentLines.map((payment, index) => gridRow("1.1fr 1fr 1fr", [field(`Pagamento ${index + 1}`, formatPaymentMethod(payment.formaPagamento)), field("Banco / Operadora", formatBank(payment.banco)), field("Valor", formatCurrency(parsePaymentAmount(payment.valor)))], false))}
-            {gridRow(
-              "1fr 1fr 1fr",
-              [
-                field("Valor Total", formatCurrency(data.valorTotal)),
-                field("Total Pago", formatCurrency(data.valorEntrada)),
-                field("Valor Restante", formatCurrency(data.valorRestante)),
-              ],
-              !data.observacaoValorRestante?.trim()
-            )}
-            {data.valorRestante > 0 && data.observacaoValorRestante?.trim()
-              ? gridRow("1fr", [field("Observação Valor Restante", data.observacaoValorRestante)], true)
-              : null}
-          </>
-        ))}
+        )) : null}
 
         {shouldShowAdditionalObservations(data.observacoes) ? section("OBSERVAÇÕES ADICIONAIS", (
           <>

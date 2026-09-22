@@ -9,20 +9,43 @@ const [formSource, readSource, pdfSource, workspaceSource] = await Promise.all([
   readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8"),
 ])
 
-test("renders ficha-specific additional data in the expected section order", () => {
-  assert.match(formSource, /order-\[40\][\s\S]*shouldShowSection\("payment"\)/)
-  assert.match(formSource, /order-\[45\][\s\S]*shouldShowSection\("additional"\)/)
-  assert.match(formSource, /order-\[50\][\s\S]*shouldShowSection\("fines"\)/)
+test("renders ficha sections in the expected order", () => {
+  assert.match(formSource, /order-\[10\][\s\S]*shouldShowSection\("client"\)/)
+  assert.match(formSource, /order-\[20\][\s\S]*shouldShowSection\("contract"\)/)
+  assert.match(formSource, /order-\[30\][\s\S]*shouldShowSection\("payment"\)/)
+  assert.match(formSource, /order-\[40\][\s\S]*shouldShowSection\("additional"\)/)
+  assert.match(formSource, /order-\[50\][\s\S]*shouldShowSection\("processes"\)/)
+  assert.match(formSource, /order-\[60\][\s\S]*shouldShowSection\("fines"\)/)
+  assert.match(formSource, /order-\[70\][\s\S]*shouldShowSection\("otherServices"\)/)
+  assert.match(formSource, /order-\[80\][\s\S]*shouldShowSection\("notes"\)/)
 
-  const readFines = readSource.indexOf('<ReadSection title="Multas">')
-  const readAdditional = readSource.indexOf('<ReadSection title="Dados Adicionais">')
   const readPayment = readSource.indexOf('<ReadSection title="Dados do Pagamento">')
-  assert.ok(readFines < readAdditional && readAdditional < readPayment)
+  const readAdditional = readSource.indexOf('<ReadSection title="Dados Adicionais">')
+  const readProcesses = readSource.indexOf('<ReadSection title="Processos">')
+  const readFines = readSource.indexOf('<ReadSection title="Multas">')
+  const readOtherServices = readSource.indexOf('<ReadSection title="Outros Serviços">')
+  const readNotes = readSource.indexOf('<ReadSection title="Observações Adicionais">')
+  assert.ok(
+    readPayment < readAdditional &&
+      readAdditional < readProcesses &&
+      readProcesses < readFines &&
+      readFines < readOtherServices &&
+      readOtherServices < readNotes
+  )
 
-  const pdfFines = pdfSource.indexOf('section("MULTAS"')
-  const pdfAdditional = pdfSource.indexOf('section("DADOS ADICIONAIS"')
   const pdfPayment = pdfSource.indexOf('section("DADOS DO PAGAMENTO"')
-  assert.ok(pdfFines < pdfAdditional && pdfAdditional < pdfPayment)
+  const pdfAdditional = pdfSource.indexOf('section("DADOS ADICIONAIS"')
+  const pdfProcesses = pdfSource.indexOf('section("PROCESSOS"')
+  const pdfFines = pdfSource.indexOf('section("MULTAS"')
+  const pdfOtherServices = pdfSource.indexOf('section("OUTROS SERVIÇOS"')
+  const pdfNotes = pdfSource.indexOf('section("OBSERVAÇÕES ADICIONAIS"')
+  assert.ok(
+    pdfPayment < pdfAdditional &&
+      pdfAdditional < pdfProcesses &&
+      pdfProcesses < pdfFines &&
+      pdfFines < pdfOtherServices &&
+      pdfOtherServices < pdfNotes
+  )
 })
 
 test("keeps consultant, origin and SNE outside shared client data", () => {
