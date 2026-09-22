@@ -142,18 +142,53 @@ function appendLargeSectionToPdf(
   return currentY
 }
 
-function getSafeBreakOffsetsPx(section: HTMLElement, canvas: HTMLCanvasElement) {
-  const rows = Array.from(section.querySelectorAll<HTMLElement>("[data-pdf-row='true']"))
-  if (!rows.length) return []
-
+function getTextLineBreakOffsetsPx(section: HTMLElement, canvas: HTMLCanvasElement) {
+  const ownerDocument = section.ownerDocument
   const sectionRect = section.getBoundingClientRect()
   const sectionHeightPx = section.scrollHeight || sectionRect.height || 1
   const canvasScale = canvas.height / sectionHeightPx
-  const offsets = rows
-    .map((row) => Math.ceil((row.getBoundingClientRect().bottom - sectionRect.top) * canvasScale))
-    .filter((offset) => offset > 0 && offset < canvas.height)
+  const offsets: number[] = []
 
-  return [...new Set([...offsets, canvas.height])].sort((left, right) => left - right)
+  const walker = ownerDocument.createTreeWalker(section, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      return node.textContent && node.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    },
+  })
+
+  const range = ownerDocument.createRange()
+  let node = walker.nextNode()
+
+  while (node) {
+    range.selectNodeContents(node)
+
+    for (const rect of Array.from(range.getClientRects())) {
+      if (rect.height <= 0) continue
+      const offset = Math.ceil((rect.bottom - sectionRect.top) * canvasScale)
+      if (offset > 0 && offset < canvas.height) {
+        offsets.push(offset)
+      }
+    }
+
+    node = walker.nextNode()
+  }
+
+  return offsets
+}
+
+function getSafeBreakOffsetsPx(section: HTMLElement, canvas: HTMLCanvasElement) {
+  const sectionRect = section.getBoundingClientRect()
+  const sectionHeightPx = section.scrollHeight || sectionRect.height || 1
+  const canvasScale = canvas.height / sectionHeightPx
+
+  const rows = Array.from(section.querySelectorAll<HTMLElement>("[data-pdf-row='true']"))
+  const offsets = rows.length
+    ? rows.map((row) => Math.ceil((row.getBoundingClientRect().bottom - sectionRect.top) * canvasScale))
+    : getTextLineBreakOffsetsPx(section, canvas)
+
+  const safeOffsets = offsets.filter((offset) => offset > 0 && offset < canvas.height)
+  if (!safeOffsets.length) return []
+
+  return [...new Set([...safeOffsets, canvas.height])].sort((left, right) => left - right)
 }
 
 function appendSectionAtSafeBreaks(
