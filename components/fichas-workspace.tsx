@@ -236,12 +236,6 @@ function ClienteReadCard({ values, onEdit, canEdit }: { values: FichaFormValues;
         <ClienteValue label="Profissão" value={values.profissao} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3">
-        <ClienteValue label="Nome do Consultor" value={values.nomeConsultor} />
-        <ClienteValue label="Origem" value={values.origem} />
-        <ClienteValue label="SNE" value={values.sne} />
-      </div>
-
     </div>
   )
 }
@@ -314,7 +308,7 @@ export default function FichasWorkspace() {
   const [duplicateActionId, setDuplicateActionId] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
-  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
+  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("nome")
   const [cpfBusca, setCpfBusca] = useState("")
   const [nomeBusca, setNomeBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
@@ -1251,26 +1245,63 @@ export default function FichasWorkspace() {
 
     try {
       const response = await saveFichaWithPdfAndWebhook(values, consultor, resolution)
-      setCreateMessage(
-        response.webhookSent
-          ? "Ficha salva com sucesso."
+      const clientWasUpdated = resolution?.action === "overwrite_client"
+      const successMessage = response.webhookSent
+        ? clientWasUpdated ? "Nova ficha salva e dados do cliente atualizados com sucesso." : "Ficha salva com sucesso."
+        : clientWasUpdated
+          ? "Nova ficha salva e dados do cliente atualizados, mas houve erro ao enviar os dados para a automacao."
           : "Ficha salva com sucesso, mas houve erro ao enviar os dados para a automacao."
-      )
+      setCreateMessage(successMessage)
+
+      let refreshedItems: FichaListItem[] = [response.ficha]
+      let nextContratos: FichaListItem[] = [response.ficha]
+
       if (createReturnToConsulta && selectedFicha) {
-        const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
-        const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
+        const cpfNormalizado = clientWasUpdated
+          ? normalizeCpfCnpj(response.ficha.cpfCnpj)
+          : tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
+        const nomeNormalizado = clientWasUpdated && !cpfNormalizado
+          ? getClienteBaseName(response.ficha.nomeCliente)
+          : tipoBusca === "nome" ? nomeBusca.trim() : ""
         const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
-        const selectedCpf = normalizeCpfCnpj(selectedFicha.cpfCnpj)
-        const selectedName = getClienteBaseName(selectedFicha.nomeCliente).toLowerCase()
-        const nextContratos = refreshed.fichas.filter((ficha) => {
+        const selectedCpf = normalizeCpfCnpj(clientWasUpdated ? response.ficha.cpfCnpj : selectedFicha.cpfCnpj)
+        const selectedName = getClienteBaseName(clientWasUpdated ? response.ficha.nomeCliente : selectedFicha.nomeCliente).toLowerCase()
+        const filtered = refreshed.fichas.filter((ficha) => {
           const sameCpf = selectedCpf && normalizeCpfCnpj(ficha.cpfCnpj) === selectedCpf
           const sameName = selectedName && getClienteBaseName(ficha.nomeCliente).toLowerCase() === selectedName
           return sameCpf || sameName
         })
 
-        setConsultaItems(refreshed.fichas)
-        setSelectedContratos(nextContratos.length > 0 ? nextContratos : [response.ficha])
+        refreshedItems = refreshed.fichas
+        nextContratos = filtered.length > 0 ? filtered : [response.ficha]
+
+        if (clientWasUpdated) {
+          if (tipoBusca === "nome") setNomeBusca(getClienteBaseName(response.ficha.nomeCliente))
+          else setCpfBusca(response.ficha.cpfCnpj)
+        }
+      } else {
+        const cpfNormalizado = normalizeCpfCnpj(response.ficha.cpfCnpj)
+        const refreshed = await getFichas({ cpf: cpfNormalizado })
+        refreshedItems = refreshed.fichas.length > 0 ? refreshed.fichas : [response.ficha]
+        nextContratos = refreshedItems
+        setTipoBusca("cpf")
+        setCpfBusca(response.ficha.cpfCnpj)
+        setNomeBusca("")
       }
+
+      setConsultaError("")
+      setConsultaItems(refreshedItems)
+      setSelectedContratos(nextContratos)
+      setSelectedFicha(response.ficha)
+      setEditValues(toRecordValues(response.ficha))
+      setEditMessage(successMessage)
+      setViewMode("view")
+      setCreateReturnToConsulta(false)
+      setActiveTab("consultar")
+      window.setTimeout(() => {
+        consultaTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 0)
+
       setCreateValues({
         ...emptyFichaValues,
         nomeConsultor: getDefaultConsultorOption(consultor.nome),
@@ -1419,7 +1450,7 @@ export default function FichasWorkspace() {
   }
 
   const resetConsulta = () => {
-    setTipoBusca("cpf")
+    setTipoBusca("nome")
     setCpfBusca("")
     setNomeBusca("")
     setConsultaError("")
@@ -1554,9 +1585,9 @@ export default function FichasWorkspace() {
       estadoCivil: fichaBase.estadoCivil,
       profissao: fichaBase.profissao,
       email: fichaBase.email,
-      nomeConsultor: fichaBase.nomeConsultor || (consultor ? getDefaultConsultorOption(consultor.nome) : ""),
-      origem: fichaBase.origem,
-      sne: fichaBase.sne,
+      nomeConsultor: consultor ? getDefaultConsultorOption(consultor.nome) : "",
+      origem: "",
+      sne: "",
     })
   }
 
@@ -2291,7 +2322,7 @@ export default function FichasWorkspace() {
                     event.preventDefault()
                     if (!consultaLoading) void handleConsultarFichas()
                   }}
-                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]"
+                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]"
                 >
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
@@ -2300,35 +2331,36 @@ export default function FichasWorkspace() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="nome">NOME</SelectItem>
                         <SelectItem value="cpf">CPF</SelectItem>
                         <SelectItem value="cnpj">CNPJ</SelectItem>
-                        <SelectItem value="nome">NOME</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="valorBusca">{tipoBusca === "nome" ? "Nome" : tipoBusca.toUpperCase()}</Label>
-                    <Input
-                      id="valorBusca"
-                      value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
-                      onChange={(event) => {
-                        if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
-                          setCpfBusca(event.target.value)
-                        } else {
-                          setNomeBusca(event.target.value)
+                    <div className="flex gap-2">
+                      <Input
+                        id="valorBusca"
+                        className="flex-1"
+                        value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
+                        onChange={(event) => {
+                          if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
+                            setCpfBusca(event.target.value)
+                          } else {
+                            setNomeBusca(event.target.value)
+                          }
+                        }}
+                        placeholder={
+                          tipoBusca === "nome"
+                            ? "Digite o nome do cliente"
+                            : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
                         }
-                      }}
-                      placeholder={
-                        tipoBusca === "nome"
-                          ? "Digite o nome do cliente"
-                          : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
-                      }
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button type="submit" disabled={consultaLoading}>
-                      {consultaLoading ? "Consultando..." : "Consultar"}
-                    </Button>
+                      />
+                      <Button type="submit" disabled={consultaLoading}>
+                        {consultaLoading ? "Consultando..." : "Consultar"}
+                      </Button>
+                    </div>
                   </div>
                 </form>
                 {consultaError && <p className="text-sm text-red-600">{consultaError}</p>}
@@ -2573,7 +2605,7 @@ export default function FichasWorkspace() {
               <DialogTitle>Possível cliente já cadastrado</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              Revise as correspondências antes de criar a ficha. Unificar mantém o novo contrato e reutiliza os dados cadastrais do cliente escolhido.
+              Revise as correspondências antes de criar a ficha. Ao escolher um cliente existente, a nova ficha será criada e somente os dados cadastrais do cliente serão atualizados nas outras fichas. Contratos, processos, multas e pagamentos serão preservados.
             </p>
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
               {duplicateMatches.map((match) => (
@@ -2589,10 +2621,10 @@ export default function FichasWorkspace() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
-                      onClick={() => void handleDuplicateResolution({ action: "merge", matchedFichaId: match.id })}
+                      onClick={() => void handleDuplicateResolution({ action: "overwrite_client", matchedFichaId: match.id })}
                       disabled={Boolean(duplicateActionId)}
                     >
-                      Unificar com este cadastro
+                      Atualizar dados deste cliente
                     </Button>
                     <Button
                       type="button"

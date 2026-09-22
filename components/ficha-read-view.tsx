@@ -2,7 +2,7 @@
 
 import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatAdditionalObservations, hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
-import { formatCurrency, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatCurrency, formatInstanciaLabel, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries } from "@/lib/payment-details"
 import type { ReactNode } from "react"
 
@@ -151,11 +151,22 @@ function getMultaLines(block: {
   }))
 }
 
-function ValueCell({ label, value }: { label: string; value: string }) {
+function ValueCell({ label, value, centered = false }: { label: string; value: string; centered?: boolean }) {
   return (
-    <div className="min-w-0 border-b border-slate-200 px-3 py-3 last:border-b-0 md:border-b-0">
+    <div className={`min-w-0 border-b border-slate-200 px-3 py-3 last:border-b-0 md:border-b-0 ${centered ? "text-center" : ""}`}>
       <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
       <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium leading-5 text-slate-900">{fallback(value)}</p>
+    </div>
+  )
+}
+
+function HighlightValueCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-b border-slate-200 px-3 py-3 text-center last:border-b-0 md:border-b-0">
+      <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
+      <p className="mt-1 inline-block rounded-md bg-primary px-3 py-1 text-sm font-bold text-primary-foreground shadow-sm">
+        {fallback(value)}
+      </p>
     </div>
   )
 }
@@ -229,27 +240,26 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         </div>
       </ReadSection>
 
+      <ReadSection title="Dados Adicionais">
+        <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
+          <ValueCell label="Nome do Consultor" value={values.nomeConsultor} />
+          <ValueCell label="Origem" value={values.origem} />
+          <ValueCell label="SNE" value={values.sne} />
+        </div>
+      </ReadSection>
+
       {processoLines.length > 0 ? (
         <ReadSection title="Processos">
           <div className="divide-y divide-slate-300">
             {processoLines.map((line, index) => (
               <div key={`processo-read-${index}`} className="grid grid-cols-1 bg-white md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-slate-200">
-                <ValueCell label="Instancia do Processo" value={line.instanciaProcesso} />
+                <ValueCell label="Instancia do Processo" value={formatInstanciaLabel(line.instanciaProcesso)} />
                 <ValueCell label="Tipo do Processo" value={line.tipoProcesso} />
                 <ValueCell label="No do Processo" value={line.numeroProcesso.toUpperCase()} />
                 <ValueCell label="Multas do Processo" value={normalizeMultasProcessoLabels(line.multasProcesso, true)} />
                 <ValueCell label="Prazo" value={formatDate(line.prazoProcesso)} />
               </div>
             ))}
-          </div>
-        </ReadSection>
-      ) : null}
-
-      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
-        <ReadSection title="Outros Serviços">
-          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
-            <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
-            <ValueCell label="Poderes" value={values.poderesOutroServico} />
           </div>
         </ReadSection>
       ) : null}
@@ -262,19 +272,19 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 hasFilledText([line.instanciaMulta, line.autoDetran, line.autoRenainf, line.tipoMulta, line.prazoMulta])
               )
 
+              const showCpfProprietario = block.placaProprietario !== "sim" && hasText(block.cpfProprietario)
+
               return (
                 <div key={`multa-read-${index}`} className="bg-white">
-                  <div className="grid grid-cols-1 bg-slate-50 md:grid-cols-2 md:divide-x md:divide-slate-200">
-                    <ValueCell label="PLACA" value={block.placa.toUpperCase()} />
-                    <ValueCell label="RENAVAM" value={block.renavam} />
-                    {block.placaProprietario !== "sim" && hasText(block.cpfProprietario) ? (
-                      <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} />
-                    ) : null}
+                  <div className={`grid grid-cols-1 bg-slate-50 md:divide-x md:divide-slate-200 ${showCpfProprietario ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+                    <HighlightValueCell label="PLACA" value={block.placa.toUpperCase()} />
+                    {showCpfProprietario ? <ValueCell label="CPF do Proprietario" value={block.cpfProprietario} centered /> : null}
+                    <HighlightValueCell label="RENAVAM" value={block.renavam} />
                   </div>
 
                   {multaLines.map((line, lineIndex) => (
                     <div key={`multa-read-line-${index}-${lineIndex}`} className="grid grid-cols-1 border-t border-slate-200 xl:grid-cols-5 xl:divide-x xl:divide-slate-200">
-                      <ValueCell label="Instancia da Multa" value={line.instanciaMulta} />
+                      <ValueCell label="Instancia da Multa" value={formatInstanciaLabel(line.instanciaMulta)} />
                       <ValueCell label="Detran" value={line.autoDetran} />
                       <ValueCell label="Renainf" value={line.autoRenainf} />
                       <ValueCell label="Tipo" value={line.tipoMulta} />
@@ -284,6 +294,15 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 </div>
               )
             })}
+          </div>
+        </ReadSection>
+      ) : null}
+
+      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
+        <ReadSection title="Outros Serviços">
+          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
+            <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
+            <ValueCell label="Poderes" value={values.poderesOutroServico} />
           </div>
         </ReadSection>
       ) : null}

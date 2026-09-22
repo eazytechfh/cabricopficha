@@ -8,7 +8,7 @@ import { buildAccentInsensitivePattern } from "@/lib/search-utils"
 import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
-import { findDuplicateReasons } from "@/lib/ficha-duplicates"
+import { findDuplicateReasons, groupDuplicateMatchesByClient } from "@/lib/ficha-duplicates"
 import { normalizeOwnerFlags } from "@/lib/ficha-owner"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -133,9 +133,9 @@ function toPayload(data: FichaFormValues, consultor: ConsultorSession, mode: "cr
     forma_pagamento: normalizedData.formaPagamento || null,
     banco: normalizedData.banco || null,
     pagamentos: payments,
-    valor_total: normalizedData.valorTotal || null,
-    valor_entrada: normalizedData.valorEntrada || null,
-    valor_restante: normalizedData.valorRestante || null,
+    valor_total: normalizedData.valorTotal ? parseCurrency(normalizedData.valorTotal) : null,
+    valor_entrada: normalizedData.valorEntrada ? parseCurrency(normalizedData.valorEntrada) : null,
+    valor_restante: normalizedData.valorRestante ? parseCurrency(normalizedData.valorRestante) : null,
     observacao_valor_restante: parseCurrency(normalizedData.valorRestante) > 0 ? normalizedData.observacaoValorRestante || null : null,
     instancia_processo: normalizedData.instanciaProcesso || null,
     tipo_processo: normalizedData.tipoProcesso || null,
@@ -483,12 +483,13 @@ export async function findPotentialDuplicateFichas(data: FichaFormValues): Promi
     throw new Error(payload.message || payload.error || "Erro ao verificar cadastros semelhantes.")
   }
 
-  return (payload as Array<Record<string, unknown>>)
+  const matches = (payload as Array<Record<string, unknown>>)
     .map(fromRow)
     .map((candidate) => ({ candidate, reasons: findDuplicateReasons(data, candidate) }))
     .filter(({ reasons }) => reasons.length > 0)
     .map(({ candidate, reasons }) => ({
       id: candidate.id,
+      clientGroupId: candidate.clientGroupId,
       nomeCliente: candidate.nomeCliente,
       cpfCnpj: candidate.cpfCnpj,
       telefones: candidate.telefones,
@@ -499,6 +500,8 @@ export async function findPotentialDuplicateFichas(data: FichaFormValues): Promi
       nomeConsultor: candidate.nomeConsultor,
       reasons,
     }))
+
+  return groupDuplicateMatchesByClient(matches)
 }
 
 export async function deleteFicha(id: string) {

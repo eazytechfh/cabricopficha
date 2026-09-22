@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { CurrencyField } from "@/components/ui/currency-field"
+import { DateField } from "@/components/ui/date-field"
 import { Input } from "@/components/ui/input"
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -304,7 +305,7 @@ type FichaFormProps = {
   visibleSections?: FichaFormSection[]
 }
 
-type FichaFormSection = "contract" | "client" | "payment" | "processes" | "otherServices" | "fines" | "notes"
+type FichaFormSection = "contract" | "client" | "payment" | "additional" | "processes" | "otherServices" | "fines" | "notes"
 
 function updateValue(
   values: FichaFormValues,
@@ -755,33 +756,43 @@ export function FichaForm({
     </div>
   )
 
+  const renderDateInput = (field: keyof FichaFormValues, label: string) => (
+    <div className="space-y-2">
+      <Label htmlFor={field}>
+        {label}
+        {requiredFields.includes(field) ? " *" : ""}
+      </Label>
+      <DateField
+        id={field}
+        name={field}
+        value={values[field]}
+        onChange={(value) => setField(field, value)}
+        disabled={fieldDisabled}
+        required={requiredFields.includes(field)}
+        aria-required={requiredFields.includes(field)}
+      />
+    </div>
+  )
+
   const renderCurrencyInput = (
     field: "valorTotal" | "valorEntrada" | "valorRestante",
     label: string,
-    props?: React.ComponentProps<typeof InputGroupInput>
+    props?: { readOnly?: boolean }
   ) => (
     <div className="space-y-2">
       <Label htmlFor={field}>
         {label}
         {requiredFields.includes(field) ? " *" : ""}
       </Label>
-      <InputGroup>
-        <InputGroupAddon>
-          <InputGroupText>R$</InputGroupText>
-        </InputGroupAddon>
-        <InputGroupInput
-          id={field}
-          name={field}
-          type="number"
-          step="0.01"
-          min="0"
-          inputMode="decimal"
-          value={values[field]}
-          onChange={(event) => setField(field, event.target.value)}
-          disabled={fieldDisabled}
-          {...props}
-        />
-      </InputGroup>
+      <CurrencyField
+        id={field}
+        name={field}
+        value={values[field]}
+        onChange={(value) => setField(field, value)}
+        disabled={fieldDisabled}
+        required={requiredFields.includes(field)}
+        {...props}
+      />
     </div>
   )
 
@@ -801,7 +812,7 @@ export function FichaForm({
               </div>
             ) : null}
             <div className="grid grid-cols-1 gap-4">
-              {renderInput("dataContrato", "Data do Contrato", { type: "date" })}
+              {renderDateInput("dataContrato", "Data do Contrato")}
             </div>
           </CardContent>
         </Card>
@@ -970,10 +981,10 @@ export function FichaForm({
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderInput("dataNascimento", "Data de Nascimento", { type: "date" })}
-            {renderInput("dataPrimeiraCnh", "Data da 1a CNH", { type: "date" })}
+            {renderDateInput("dataNascimento", "Data de Nascimento")}
+            {renderDateInput("dataPrimeiraCnh", "Data da 1a CNH")}
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {renderInput("nacionalidade", "Nacionalidade")}
             <div className="space-y-2">
               <Label htmlFor="estadoCivil">Estado Civil</Label>
@@ -991,59 +1002,6 @@ export function FichaForm({
               </Select>
             </div>
             {renderInput("profissao", "Profissão")}
-            <div className="space-y-2">
-              <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
-              <Select
-                value={values.nomeConsultor || undefined}
-                onValueChange={(value) => setField("nomeConsultor", value)}
-                disabled={fieldDisabled}
-              >
-                <SelectTrigger id="nomeConsultor">
-                  <SelectValue placeholder="Selecione o consultor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONSULTOR_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="origem">Origem</Label>
-              <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="origem">
-                  <SelectValue placeholder="Selecione a origem" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ORIGEM_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sne">SNE</Label>
-              <Select value={values.sne || undefined} onValueChange={(value) => setField("sne", value)} disabled={fieldDisabled}>
-                <SelectTrigger id="sne">
-                  <SelectValue placeholder="Selecione o SNE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SNE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -1082,7 +1040,7 @@ export function FichaForm({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`valorPagamento-${index}`}>Valor</Label>
-                    <InputGroup><InputGroupAddon><InputGroupText>R$</InputGroupText></InputGroupAddon><InputGroupInput id={`valorPagamento-${index}`} type="number" step="0.01" min="0" inputMode="decimal" value={payment.valor} onChange={(event) => updatePaymentLine(index, "valor", event.target.value)} disabled={fieldDisabled} /></InputGroup>
+                    <CurrencyField id={`valorPagamento-${index}`} value={payment.valor} onChange={(value) => updatePaymentLine(index, "valor", value)} disabled={fieldDisabled} />
                   </div>
                   <div className="flex items-end"><Button type="button" variant="ghost" size="icon" onClick={() => removePaymentLine(index)} disabled={fieldDisabled} aria-label={`Remover pagamento ${index + 1}`}><X className="size-4" /></Button></div>
                 </div>
@@ -1110,6 +1068,71 @@ export function FichaForm({
               />
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className={`order-[40] border-l-4 border-l-secondary shadow-md ${shouldShowSection("additional") ? "" : "hidden"}`}>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <FileText className="h-5 w-5" />
+            Dados Adicionais
+          </CardTitle>
+          {renderSectionSubmit()}
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="nomeConsultor">Nome do Consultor</Label>
+              <Select
+                value={values.nomeConsultor || undefined}
+                onValueChange={(value) => setField("nomeConsultor", value)}
+                disabled={fieldDisabled}
+              >
+                <SelectTrigger id="nomeConsultor">
+                  <SelectValue placeholder="Selecione o consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONSULTOR_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="origem">Origem</Label>
+              <Select value={values.origem || undefined} onValueChange={(value) => setField("origem", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="origem">
+                  <SelectValue placeholder="Selecione a origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORIGEM_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sne">SNE</Label>
+              <Select value={values.sne || undefined} onValueChange={(value) => setField("sne", value)} disabled={fieldDisabled}>
+                <SelectTrigger id="sne">
+                  <SelectValue placeholder="Selecione o SNE" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SNE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -1217,11 +1240,10 @@ export function FichaForm({
                   </Select>
 
                     {getPrazoMode(line.prazoProcesso) === "DATA" ? (
-                      <Input
+                      <DateField
                         id={`prazoProcesso-${lineIndex}`}
-                        type="date"
                         value={line.prazoProcesso}
-                        onChange={(event) => updateProcessoLineField(lineIndex, "prazoProcesso", event.target.value)}
+                        onChange={(value) => updateProcessoLineField(lineIndex, "prazoProcesso", value)}
                         disabled={fieldDisabled}
                       />
                     ) : null}
@@ -1250,7 +1272,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[40] border-l-4 border-l-secondary shadow-md ${shouldShowSection("fines") ? "" : "hidden"}`}>
+      <Card className={`order-[60] border-l-4 border-l-secondary shadow-md ${shouldShowSection("fines") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <AlertCircle className="w-5 h-5" />
@@ -1416,11 +1438,10 @@ export function FichaForm({
                           </Select>
 
                           {getPrazoMode(line.prazoMulta) === "DATA" ? (
-                            <Input
+                            <DateField
                               id={`prazoMulta-${index}-${lineIndex}`}
-                              type="date"
                               value={line.prazoMulta}
-                              onChange={(event) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", event.target.value)}
+                              onChange={(value) => updateMultaDetailLineField(index, lineIndex, "prazoMulta", value)}
                               disabled={fieldDisabled}
                             />
                           ) : null}
@@ -1454,7 +1475,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[52] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
+      <Card className={`order-[70] border-l-4 border-l-primary shadow-md ${shouldShowSection("otherServices") ? "" : "hidden"}`}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-primary">
             <FileText className="w-5 h-5" />
@@ -1487,7 +1508,7 @@ export function FichaForm({
         </CardContent>
       </Card>
 
-      <Card className={`order-[60] border-l-4 border-l-muted shadow-md ${shouldShowSection("notes") ? "" : "hidden"}`}>
+      <Card className={`order-[80] border-l-4 border-l-muted shadow-md ${shouldShowSection("notes") ? "" : "hidden"}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-primary">Observações Adicionais</CardTitle>
         </CardHeader>
@@ -1503,7 +1524,7 @@ export function FichaForm({
       </Card>
 
       {showActions && (onCancelEdit || onBack || !showInlineSubmit) && (
-        <div className="order-[70] flex flex-col sm:flex-row gap-4 justify-center pt-2">
+        <div className="order-[90] flex flex-col sm:flex-row gap-4 justify-center pt-2">
           {onCancelEdit && (
             <Button type="button" variant="outline" className="px-8 py-6 text-lg" onClick={onCancelEdit} disabled={loading}>
               Cancelar

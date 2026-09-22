@@ -1,7 +1,7 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
 import { formatClientDisplayName } from "@/lib/ficha-client-name"
 import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
-import { normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatInstanciaLabel, normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export type FichaPdfData = {
@@ -281,6 +281,7 @@ function section(title: string, children: ReactNode) {
 function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
   return (
     <div
+      data-pdf-row="true"
       style={{
         display: "grid",
         gridTemplateColumns: columns,
@@ -347,7 +348,9 @@ function signatureField(label: string) {
 
 export default function FichaPdf({ data }: FichaPdfProps) {
   const paymentLines = parsePaymentEntries(data.pagamentos, { formaPagamento: data.formaPagamento, banco: data.banco, valorEntrada: String(data.valorEntrada) })
-  const processoLines = getProcessoLines(data)
+  const processoLines = getProcessoLines(data).filter((line) =>
+    hasFilledText([line.instanciaProcesso, line.tipoProcesso, line.numeroProcesso, line.multasProcesso, line.prazoProcesso])
+  )
   const multaBlocks = getMultaBlocks(data).filter((block) =>
     hasFilledText([
       block.instanciaMulta,
@@ -413,8 +416,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
             {gridRow("1fr 1fr", [field("Município", data.municipio), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
-            {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)])}
-            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
+            {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)], true)}
           </>
         ))}
 
@@ -436,20 +438,19 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
-        {section("PROCESSOS", (
+        {section("DADOS ADICIONAIS", (
           <>
-            {processoLines.map((line, index) => (
-              <div key={`processo-${index}`}>
-                {gridRow("1.15fr 1fr 0.95fr 1fr 0.72fr 0.72fr", [nowrapField("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), field("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
-              </div>
-            ))}
+            {gridRow("1fr 1fr 1fr", [field("Nome do Consultor", data.nomeConsultor), field("Origem", data.origem), field("SNE", data.sne)], true)}
           </>
         ))}
 
-        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
+        {processoLines.length > 0 ? section("PROCESSOS", (
           <>
-            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
-            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
+            {processoLines.map((line, index) => (
+              <div key={`processo-${index}`}>
+                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+              </div>
+            ))}
           </>
         )) : null}
 
@@ -476,11 +477,18 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1fr 0.9fr 0.9fr 0.9fr 0.75fr 0.8fr", [field("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), field("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
+                    {gridRow("1.7fr 0.7fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
                   </div>
                 ))}
               </div>
             ))}
+          </>
+        )) : null}
+
+        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
+          <>
+            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
+            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
           </>
         )) : null}
 

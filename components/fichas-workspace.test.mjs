@@ -62,7 +62,8 @@ test("workspace resolves potential duplicate clients before definitive creation"
 
   assert.match(source, /checkFichaDuplicates\(values\)/)
   assert.match(source, /Cadastrar como novo/)
-  assert.match(source, /Unificar com este cadastro/)
+  assert.match(source, /Atualizar dados deste cliente/)
+  assert.match(source, /action: "overwrite_client", matchedFichaId: match\.id/)
   assert.match(source, /Excluir duplicado/)
   assert.match(source, /window\.confirm/)
   assert.match(source, /DuplicateResolution/)
@@ -134,4 +135,15 @@ test("workspace exposes a dedicated submenu marker control", async () => {
 
   assert.match(source, /aria-label="Marcador de submenu"/)
   assert.match(source, /handleTemplateCommand\("indent"\)/)
+})
+
+test("apos salvar uma ficha, ela e exibida direto na aba de consulta sem precisar pesquisar", async () => {
+  const source = await readFile(new URL("./fichas-workspace.tsx", import.meta.url), "utf8")
+  const persistCreate = source.slice(source.indexOf("const persistCreate ="), source.indexOf("const handleDuplicateResolution ="))
+
+  assert.match(persistCreate, /setSelectedFicha\(response\.ficha\)/)
+  assert.match(persistCreate, /setEditValues\(toRecordValues\(response\.ficha\)\)/)
+  assert.match(persistCreate, /setViewMode\("view"\)/)
+  assert.match(persistCreate, /setActiveTab\("consultar"\)/)
+  assert.match(persistCreate, /consultaTopRef\.current\?\.scrollIntoView/)
 })

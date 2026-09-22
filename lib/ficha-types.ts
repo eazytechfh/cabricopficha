@@ -126,13 +126,13 @@ export type FichaListItem = Pick<
 
 export type FichaDuplicateMatch = Pick<
   FichaRecord,
-  "id" | "nomeCliente" | "cpfCnpj" | "telefones" | "numeroEndereco" | "email" | "cnh" | "dataContrato" | "nomeConsultor"
+  "id" | "clientGroupId" | "nomeCliente" | "cpfCnpj" | "telefones" | "numeroEndereco" | "email" | "cnh" | "dataContrato" | "nomeConsultor"
 > & {
   reasons: string[]
 }
 
 export type DuplicateResolution = {
-  action: "create_new" | "merge"
+  action: "create_new" | "overwrite_client"
   matchedFichaId?: string
 }
 

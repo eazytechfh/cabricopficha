@@ -1,6 +1,6 @@
 import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
-import { formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries } from "@/lib/payment-details"
+import { formatPaymentAmount, parsePaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries } from "@/lib/payment-details"
 import { normalizeOwnerFlags } from "@/lib/ficha-owner"
 
 const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
@@ -35,6 +35,10 @@ export function formatMultaProcessoLabel(value: string) {
   return trimmedValue
 }
 
+export function formatInstanciaLabel(value: string) {
+  return (value || "").replace(/(\d°)\s*Inst\b/gi, "$1")
+}
+
 export function normalizeMultasProcessoLabels(value: string, multiline = false) {
   return (value || "")
     .split("\n")
@@ -49,8 +53,7 @@ export function normalizeMultasProcessoLabels(value: string, multiline = false) 
 }
 
 export function parseCurrency(value: string) {
-  const normalized = Number.parseFloat((value || "").replace(",", "."))
-  return Number.isFinite(normalized) ? normalized : 0
+  return parsePaymentAmount(value)
 }
 
 export function formatCurrency(value: number) {

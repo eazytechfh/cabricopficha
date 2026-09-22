@@ -1,4 +1,4 @@
-import type { FichaFormValues, FichaRecord } from "./ficha-types.ts"
+import type { FichaDuplicateMatch, FichaFormValues, FichaRecord } from "./ficha-types.ts"
 
 export type DuplicateReason = "CPF/CNPJ" | "CNH" | "e-mail" | "telefone" | "nome" | "número do endereço"
 
@@ -55,36 +55,23 @@ export function findDuplicateReasons(
   return reasons
 }
 
-const CLIENT_IDENTITY_FIELDS = [
-  "nomeCliente",
-  "terceiros",
-  "telefoneTerceiros",
-  "emailTerceiros",
-  "telefones",
-  "endereco",
-  "numeroEndereco",
-  "complementoEndereco",
-  "cep",
-  "municipio",
-  "uf",
-  "cpfCnpj",
-  "cnh",
-  "dataNascimento",
-  "dataPrimeiraCnh",
-  "nacionalidade",
-  "estadoCivil",
-  "profissao",
-  "email",
-] as const satisfies ReadonlyArray<keyof FichaFormValues>
+export function groupDuplicateMatchesByClient(matches: FichaDuplicateMatch[]): FichaDuplicateMatch[] {
+  const grouped = new Map<string, FichaDuplicateMatch>()
 
-export function mergeClientIdentity(input: FichaFormValues, existing: FichaRecord): FichaFormValues {
-  const merged = { ...input }
+  for (const match of matches) {
+    const key = match.clientGroupId ? `group:${match.clientGroupId}` : `ficha:${match.id}`
+    const existing = grouped.get(key)
 
-  for (const field of CLIENT_IDENTITY_FIELDS) {
-    merged[field] = existing[field]
+    if (!existing) {
+      grouped.set(key, match)
+      continue
+    }
+
+    grouped.set(key, {
+      ...existing,
+      reasons: [...new Set([...existing.reasons, ...match.reasons])],
+    })
   }
 
-  merged.nomeCliente = String(existing.nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
-
-  return merged
+  return [...grouped.values()]
 }
