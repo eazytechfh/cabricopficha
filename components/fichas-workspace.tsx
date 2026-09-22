@@ -308,7 +308,7 @@ export default function FichasWorkspace() {
   const [duplicateActionId, setDuplicateActionId] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
-  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("cpf")
+  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("nome")
   const [cpfBusca, setCpfBusca] = useState("")
   const [nomeBusca, setNomeBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
@@ -1424,7 +1424,7 @@ export default function FichasWorkspace() {
   }
 
   const resetConsulta = () => {
-    setTipoBusca("cpf")
+    setTipoBusca("nome")
     setCpfBusca("")
     setNomeBusca("")
     setConsultaError("")
@@ -2296,7 +2296,7 @@ export default function FichasWorkspace() {
                     event.preventDefault()
                     if (!consultaLoading) void handleConsultarFichas()
                   }}
-                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr_auto]"
+                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]"
                 >
                   <div className="space-y-2">
                     <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
@@ -2305,35 +2305,36 @@ export default function FichasWorkspace() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="nome">NOME</SelectItem>
                         <SelectItem value="cpf">CPF</SelectItem>
                         <SelectItem value="cnpj">CNPJ</SelectItem>
-                        <SelectItem value="nome">NOME</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="valorBusca">{tipoBusca === "nome" ? "Nome" : tipoBusca.toUpperCase()}</Label>
-                    <Input
-                      id="valorBusca"
-                      value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
-                      onChange={(event) => {
-                        if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
-                          setCpfBusca(event.target.value)
-                        } else {
-                          setNomeBusca(event.target.value)
+                    <div className="flex gap-2">
+                      <Input
+                        id="valorBusca"
+                        className="flex-1"
+                        value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
+                        onChange={(event) => {
+                          if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
+                            setCpfBusca(event.target.value)
+                          } else {
+                            setNomeBusca(event.target.value)
+                          }
+                        }}
+                        placeholder={
+                          tipoBusca === "nome"
+                            ? "Digite o nome do cliente"
+                            : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
                         }
-                      }}
-                      placeholder={
-                        tipoBusca === "nome"
-                          ? "Digite o nome do cliente"
-                          : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
-                      }
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button type="submit" disabled={consultaLoading}>
-                      {consultaLoading ? "Consultando..." : "Consultar"}
-                    </Button>
+                      />
+                      <Button type="submit" disabled={consultaLoading}>
+                        {consultaLoading ? "Consultando..." : "Consultar"}
+                      </Button>
+                    </div>
                   </div>
                 </form>
                 {consultaError && <p className="text-sm text-red-600">{consultaError}</p>}
