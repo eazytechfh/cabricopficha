@@ -1,7 +1,7 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
 import { formatClientDisplayName } from "@/lib/ficha-client-name"
 import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
-import { normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
+import { formatInstanciaLabel, normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export type FichaPdfData = {
@@ -448,7 +448,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", line.instanciaProcesso), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>
@@ -477,7 +477,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1.7fr 0.7fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", line.instanciaMulta), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
+                    {gridRow("1.7fr 0.7fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
                   </div>
                 ))}
               </div>

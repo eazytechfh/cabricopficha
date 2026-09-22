@@ -35,6 +35,10 @@ export function formatMultaProcessoLabel(value: string) {
   return trimmedValue
 }
 
+export function formatInstanciaLabel(value: string) {
+  return (value || "").replace(/(\d°)\s*Inst\b/gi, "$1")
+}
+
 export function normalizeMultasProcessoLabels(value: string, multiline = false) {
   return (value || "")
     .split("\n")
