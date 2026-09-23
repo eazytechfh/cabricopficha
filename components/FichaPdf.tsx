@@ -278,14 +278,14 @@ function section(title: string, children: ReactNode) {
   )
 }
 
-function gridRow(columns: string, cells: ReactNode[], noBorder = false) {
+function gridRow(columns: string, cells: ReactNode[], noBorder = false, columnGap = 28) {
   return (
     <div
       data-pdf-row="true"
       style={{
         display: "grid",
         gridTemplateColumns: columns,
-        columnGap: 28,
+        columnGap,
         alignItems: "end",
         minHeight: 36,
         padding: "8px 6px 9px",
@@ -448,7 +448,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>
@@ -477,7 +477,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1.7fr 0.7fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
+                    {gridRow("1.2fr 1.2fr 0.9fr 1fr 1.1fr 0.65fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), nowrapField("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1, 20)}
                   </div>
                 ))}
               </div>
