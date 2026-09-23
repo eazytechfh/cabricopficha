@@ -448,7 +448,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           <>
             {processoLines.map((line, index) => (
               <div key={`processo-${index}`}>
-                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo do Processo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas do Processo", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
+                {gridRow("1.15fr 1fr 0.95fr 1fr 0.95fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaProcesso)), field("Tipo", line.tipoProcesso), field("Nº", line.numeroProcesso.toUpperCase()), field("Multas", normalizeMultasProcessoLabels(line.multasProcesso, true)), nowrapField("Prazo", formatDate(line.prazoProcesso)), signatureField("Visto")], index === processoLines.length - 1)}
               </div>
             ))}
           </>
