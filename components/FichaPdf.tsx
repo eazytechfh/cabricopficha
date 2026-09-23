@@ -477,7 +477,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1.7fr 0.7fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), field("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
+                    {gridRow("1.45fr 0.95fr 0.85fr 0.95fr 1.15fr 0.7fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), nowrapField("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1)}
                   </div>
                 ))}
               </div>
