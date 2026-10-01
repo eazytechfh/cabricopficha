@@ -19,6 +19,7 @@ import type { FichaFormValues } from "@/lib/ficha-types"
 import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { appendPaymentEntry, formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
 import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, Plus, X } from "lucide-react"
+import { toast } from "sonner"
 
 type MultaBlock = {
   instanciaMulta: string
@@ -362,6 +363,8 @@ export function FichaForm({
   const [cepLookupLoading, setCepLookupLoading] = useState(false)
   const [cnhNumero, setCnhNumero] = useState("")
   const [telefoneInput, setTelefoneInput] = useState("")
+  const [consultandoDetran, setConsultandoDetran] = useState(false)
+  const [pgu, setPgu] = useState(false)
 
   useEffect(() => {
     const { numero } = parseCnhParts(values.cnh)
@@ -466,6 +469,46 @@ export function FichaForm({
     const normalizedNumero = numero.trim()
 
     setField("cnh", normalizedNumero)
+  }
+
+  async function executarConsultaDetran() {
+    const cpf = values.cpfCnpj.replace(/\D/g, "")
+    const cnh = cnhNumero.replace(/\D/g, "")
+
+    if (!cpf || !cnh) {
+      toast.error("Preencha o CPF/CNPJ e a CNH antes de consultar o Detran.")
+      return
+    }
+
+    setConsultandoDetran(true)
+
+    try {
+      const response = await fetch("/api/detran", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cpf,
+          cnh,
+          uf: values.uf.trim().toUpperCase() || "RJ",
+          eh_pgu: pgu ? "S" : "N",
+          consultor_id: values.nomeConsultor,
+        }),
+      })
+      const data = (await response.json().catch(() => null)) as
+        | { status?: string; details?: string; message?: string }
+        | null
+
+      if (!response.ok || data?.status === "erro") {
+        throw new Error(data?.details || data?.message || "Não foi possível consultar o Detran.")
+      }
+
+      toast.success(data?.message || "Consulta ao Detran concluída com sucesso.")
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível consultar o Detran."
+      toast.error(message)
+    } finally {
+      setConsultandoDetran(false)
+    }
   }
 
   const fieldDisabled = readOnly || loading
@@ -949,7 +992,7 @@ export function FichaForm({
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cpfCnpj">CPF/CNPJ{requiredFields.includes("cpfCnpj") ? " *" : ""}</Label>
               <Input
@@ -978,6 +1021,38 @@ export function FichaForm({
                 }}
                 disabled={fieldDisabled}
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="invisible">Detran</Label>
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => void executarConsultaDetran()}
+                disabled={fieldDisabled || consultandoDetran}
+              >
+                {consultandoDetran ? (
+                  <>
+                    <Spinner className="w-4 h-4 mr-2" />
+                    Consultando CNH na Contabo...
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Consultar Histórico no Detran
+                  </>
+                )}
+              </Button>
+              <div className="flex items-center gap-2 mt-2">
+                <Checkbox
+                  id="pgu"
+                  checked={pgu}
+                  onCheckedChange={(checked) => setPgu(checked === true)}
+                  disabled={fieldDisabled || consultandoDetran}
+                />
+                <Label htmlFor="pgu" className="cursor-pointer">
+                  PGU
+                </Label>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
