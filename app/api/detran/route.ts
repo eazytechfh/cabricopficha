@@ -1,5 +1,50 @@
 import { NextResponse } from 'next/server';
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export async function GET(request: Request) {
+  try {
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json({ error: 'Configuração do banco indisponível.' }, { status: 500 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const cpf = (searchParams.get('cpf') || '').replace(/\D/g, '');
+    const cnh = (searchParams.get('cnh') || '').replace(/\D/g, '');
+
+    if (!cpf || !cnh) {
+      return NextResponse.json({ error: 'CPF e CNH são obrigatórios.' }, { status: 400 });
+    }
+
+    const params = new URLSearchParams({
+      select: 'resultado_tabelas,possui_suspensao_ativa,possui_cassacao_ativa,consultor_id,created_at',
+      cpf_condutor: `eq.${cpf}`,
+      cnh_condutor: `eq.${cnh}`,
+      order: 'created_at.desc',
+    });
+    const response = await fetch(`${supabaseUrl}/rest/v1/historico_consultas_cnh?${params.toString()}`, {
+      headers: {
+        Accept: 'application/json',
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      cache: 'no-store',
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      console.error('[Detran API] Erro ao consultar histórico:', data);
+      return NextResponse.json({ error: 'Não foi possível carregar o histórico da CNH.' }, { status: 502 });
+    }
+
+    return NextResponse.json({ consultas: Array.isArray(data) ? data : [] });
+  } catch (error) {
+    console.error('[Detran API] Erro ao consultar histórico:', error);
+    return NextResponse.json({ error: 'Não foi possível carregar o histórico da CNH.' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // 1. Captura os dados enviados pelo botão do formulário

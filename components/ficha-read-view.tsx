@@ -4,6 +4,7 @@ import type { FichaFormValues } from "@/lib/ficha-types"
 import { formatAdditionalObservations, hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
 import { formatCurrency, formatInstanciaLabel, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { parsePaymentEntries } from "@/lib/payment-details"
+import { CnhConsultationHistory } from "@/components/cnh-consultation-history"
 import type { ReactNode } from "react"
 
 type FichaReadViewProps = {
@@ -312,6 +313,8 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
           <p className="min-h-12 whitespace-pre-wrap px-4 py-3 text-sm leading-6 text-slate-900">{formatAdditionalObservations(values.observacoes)}</p>
         </ReadSection>
       ) : null}
+
+      <CnhConsultationHistory cpf={values.cpfCnpj} cnh={values.cnh} />
 
       </div>
     </div>
