@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cpf, cnh, uf, eh_pgu, consultor_id }),
       // Configura um timeout de 60 segundos (o reCAPTCHA v2 do Detran pode levar de 15 a 45s)
-      signal: AbortSignal.timeout(60000)
+      signal: AbortSignal.timeout(120000)
     });
 
     // 4. Captura a resposta vinda da VPS
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : 'Erro interno ao consultar o Detran.';
     console.error('[Next.js Detran API Error]:', message);
 
-    // Tratamento amigável para caso a VPS demore mais de 60 segundos para responder
+    // Tratamento amigável para consultas que excedam o tempo limite total
     if (error instanceof Error && error.name === 'TimeoutError') {
       return NextResponse.json(
         { status: 'erro', details: 'O portal do Detran demorou muito para responder. Tente novamente em instantes.' },

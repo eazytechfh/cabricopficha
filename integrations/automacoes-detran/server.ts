@@ -41,6 +41,9 @@ type Infraction = {
 async function extractInfractions(page: Page, path: string): Promise<Infraction[]> {
   await page.goto(`${BASE_URL}${path}`, { waitUntil: "networkidle2", timeout: 30000 })
   await page.waitForSelector("#accordion, .panel-group", { timeout: 15000 }).catch(() => undefined)
+  // O tsx/esbuild referencia este helper ao serializar funcoes aninhadas do page.evaluate.
+  // Ele precisa existir tambem no contexto isolado da pagina do Detran.
+  await page.addScriptTag({ content: "globalThis.__name = function(value) { return value; };" })
 
   return page.evaluate(() => {
     const clean = (value: string | null | undefined) => (value || "").replace(/\s+/g, " ").trim()
