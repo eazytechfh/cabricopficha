@@ -2,6 +2,9 @@ import type { FichaFormValues, FichaRecord } from "@/lib/ficha-types"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { formatPaymentAmount, parsePaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries } from "@/lib/payment-details"
 import { normalizeOwnerFlags } from "@/lib/ficha-owner"
+import { normalizeAutoDetran } from "@/lib/ficha-copy-values"
+
+export { formatCpfCnpjForCopy, normalizeAutoDetran } from "@/lib/ficha-copy-values"
 
 const PRESET_BANK_VALUES = ["asaas", "rede", "itau"] as const
 export const MULTI_ENTRY_SEPARATOR = "||__MULTI_ENTRY__||"
@@ -130,6 +133,7 @@ export function normalizeFichaValues(values: FichaFormValues): FichaFormValues {
       .split(MULTI_ENTRY_SEPARATOR)
       .map((item) => normalizeInstanciaSelections(item))
       .join(MULTI_ENTRY_SEPARATOR),
+    autoDetran: normalizeAutoDetran(values.autoDetran),
     vistoJuridico: normalizeMultasProcessoLabels(values.vistoJuridico),
     assinaturaVistoJuridico: values.prazoProcesso,
     vistoJuridicoMulta: values.vistoJuridicoMulta,
