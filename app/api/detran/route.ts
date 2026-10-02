@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     }
 
     const params = new URLSearchParams({
-      select: 'resultado_tabelas,possui_suspensao_ativa,possui_cassacao_ativa,consultor_id,created_at',
+      select: 'resultado_tabelas,possui_suspensao_ativa,possui_cassacao_ativa,consultor_id,created_at,infracoes_5_anos,infracoes_pontuaveis_julgadas_5_anos',
       cpf_condutor: `eq.${cpf}`,
       cnh_condutor: `eq.${cnh}`,
       order: 'created_at.desc',

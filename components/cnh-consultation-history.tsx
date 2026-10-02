@@ -8,7 +8,11 @@ type Consultation = {
   possui_cassacao_ativa: boolean | null
   consultor_id: string | null
   created_at: string | null
+  infracoes_5_anos: unknown
+  infracoes_pontuaveis_julgadas_5_anos: unknown
 }
+
+type Infraction = Record<string, unknown>
 
 type ResultTable = string[][]
 
@@ -28,6 +32,47 @@ function formatDateTime(value: string | null) {
   return Number.isNaN(date.getTime())
     ? value
     : new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date)
+}
+
+const infractionFields: Array<[string, string]> = [
+  ["numero_auto", "Nº do Auto"], ["data", "Data"], ["hora", "Hora"], ["orgao", "Órgão"],
+  ["placa", "Placa"], ["proprietario", "Proprietário"], ["responsavel_pontos", "Responsável pelos pontos"],
+  ["situacao", "Situação"], ["infracao", "Infração"], ["local", "Local"],
+  ["enquadramento", "Enquadramento"], ["pontos", "Pontos"], ["vencimento", "Vencimento"],
+  ["valor", "Valor"], ["valor_com_desconto", "Valor com desconto"], ["processo", "Processo"],
+]
+
+function normalizeInfractions(value: unknown): Infraction[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Infraction => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    : []
+}
+
+function InfractionList({ title, items }: { title: string; items: Infraction[] }) {
+  if (items.length === 0) return null
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-bold uppercase tracking-wide text-[#214674]">{title}</h4>
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <div key={`${String(item.numero_auto || "infracao")}-${index}`} className="overflow-hidden rounded-md border border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {infractionFields.map(([key, label]) => {
+                const value = String(item[key] ?? "").trim()
+                if (!value || value === "-") return null
+                return (
+                  <div key={key} className="min-w-0 border-b border-slate-100 px-3 py-2.5 lg:border-r">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500">{label}</p>
+                    <p className="mt-1 break-words text-sm text-slate-900">{value}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function Status({ label, active }: { label: string; active: boolean | null }) {
@@ -90,6 +135,8 @@ export function CnhConsultationHistory({ cpf, cnh }: { cpf: string; cnh: string 
         <div className="divide-y divide-slate-300">
           {consultations.map((consultation, consultationIndex) => {
             const tables = normalizeTables(consultation.resultado_tabelas)
+            const infractions = normalizeInfractions(consultation.infracoes_5_anos)
+            const judgedInfractions = normalizeInfractions(consultation.infracoes_pontuaveis_julgadas_5_anos)
             return (
               <article key={`${consultation.created_at || "consulta"}-${consultationIndex}`} className="space-y-4 p-4">
                 <div className="grid grid-cols-1 overflow-hidden rounded-md border border-slate-200 md:grid-cols-3 md:divide-x md:divide-slate-200">
@@ -120,6 +167,8 @@ export function CnhConsultationHistory({ cpf, cnh }: { cpf: string; cnh: string 
                     </div>
                   )
                 })}
+                <InfractionList title="Todas as infrações — últimos 5 anos" items={infractions} />
+                <InfractionList title="Infrações pontuáveis transitadas em julgado — últimos 5 anos" items={judgedInfractions} />
               </article>
             )
           })}
