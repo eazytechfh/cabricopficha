@@ -1,7 +1,13 @@
 ﻿import type { CSSProperties, ReactNode } from "react"
 import { formatClientDisplayName } from "@/lib/ficha-client-name"
 import { hasFilledText, shouldShowAdditionalObservations } from "@/lib/ficha-read-layout"
-import { formatInstanciaLabel, normalizeMultasProcessoLabels, splitSerializedEntries } from "@/lib/ficha-utils"
+import {
+  formatCpfCnpjForCopy,
+  formatInstanciaLabel,
+  normalizeAutoDetran,
+  normalizeMultasProcessoLabels,
+  splitSerializedEntries,
+} from "@/lib/ficha-utils"
 import { parsePaymentEntries, parsePaymentAmount } from "@/lib/payment-details"
 
 export type FichaPdfData = {
@@ -103,17 +109,6 @@ function formatCurrency(value: number) {
     style: "currency",
     currency: "BRL",
   }).format(value)
-}
-
-function formatCpfCnpj(value: string) {
-  const digits = (value || "").replace(/\D/g, "")
-  if (digits.length === 11) {
-    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
-  }
-  if (digits.length === 14) {
-    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
-  }
-  return fallback(value)
 }
 
 function formatPaymentMethod(value: string) {
@@ -319,6 +314,25 @@ function nowrapField(label: string, value: string) {
   )
 }
 
+function identifierField(label: string, value: string) {
+  return (
+    <div style={{ minWidth: 0, lineHeight: 1.45 }}>
+      <span style={{ fontSize: 14, fontWeight: 700 }}>{label}: </span>
+      <span
+        style={{
+          fontFamily: "Consolas, 'Courier New', monospace",
+          fontSize: 13.5,
+          fontWeight: 600,
+          color: value?.trim() ? colors.text : colors.muted,
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {fallback(value)}
+      </span>
+    </div>
+  )
+}
+
 function centeredField(label: string, value: string) {
   return (
     <div style={{ minWidth: 0, lineHeight: 1.35, textAlign: "center" }}>
@@ -413,7 +427,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
             {gridRow("1fr 1fr", [field("Telefone", data.telefones), field("Telefone Terceiros", data.telefoneTerceiros)])}
             {gridRow("1fr 1fr", [field("E-mail", data.email), field("E-mail Terceiros", data.emailTerceiros)])}
             {gridRow("0.7fr 1.3fr", [field("CEP", data.cep), field("Endereço", formatAddress(data.endereco, data.numeroEndereco, data.complementoEndereco, data.municipio, data.uf))])}
-            {gridRow("0.75fr 1.05fr 0.2fr", [field("CPF/CNPJ", formatCpfCnpj(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
+            {gridRow("0.75fr 1.05fr 0.2fr", [identifierField("CPF/CNPJ", formatCpfCnpjForCopy(data.cpfCnpj)), field("CNH", data.cnh), field("UF", data.uf)])}
             {gridRow("1fr 1fr", [field("Município", data.municipio), field("Nascimento", formatDate(data.dataNascimento))])}
             {gridRow("1fr", [field("Data da 1ª CNH", formatDate(data.dataPrimeiraCnh))])}
             {gridRow("1fr 1fr 1fr", [field("Nacionalidade", data.nacionalidade), field("Estado Civil", data.estadoCivil), field("Profissão", data.profissao)], true)}
@@ -477,7 +491,7 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 </div>
                 {getMultaLines(block).map((line, lineIndex) => (
                   <div key={`multa-line-${blockIndex}-${lineIndex}`}>
-                    {gridRow("1.2fr 1.2fr 0.9fr 1fr 1.1fr 0.65fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), nowrapField("Tipo", line.tipoMulta), field("Detran", line.autoDetran), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1, 20)}
+                    {gridRow("1.2fr 1.2fr 0.9fr 1fr 1.1fr 0.65fr", [nowrapField("Instância", formatInstanciaLabel(line.instanciaMulta)), nowrapField("Tipo", line.tipoMulta), identifierField("Detran", normalizeAutoDetran(line.autoDetran)), field("Renainf", line.autoRenainf), nowrapField("Prazo", formatDate(line.prazoMulta)), signatureField("Visto")], blockIndex === multaBlocks.length - 1 && lineIndex === getMultaLines(block).length - 1, 20)}
                   </div>
                 ))}
               </div>

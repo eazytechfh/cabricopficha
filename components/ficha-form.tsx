@@ -16,7 +16,7 @@ import { CONSULTOR_OPTIONS, ESTADO_CIVIL_OPTIONS, INSTANCIA_MULTA_OPTIONS, INSTA
 import { validarCPF } from "@/lib/cpf-utils"
 import { updateAddressFields } from "@/lib/address-fields"
 import type { FichaFormValues } from "@/lib/ficha-types"
-import { MULTI_ENTRY_SEPARATOR, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
+import { MULTI_ENTRY_SEPARATOR, normalizeAutoDetran, normalizeMultasProcessoLabels, parseCurrency, splitSerializedEntries } from "@/lib/ficha-utils"
 import { appendPaymentEntry, formatPaymentAmount, parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries, type PaymentEntry } from "@/lib/payment-details"
 import { Calendar, User, CreditCard, FileText, AlertCircle, ChevronDown, Plus, X } from "lucide-react"
 
@@ -628,7 +628,14 @@ export function FichaForm({
 
     const nextLines = currentLines.map((line, currentLineIndex) =>
       currentLineIndex === lineIndex
-        ? { ...line, [field]: shouldUppercase ? value.toUpperCase() : value }
+        ? {
+            ...line,
+            [field]: field === "autoDetran"
+              ? normalizeAutoDetran(value)
+              : shouldUppercase
+                ? value.toUpperCase()
+                : value,
+          }
         : line
     )
 
