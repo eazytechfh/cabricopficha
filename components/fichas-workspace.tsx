@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentProps } from "react"
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronDown, Clock3, Eye, EyeOff, FileImage, FileText, IndentDecrease, IndentIncrease, Italic, List, ListOrdered, Minus, Palette, Pencil, Plus, Redo2, RemoveFormatting, Settings, Tag, Trash2, Underline, Undo2, UserPlus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -161,6 +161,26 @@ function getClienteBaseName(nomeCliente: string) {
 
 function fallback(value: string) {
   return value?.trim() || "-"
+}
+
+function PasswordInput(props: ComponentProps<typeof Input>) {
+  const [isVisible, setIsVisible] = useState(false)
+
+  return (
+    <div className="relative">
+      <Input {...props} type={isVisible ? "text" : "password"} className={`pr-10 ${props.className || ""}`} />
+      <button
+        type="button"
+        className="absolute right-0 top-0 flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => setIsVisible((current) => !current)}
+        aria-label={isVisible ? "Ocultar senha" : "Mostrar senha"}
+        aria-pressed={isVisible}
+        disabled={props.disabled}
+      >
+        {isVisible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+      </button>
+    </div>
+  )
 }
 
 function formatDisplayDate(value: string) {
@@ -1673,9 +1693,8 @@ export default function FichasWorkspace() {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="novaSenha">Nova senha</Label>
-                  <Input
+                  <PasswordInput
                     id="novaSenha"
-                    type="password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
                     placeholder="Digite a nova senha"
@@ -1684,9 +1703,8 @@ export default function FichasWorkspace() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmarSenha">Confirmar senha</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmarSenha"
-                    type="password"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="Confirme a nova senha"
@@ -1711,9 +1729,8 @@ export default function FichasWorkspace() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="senhaAcesso">Senha</Label>
-                      <Input
+                      <PasswordInput
                         id="senhaAcesso"
-                        type="password"
                         value={senhaAcesso}
                         onChange={(event) => setSenhaAcesso(event.target.value)}
                         placeholder="Digite sua senha"
@@ -1748,9 +1765,8 @@ export default function FichasWorkspace() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="forgotNewPassword">Nova senha</Label>
-                      <Input
+                      <PasswordInput
                         id="forgotNewPassword"
-                        type="password"
                         value={newPassword}
                         onChange={(event) => setNewPassword(event.target.value)}
                         placeholder="Digite a nova senha"
@@ -1759,9 +1775,8 @@ export default function FichasWorkspace() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="forgotConfirmPassword">Confirmar senha</Label>
-                      <Input
+                      <PasswordInput
                         id="forgotConfirmPassword"
-                        type="password"
                         value={confirmPassword}
                         onChange={(event) => setConfirmPassword(event.target.value)}
                         placeholder="Confirme a nova senha"
