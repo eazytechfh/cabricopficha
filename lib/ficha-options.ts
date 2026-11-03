@@ -42,7 +42,7 @@ export const SNE_OPTIONS = ["SIM", "NÃO", "CANCELOU"] as const
 
 export const TIPO_PROCESSO_OPTIONS = ["SUSPENSÃO", "CASSAÇÃO"] as const
 
-export const ESTADO_CIVIL_OPTIONS = ["CASADO(A)", "SOLTEIRO(A)", "UNIÃO ESTÁVEL", "DIVORCIADO(A)", "VIÚVO(A)"] as const
+export const ESTADO_CIVIL_OPTIONS = ["CASADO(A)", "SOLTEIRO(A)", "UNIÃO ESTÁVEL", "SEPARADO(A)", "DIVORCIADO(A)", "VIÚVO(A)"] as const
 
 export function formatOptionInitialCaps(value: string) {
   return value
