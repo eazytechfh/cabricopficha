@@ -27,10 +27,10 @@ test("renders ficha sections in the expected order", () => {
   const readNotes = readSource.indexOf('<ReadSection title="Observações Adicionais">')
   assert.ok(
     readPayment < readAdditional &&
-      readAdditional < readProcesses &&
+      readAdditional < readOtherServices &&
+      readOtherServices < readProcesses &&
       readProcesses < readFines &&
-      readFines < readOtherServices &&
-      readOtherServices < readNotes
+      readFines < readNotes
   )
 
   const pdfPayment = pdfSource.indexOf('section("DADOS DO PAGAMENTO"')
@@ -41,11 +41,18 @@ test("renders ficha sections in the expected order", () => {
   const pdfNotes = pdfSource.indexOf('section("OBSERVAÇÕES ADICIONAIS"')
   assert.ok(
     pdfPayment < pdfAdditional &&
-      pdfAdditional < pdfProcesses &&
+      pdfAdditional < pdfOtherServices &&
+      pdfOtherServices < pdfProcesses &&
       pdfProcesses < pdfFines &&
-      pdfFines < pdfOtherServices &&
-      pdfOtherServices < pdfNotes
+      pdfFines < pdfNotes
   )
+})
+
+test("shows only filled other service fields in the ficha and PDF", () => {
+  assert.match(readSource, /hasText\(values\.tipoOutroServico\) \? <ValueCell label="Tipo do Serviço"/)
+  assert.match(readSource, /hasText\(values\.poderesOutroServico\) \? <ValueCell label="Poderes"/)
+  assert.match(pdfSource, /data\.tipoOutroServico\?\.trim\(\) \? gridRow\("1fr", \[field\("Tipo do Serviço"/)
+  assert.match(pdfSource, /data\.poderesOutroServico\?\.trim\(\) \? gridRow\("1fr", \[field\("Poderes"/)
 })
 
 test("keeps consultant, origin and SNE outside shared client data", () => {

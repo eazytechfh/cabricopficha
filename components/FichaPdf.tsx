@@ -458,6 +458,13 @@ export default function FichaPdf({ data }: FichaPdfProps) {
           </>
         ))}
 
+        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
+          <>
+            {data.tipoOutroServico?.trim() ? gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)], !data.poderesOutroServico?.trim()) : null}
+            {data.poderesOutroServico?.trim() ? gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true) : null}
+          </>
+        )) : null}
+
         {processoLines.length > 0 ? section("PROCESSOS", (
           <>
             {processoLines.map((line, index) => (
@@ -496,13 +503,6 @@ export default function FichaPdf({ data }: FichaPdfProps) {
                 ))}
               </div>
             ))}
-          </>
-        )) : null}
-
-        {(data.tipoOutroServico?.trim() || data.poderesOutroServico?.trim()) ? section("OUTROS SERVIÇOS", (
-          <>
-            {gridRow("1fr", [field("Tipo do Serviço", data.tipoOutroServico)])}
-            {gridRow("1fr", [field("Poderes", data.poderesOutroServico)], true)}
           </>
         )) : null}
 

@@ -248,6 +248,15 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
         </div>
       </ReadSection>
 
+      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
+        <ReadSection title="Outros Serviços">
+          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
+            {hasText(values.tipoOutroServico) ? <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} /> : null}
+            {hasText(values.poderesOutroServico) ? <ValueCell label="Poderes" value={values.poderesOutroServico} /> : null}
+          </div>
+        </ReadSection>
+      ) : null}
+
       {processoLines.length > 0 ? (
         <ReadSection title="Processos">
           <div className="divide-y divide-slate-300">
@@ -294,15 +303,6 @@ export function FichaReadView({ values, actions, details }: FichaReadViewProps) 
                 </div>
               )
             })}
-          </div>
-        </ReadSection>
-      ) : null}
-
-      {hasFilledText([values.tipoOutroServico, values.poderesOutroServico]) ? (
-        <ReadSection title="Outros Serviços">
-          <div className="grid grid-cols-1 bg-white md:grid-cols-2 md:divide-x md:divide-slate-200">
-            <ValueCell label="Tipo do Serviço" value={values.tipoOutroServico} />
-            <ValueCell label="Poderes" value={values.poderesOutroServico} />
           </div>
         </ReadSection>
       ) : null}

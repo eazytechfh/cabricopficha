@@ -176,12 +176,22 @@ function getMissingSchemaColumn(payload: Record<string, unknown>) {
   const match =
     message.match(/coluna ['"]([^'"]+)['"]/i) ||
     message.match(/column ['"]([^'"]+)['"]/i) ||
-    message.match(/['"]([^'"]+)['"]\s+column/i)
+    message.match(/['"]([^'"]+)['"]\s+column/i) ||
+    message.match(/column (?:[a-z_][a-z_0-9]*\.)?([a-z_][a-z_0-9]*) does not exist/i)
   return match?.[1] || ""
 }
 
-function canRetryWithoutColumn(column: string) {
+function canRetryWithoutColumn(column: string, payload: Record<string, unknown>) {
+  if (payload[column] != null) return false
   return !["prazos_processo_texto", "prazos_multa_texto", "cpf_proprietario"].includes(column)
+}
+
+function fichaMutationError(payload: Record<string, unknown>, fallback: string) {
+  const missingColumn = getMissingSchemaColumn(payload)
+  if (missingColumn) {
+    return new Error(`A coluna ${missingColumn} não existe no banco de dados. Aplique as migrações pendentes antes de salvar a ficha.`)
+  }
+  return new Error(String(payload.message || payload.error || fallback))
 }
 
 async function parseSupabasePayload(response: Response) {
@@ -205,7 +215,7 @@ async function sendFichaMutation(url: string, method: "POST" | "PATCH", payload:
   while (!response.ok && !Array.isArray(responsePayload) && retries < 5) {
     const missingColumn = getMissingSchemaColumn(responsePayload)
 
-    if (!missingColumn || !(missingColumn in payload) || !canRetryWithoutColumn(missingColumn)) {
+    if (!missingColumn || !(missingColumn in payload) || !canRetryWithoutColumn(missingColumn, payload)) {
       break
     }
 
@@ -550,9 +560,9 @@ export async function createFicha(data: FichaFormValues, consultor: ConsultorSes
   const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}`, "POST", payload)
 
   if (!response.ok || !Array.isArray(responsePayload)) {
-    throw new Error(
-      !Array.isArray(responsePayload) ? String(responsePayload.message || responsePayload.error || "Erro ao criar ficha.") : "Erro ao criar ficha."
-    )
+    throw !Array.isArray(responsePayload)
+      ? fichaMutationError(responsePayload, "Erro ao criar ficha.")
+      : new Error("Erro ao criar ficha.")
   }
 
   return fromRow(responsePayload[0])
@@ -564,11 +574,9 @@ export async function updateFicha(id: string, data: FichaFormValues, consultor: 
   const { response, responsePayload } = await sendFichaMutation(`${supabaseUrl}/rest/v1/${fichasTableName}?id=eq.${id}`, "PATCH", payload)
 
   if (!response.ok || !Array.isArray(responsePayload)) {
-    throw new Error(
-      !Array.isArray(responsePayload)
-        ? String(responsePayload.message || responsePayload.error || "Erro ao atualizar ficha.")
-        : "Erro ao atualizar ficha."
-    )
+    throw !Array.isArray(responsePayload)
+      ? fichaMutationError(responsePayload, "Erro ao atualizar ficha.")
+      : new Error("Erro ao atualizar ficha.")
   }
 
   return fromRow(responsePayload[0])
