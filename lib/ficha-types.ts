@@ -112,6 +112,7 @@ export type FichaListItem = Pick<
   | "id"
   | "clientGroupId"
   | "nomeCliente"
+  | "terceiros"
   | "numeroFicha"
   | "cpfCnpj"
   | "telefones"

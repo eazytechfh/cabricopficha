@@ -4,7 +4,7 @@ import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaDuplicateMatch, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
-import { buildAccentInsensitivePattern } from "@/lib/search-utils"
+import { buildAccentInsensitivePattern, buildApproximateDocumentFilters, buildNameSearchFilter } from "@/lib/search-utils"
 import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
@@ -323,6 +323,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     "client_group_id",
     "numero_ficha",
     "nome_cliente",
+    "terceiros",
     "cpf_cnpj",
     "telefones",
     "endereco",
@@ -355,6 +356,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
+    terceiros: String(row.terceiros ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
@@ -371,9 +373,9 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   ensureSupabaseConfig()
 
   const cpfNormalizado = normalizeCpfCnpj(filters.cpf || "")
-  const nome = (filters.nome || "").trim()
+  const nameFilter = buildNameSearchFilter(filters.nome || "", ["nome_cliente", "terceiros"])
 
-  if (!cpfNormalizado && !nome) {
+  if (!cpfNormalizado && !nameFilter) {
     return []
   }
 
@@ -382,6 +384,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     "client_group_id",
     "numero_ficha",
     "nome_cliente",
+    "terceiros",
     "cpf_cnpj",
     "telefones",
     "endereco",
@@ -398,25 +401,34 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     order: "updated_at.desc.nullslast,created_at.desc.nullslast,id.desc",
   })
 
-  if (cpfNormalizado) {
-    searchParams.set(
-      "or",
-      `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`
-    )
+  if (nameFilter) {
+    searchParams.append("or", nameFilter)
   }
 
-  if (nome) {
-    searchParams.set("nome_cliente", `imatch.${buildAccentInsensitivePattern(nome)}`)
-  }
+  // Primeiro o documento exato; sem resultado, os números que mais se aproximam.
+  const documentFilters = cpfNormalizado
+    ? [
+        `(cpf_cnpj.eq.${cpfNormalizado},cpf_cnpj.eq.${cpfNormalizado}.0,cpf_normalizado.eq.${cpfNormalizado})`,
+        ...buildApproximateDocumentFilters(cpfNormalizado, ["cpf_normalizado", "cpf_cnpj"]),
+      ]
+    : [""]
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
-    headers: headers(),
-    cache: "no-store",
-  })
+  let payload: unknown = []
+  for (const documentFilter of documentFilters) {
+    const attemptParams = new URLSearchParams(searchParams)
+    if (documentFilter) attemptParams.append("or", documentFilter)
 
-  const payload = await response.json()
-  if (!response.ok) {
-    throw new Error(payload.message || payload.error || "Erro ao consultar fichas no Supabase.")
+    const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${attemptParams.toString()}`, {
+      headers: headers(),
+      cache: "no-store",
+    })
+
+    payload = await response.json()
+    if (!response.ok) {
+      const failure = payload as { message?: string; error?: string }
+      throw new Error(failure.message || failure.error || "Erro ao consultar fichas no Supabase.")
+    }
+    if ((payload as unknown[]).length > 0) break
   }
 
   return (payload as Array<Record<string, unknown>>).map((row) => ({
@@ -424,6 +436,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
+    terceiros: String(row.terceiros ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),

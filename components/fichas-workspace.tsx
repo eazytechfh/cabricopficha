@@ -34,6 +34,7 @@ import { saveFichaWithPdfAndWebhook } from "@/lib/fichaCreateService"
 import { checkFichaDuplicates, deleteFicha, getFichaById, getFichas, mergeFichaClients } from "@/lib/fichas-api"
 import { canEditFicha, normalizeCpfCnpj, toRecordValues } from "@/lib/ficha-utils"
 import { parsePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
+import { parseFichaSearch } from "@/lib/search-utils"
 import { shouldValidatePayments } from "@/lib/payment-validation-context"
 import { formatFichaChangeValue } from "@/lib/ficha-change-log"
 import {
@@ -50,7 +51,6 @@ import {
 
 type ViewMode = "list" | "picker" | "view" | "edit" | "editClient"
 type WorkspaceTab = "cadastrar" | "consultar"
-type TipoBusca = "cpf" | "cnpj" | "nome"
 type SettingsSection = "menu" | "users" | "documents"
 type TimelineGroup = {
   key: string
@@ -157,6 +157,10 @@ function getFichaLabel(numeroFicha: number, nomeCliente: string) {
 
 function getClienteBaseName(nomeCliente: string) {
   return (nomeCliente || "").trim().replace(/\s+\d{1,2}$/, "")
+}
+
+function getNomesTerceiros(contratos: FichaListItem[]) {
+  return [...new Set(contratos.map((contrato) => contrato.terceiros?.trim()).filter(Boolean))].join(", ")
 }
 
 function fallback(value: string) {
@@ -328,9 +332,7 @@ export default function FichasWorkspace() {
   const [duplicateActionId, setDuplicateActionId] = useState("")
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("cadastrar")
 
-  const [tipoBusca, setTipoBusca] = useState<TipoBusca>("nome")
-  const [cpfBusca, setCpfBusca] = useState("")
-  const [nomeBusca, setNomeBusca] = useState("")
+  const [busca, setBusca] = useState("")
   const [consultaLoading, setConsultaLoading] = useState(false)
   const [consultaError, setConsultaError] = useState("")
   const [consultaItems, setConsultaItems] = useState<FichaListItem[]>([])
@@ -1277,13 +1279,10 @@ export default function FichasWorkspace() {
       let nextContratos: FichaListItem[] = [response.ficha]
 
       if (createReturnToConsulta && selectedFicha) {
-        const cpfNormalizado = clientWasUpdated
-          ? normalizeCpfCnpj(response.ficha.cpfCnpj)
-          : tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
-        const nomeNormalizado = clientWasUpdated && !cpfNormalizado
-          ? getClienteBaseName(response.ficha.nomeCliente)
-          : tipoBusca === "nome" ? nomeBusca.trim() : ""
-        const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
+        const buscaAtualizada = clientWasUpdated
+          ? normalizeCpfCnpj(response.ficha.cpfCnpj) || getClienteBaseName(response.ficha.nomeCliente)
+          : busca
+        const refreshed = await getFichas(parseFichaSearch(buscaAtualizada))
         const selectedCpf = normalizeCpfCnpj(clientWasUpdated ? response.ficha.cpfCnpj : selectedFicha.cpfCnpj)
         const selectedName = getClienteBaseName(clientWasUpdated ? response.ficha.nomeCliente : selectedFicha.nomeCliente).toLowerCase()
         const filtered = refreshed.fichas.filter((ficha) => {
@@ -1295,18 +1294,13 @@ export default function FichasWorkspace() {
         refreshedItems = refreshed.fichas
         nextContratos = filtered.length > 0 ? filtered : [response.ficha]
 
-        if (clientWasUpdated) {
-          if (tipoBusca === "nome") setNomeBusca(getClienteBaseName(response.ficha.nomeCliente))
-          else setCpfBusca(response.ficha.cpfCnpj)
-        }
+        if (clientWasUpdated) setBusca(buscaAtualizada)
       } else {
         const cpfNormalizado = normalizeCpfCnpj(response.ficha.cpfCnpj)
         const refreshed = await getFichas({ cpf: cpfNormalizado })
         refreshedItems = refreshed.fichas.length > 0 ? refreshed.fichas : [response.ficha]
         nextContratos = refreshedItems
-        setTipoBusca("cpf")
-        setCpfBusca(response.ficha.cpfCnpj)
-        setNomeBusca("")
+        setBusca(response.ficha.cpfCnpj)
       }
 
       setConsultaError("")
@@ -1417,15 +1411,15 @@ export default function FichasWorkspace() {
     setSelectedFicha(null)
 
     try {
-      const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
-      const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
-
-      const response = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
+      const filtros = parseFichaSearch(busca)
+      const response = await getFichas(filtros)
       setConsultaItems(response.fichas)
       setSelectedContratos([])
       if (response.fichas.length === 0) {
-        const tipoLabel = tipoBusca === "nome" ? "nome" : tipoBusca.toUpperCase()
+        const tipoLabel = filtros.cpf ? "CPF/CNPJ" : "nome"
         setConsultaError(`Nenhuma ficha encontrada para este ${tipoLabel}.`)
+      } else if (filtros.cpf && !response.fichas.some((ficha) => normalizeCpfCnpj(ficha.cpfCnpj) === filtros.cpf)) {
+        setConsultaError("Nenhum CPF/CNPJ exatamente igual. Mostrando números parecidos: confira o documento antes de abrir a ficha.")
       }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao consultar fichas.")
@@ -1453,10 +1447,7 @@ export default function FichasWorkspace() {
     try {
       const fichaIds = selectedMergeGroups.flatMap((group) => group.contratos.map((ficha) => ficha.id))
       await mergeFichaClients(primaryFichaId, fichaIds, consultor)
-      const refreshed = await getFichas({
-        cpf: tipoBusca === "nome" ? "" : normalizeCpfCnpj(cpfBusca),
-        nome: tipoBusca === "nome" ? nomeBusca.trim() : "",
-      })
+      const refreshed = await getFichas(parseFichaSearch(busca))
       setConsultaItems(refreshed.fichas)
       setMergeClientKeys([])
       setMergePrimaryFichaId("")
@@ -1470,9 +1461,7 @@ export default function FichasWorkspace() {
   }
 
   const resetConsulta = () => {
-    setTipoBusca("nome")
-    setCpfBusca("")
-    setNomeBusca("")
+    setBusca("")
     setConsultaError("")
     setConsultaItems([])
     setSelectedContratos([])
@@ -1663,9 +1652,7 @@ export default function FichasWorkspace() {
           : "Ficha atualizada, mas houve erro ao enviar os dados para a automacao."
       )
       setViewMode("view")
-      const cpfNormalizado = tipoBusca === "cpf" || tipoBusca === "cnpj" ? normalizeCpfCnpj(cpfBusca) : ""
-      const nomeNormalizado = tipoBusca === "nome" ? nomeBusca.trim() : ""
-      const refreshed = await getFichas({ cpf: cpfNormalizado, nome: nomeNormalizado })
+      const refreshed = await getFichas(parseFichaSearch(busca))
       setConsultaItems(refreshed.fichas)
       setSelectedContratos((current) => current.map((contrato) => (contrato.id === response.ficha.id ? response.ficha : contrato)))
     } catch (error) {
@@ -2337,45 +2324,20 @@ export default function FichasWorkspace() {
                     event.preventDefault()
                     if (!consultaLoading) void handleConsultarFichas()
                   }}
-                  className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]"
+                  className="space-y-2"
                 >
-                  <div className="space-y-2">
-                    <Label htmlFor="tipoBusca">Tipo de Consulta</Label>
-                    <Select value={tipoBusca} onValueChange={(value) => setTipoBusca(value as TipoBusca)}>
-                      <SelectTrigger id="tipoBusca">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="nome">NOME</SelectItem>
-                        <SelectItem value="cpf">CPF</SelectItem>
-                        <SelectItem value="cnpj">CNPJ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="valorBusca">{tipoBusca === "nome" ? "Nome" : tipoBusca.toUpperCase()}</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="valorBusca"
-                        className="flex-1"
-                        value={tipoBusca === "nome" ? nomeBusca : cpfBusca}
-                        onChange={(event) => {
-                          if (tipoBusca === "cpf" || tipoBusca === "cnpj") {
-                            setCpfBusca(event.target.value)
-                          } else {
-                            setNomeBusca(event.target.value)
-                          }
-                        }}
-                        placeholder={
-                          tipoBusca === "nome"
-                            ? "Digite o nome do cliente"
-                            : `Digite o ${tipoBusca.toUpperCase()} com ou sem mascara`
-                        }
-                      />
-                      <Button type="submit" disabled={consultaLoading}>
-                        {consultaLoading ? "Consultando..." : "Consultar"}
-                      </Button>
-                    </div>
+                  <Label htmlFor="valorBusca">Buscar ficha</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="valorBusca"
+                      className="flex-1"
+                      value={busca}
+                      onChange={(event) => setBusca(event.target.value)}
+                      placeholder="Nome do cliente ou de terceiros, CPF ou CNPJ"
+                    />
+                    <Button type="submit" disabled={consultaLoading}>
+                      {consultaLoading ? "Consultando..." : "Consultar"}
+                    </Button>
                   </div>
                 </form>
                 {consultaError && <p className="text-sm text-red-600">{consultaError}</p>}
@@ -2420,6 +2382,9 @@ export default function FichasWorkspace() {
                             ) : null}
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cliente</p>
                             <p className="mt-1 font-semibold break-words">{cliente.nomeCliente}</p>
+                            {getNomesTerceiros(cliente.contratos) ? (
+                              <p className="mt-1 text-sm text-muted-foreground break-words">Terceiros: {getNomesTerceiros(cliente.contratos)}</p>
+                            ) : null}
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">CPF/CNPJ</p>
