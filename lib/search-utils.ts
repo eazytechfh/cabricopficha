@@ -61,3 +61,30 @@ export function parseFichaSearch(query: string) {
   const isDocument = /\d/.test(value) && /^[\d\s./-]+$/.test(value)
   return isDocument ? { cpf: value.replace(/\D/g, ""), nome: "" } : { cpf: "", nome: value }
 }
+
+const MIN_PARTIAL_DOCUMENT_DIGITS = 4
+const MIN_TYPO_DOCUMENT_DIGITS = 8
+
+// Trechos que o documento salvo pode conter quando um número foi digitado errado,
+// esquecido, digitado a mais ou trocado de lugar com o vizinho.
+export function getDocumentTypoPatterns(digits: string) {
+  const patterns = new Set<string>()
+  for (let index = 0; index < digits.length; index += 1) {
+    const before = digits.slice(0, index)
+    const after = digits.slice(index + 1)
+    patterns.add(`${before}[0-9]${after}`)
+    patterns.add(`${before}${after}`)
+    if (index > 0) patterns.add(`${before}[0-9]${digits.slice(index)}`)
+    if (after) patterns.add(`${before}${after[0]}${digits[index]}${after.slice(1)}`)
+  }
+  return [...patterns]
+}
+
+// Filtros "or" do PostgREST para quando não há documento exato, do mais próximo ao mais tolerante.
+export function buildApproximateDocumentFilters(digits: string, columns: string[]) {
+  const patterns: string[] = []
+  if (digits.length >= MIN_PARTIAL_DOCUMENT_DIGITS) patterns.push(digits)
+  if (digits.length >= MIN_TYPO_DOCUMENT_DIGITS) patterns.push(getDocumentTypoPatterns(digits).join("|"))
+
+  return patterns.map((pattern) => `(${columns.map((column) => `${column}.imatch."${pattern}"`).join(",")})`)
+}
