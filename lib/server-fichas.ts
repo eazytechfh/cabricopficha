@@ -4,7 +4,7 @@ import path from "node:path"
 import * as XLSX from "xlsx"
 import type { ConsultorSession, FichaDuplicateMatch, FichaFormValues, FichaListItem, FichaRecord } from "@/lib/ficha-types"
 import { normalizeCpfCnpj, normalizeFichaValues, parseCurrency, stripNumericDecimalSuffix } from "@/lib/ficha-utils"
-import { buildAccentInsensitivePattern } from "@/lib/search-utils"
+import { buildAccentInsensitivePattern, buildNameSearchFilter } from "@/lib/search-utils"
 import { readAddressFields } from "@/lib/address-fields"
 import { calculatePrazoServico } from "@/lib/prazo-servico"
 import { parsePaymentEntries, reconcilePaymentValues, serializePaymentEntries, validatePaymentEntries } from "@/lib/payment-details"
@@ -313,6 +313,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     "client_group_id",
     "numero_ficha",
     "nome_cliente",
+    "terceiros",
     "cpf_cnpj",
     "telefones",
     "endereco",
@@ -345,6 +346,7 @@ export async function getFichasByCpf(cpf: string): Promise<FichaListItem[]> {
     clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
+    terceiros: String(row.terceiros ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
@@ -361,9 +363,9 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
   ensureSupabaseConfig()
 
   const cpfNormalizado = normalizeCpfCnpj(filters.cpf || "")
-  const nome = (filters.nome || "").trim()
+  const nameFilter = buildNameSearchFilter(filters.nome || "", ["nome_cliente", "terceiros"])
 
-  if (!cpfNormalizado && !nome) {
+  if (!cpfNormalizado && !nameFilter) {
     return []
   }
 
@@ -372,6 +374,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     "client_group_id",
     "numero_ficha",
     "nome_cliente",
+    "terceiros",
     "cpf_cnpj",
     "telefones",
     "endereco",
@@ -395,8 +398,8 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     )
   }
 
-  if (nome) {
-    searchParams.set("nome_cliente", `imatch.${buildAccentInsensitivePattern(nome)}`)
+  if (nameFilter) {
+    searchParams.append("or", nameFilter)
   }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${fichasTableName}?${searchParams.toString()}`, {
@@ -414,6 +417,7 @@ export async function getFichasByFilters(filters: { cpf?: string; nome?: string 
     clientGroupId: String(row.client_group_id ?? ""),
     numeroFicha: Number(row.numero_ficha ?? 0),
     nomeCliente: String(row.nome_cliente ?? ""),
+    terceiros: String(row.terceiros ?? ""),
     cpfCnpj: stripNumericDecimalSuffix(String(row.cpf_cnpj ?? "")),
     telefones: String(row.telefones ?? ""),
     endereco: String(row.endereco ?? ""),
