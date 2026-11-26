@@ -1418,6 +1418,8 @@ export default function FichasWorkspace() {
       if (response.fichas.length === 0) {
         const tipoLabel = filtros.cpf ? "CPF/CNPJ" : "nome"
         setConsultaError(`Nenhuma ficha encontrada para este ${tipoLabel}.`)
+      } else if (filtros.cpf && !response.fichas.some((ficha) => normalizeCpfCnpj(ficha.cpfCnpj) === filtros.cpf)) {
+        setConsultaError("Nenhum CPF/CNPJ exatamente igual. Mostrando números parecidos: confira o documento antes de abrir a ficha.")
       }
     } catch (error) {
       setConsultaError(error instanceof Error ? error.message : "Erro ao consultar fichas.")
